@@ -20,7 +20,7 @@ spring:
 #        enabled: false
 
 server:
-  port: ${LISTEN_PORT:3000} # 8086
+  port: ${LISTEN_PORT:3000} # 3000
 
 logging:
   level:
