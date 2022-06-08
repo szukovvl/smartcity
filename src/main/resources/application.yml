@@ -1,0 +1,27 @@
+spring:
+  output.ansi.enabled: ALWAYS
+
+  application:
+    name: Smart City
+
+#  r2dbc:
+#    url: r2dbc:mysql://${DATA_HOST:localhost}/scrolldb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&useLocalSessionState=true
+#    username: scroll
+#    password: scroll-2021
+#    pool:
+#     enabled: true
+    #  max-size: 20
+    #  validation-query: SELECT 1
+    #  initial-size: 5
+    #  max-idle-time: 30m
+#  data:
+#    r2dbc:
+#      repositories:
+#        enabled: false
+
+server:
+  port: ${LISTEN_PORT:3000} # 8086
+
+logging:
+  level:
+    root: INFO
