@@ -17,7 +17,11 @@ public class ResourceRouter {
         return route().nest(
                 RequestPredicates.path("/api/1_0"),
                 builder -> {
+                    // управление вентилятором
                     builder.PUT("/wind/{value}", handler::setWindPower);
+
+                    // управление осветителями
+                    builder.PUT("/sun/{value}", handler::setSunPower);
                 }
         ).build();
     }
