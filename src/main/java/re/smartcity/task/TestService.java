@@ -7,21 +7,29 @@ import org.springframework.stereotype.Service;
 import re.smartcity.data.TestBean;
 import re.smartcity.handlers.SmartCityResourceHandler;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class TestService {
     private final Object _sync = new Object();
     private final TestThread thread = new TestThread();
+    //private final Executor executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     @GuardedBy("_sync") private boolean _isShutdown;
 
     private TestBean bean;
 
     public void start(TestBean bean) {
         this.bean = bean;
-        thread.start();
+        //thread.start();
+        executorService.execute(thread);
     }
 
     public void stop() {
         synchronized (_sync) { _isShutdown = true; }
-        thread.interrupt();
+        //thread.interrupt();
+        executorService.shutdown();
     }
 
     private class TestThread extends Thread {
@@ -38,12 +46,15 @@ public class TestService {
                     } else {
                         logger.info("--> поток выполняется");
                     }
-                    synchronized (_sync) {
+                    if (executorService.isShutdown()) {
+                        logger.info("--> завершение установленно.");
+                    }
+                    /*synchronized (_sync) {
                         if (_isShutdown) {
                             logger.info("--> завершение установленно.");
                             break;
                         }
-                    }
+                    }*/
                 }
             }
             catch (InterruptedException ex) {
