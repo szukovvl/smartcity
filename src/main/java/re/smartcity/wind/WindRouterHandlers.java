@@ -10,8 +10,11 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
+import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.ForecastTypes;
 import reactor.core.publisher.Mono;
+
+import java.util.Date;
 
 @Component
 public class WindRouterHandlers {
@@ -193,10 +196,13 @@ public class WindRouterHandlers {
     public Mono<ServerResponse> forecastCreate(ServerRequest rq) {
         logger.info("--> прогноз ветра: создать");
 
+        ForecastPoint[] points = { new ForecastPoint(new Date(), 2.0) };
+        Forecast v = new Forecast("myname", ForecastTypes.WIND, points);
+
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("прогноз ветра: создать"), String.class);
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(storage.create(v), Forecast.class);
     }
 }

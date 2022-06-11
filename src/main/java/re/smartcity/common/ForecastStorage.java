@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Component
 public class ForecastStorage {
@@ -23,5 +24,9 @@ public class ForecastStorage {
                         .query(Criteria.where("fc_type").is(fc))
                         .sort(Sort.by("name")),
                         Forecast.class);
+    }
+
+    public Mono<Forecast> create(Forecast v) {
+        return this.template.insert(v);
     }
 }

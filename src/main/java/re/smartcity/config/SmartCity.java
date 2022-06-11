@@ -19,9 +19,4 @@ public class SmartCity {
     public WindControlData windControlData() {
         return new WindControlData();
     }
-
-    @Bean
-    public WindService windService() {
-        return new WindService();
-    }
 }
