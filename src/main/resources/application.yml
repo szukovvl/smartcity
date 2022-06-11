@@ -4,20 +4,21 @@ spring:
   application:
     name: Smart City
 
-#  r2dbc:
-#    url: r2dbc:mysql://${DATA_HOST:localhost}/scrolldb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&useLocalSessionState=true
-#    username: scroll
-#    password: scroll-2021
-#    pool:
-#     enabled: true
+  r2dbc:
+    url: r2dbc:mysql://${DATA_HOST:localhost}/smartcitydb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&useLocalSessionState=true
+#    url: r2dbc:mysql://192.168.5.243/smartcitydb?useUnicode=true&characterEncoding=UTF-8&useSSL=false&useLocalSessionState=true
+    username: smartcity
+    password: smartcity-2022
+    pool:
+     enabled: true
     #  max-size: 20
     #  validation-query: SELECT 1
     #  initial-size: 5
     #  max-idle-time: 30m
-#  data:
-#    r2dbc:
-#      repositories:
-#        enabled: false
+  data:
+    r2dbc:
+      repositories:
+        enabled: false
 
 server:
   port: ${LISTEN_PORT:3000} # 3000

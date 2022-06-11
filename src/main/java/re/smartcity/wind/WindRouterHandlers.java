@@ -8,6 +8,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.ForecastStorage;
+import re.smartcity.common.data.Forecast;
+import re.smartcity.common.data.ForecastTypes;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -23,6 +26,9 @@ public class WindRouterHandlers {
 
     @Autowired
     private WindControlData windControlData;
+
+    @Autowired
+    private ForecastStorage storage;
 
     public Mono<ServerResponse> setWindPower(ServerRequest rq) {
         logger.info("--> установить силу ветра");
@@ -126,8 +132,8 @@ public class WindRouterHandlers {
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("прогноз ветра: получить весь список"), String.class);
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(storage.findAll(ForecastTypes.WIND), Forecast.class);
     }
 
     public Mono<ServerResponse> forecastById(ServerRequest rq) {

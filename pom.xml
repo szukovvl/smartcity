@@ -26,7 +26,7 @@
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 
-		<dependency>
+		<!--dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<scope>runtime</scope>
@@ -34,6 +34,19 @@
 		<dependency>
 			<groupId>io.r2dbc</groupId>
 			<artifactId>r2dbc-h2</artifactId>
+			<scope>runtime</scope>
+		</dependency-->
+
+		<!--dependency>
+			<groupId>dev.miku</groupId>
+			<artifactId>r2dbc-mysql</artifactId>
+			<scope>runtime</scope>
+		</dependency-->
+		<!-- https://mvnrepository.com/artifact/dev.miku/r2dbc-mysql -->
+		<dependency>
+			<groupId>dev.miku</groupId>
+			<artifactId>r2dbc-mysql</artifactId>
+			<version>0.8.2.RELEASE</version>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
@@ -58,12 +71,12 @@
 		</dependency>
 
 		<!-- аннотации @ThreadSafe и пр. -->
-        <dependency>
+        <!--dependency>
             <groupId>net.jcip</groupId>
             <artifactId>jcip-annotations</artifactId>
             <version>1.0</version>
             <scope>compile</scope>
-        </dependency>
+        </dependency-->
     </dependencies>
 
 	<build>
