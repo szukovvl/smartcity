@@ -1,30 +1,27 @@
 package re.smartcity.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import re.smartcity.data.TestBean;
-import re.smartcity.handlers.SmartCityResourceHandler;
-import re.smartcity.task.TestService;
-
-import javax.annotation.PreDestroy;
+import re.smartcity.wind.WindControlData;
+import re.smartcity.wind.WindService;
+import re.smartcity.wind.WindStatusData;
 
 @Configuration
 public class SmartCity {
 
-    private final Logger logger = LoggerFactory.getLogger(SmartCityResourceHandler.class);
-
+    // инфраструктура управление ветром
     @Bean
-    public TestBean testBean() {
-        logger.info("--> тестовый бин создан.");
-        return new TestBean();
+    public WindStatusData windStatusData() {
+        return new WindStatusData();
     }
 
     @Bean
-    public TestService testService() {
-        logger.info("--> тестовый сервис создан.");
-        return new TestService();
+    public WindControlData windControlData() {
+        return new WindControlData();
+    }
+
+    @Bean
+    public WindService windService() {
+        return new WindService();
     }
 }
