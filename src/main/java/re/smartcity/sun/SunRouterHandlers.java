@@ -1,4 +1,4 @@
-package re.smartcity.wind;
+package re.smartcity.sun;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,30 +11,28 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
+import re.smartcity.wind.*;
 import reactor.core.publisher.Mono;
 
 @Component
-public class WindRouterHandlers {
+public class SunRouterHandlers {
 
-    private final Logger logger = LoggerFactory.getLogger(WindRouterHandlers.class);
-
-    @Autowired
-    private WindService windService;
+    private final Logger logger = LoggerFactory.getLogger(SunRouterHandlers.class);
 
     @Autowired
-    private WindStatusData windStatusData;
+    private SunService sunService;
 
     @Autowired
-    private WindControlData windControlData;
+    private SunStatusData sunStatusData;
+
+    @Autowired
+    private SunControlData sunControlData;
 
     @Autowired
     private ForecastStorage storage;
 
-    /*
-    необходимо выполнить проверку данных в setWindPower и, аналогично, для управления осветителями
-     */
-    public Mono<ServerResponse> setWindPower(ServerRequest rq) {
-        logger.info("--> установить силу ветра");
+    public Mono<ServerResponse> setSunPower(ServerRequest rq) {
+        logger.info("--> установить освещенность");
 
         Integer v = 0;
         try {
@@ -45,102 +43,102 @@ public class WindRouterHandlers {
                     .status(HttpStatus.NOT_IMPLEMENTED)
                     .header("Content-Language", "ru")
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body(Mono.just("сила ветра: неверный параметр"), String.class);
+                    .body(Mono.just("освещенность: неверный параметр"), String.class);
         }
 
-        windControlData.addCommand(new WindControlCommand(WindControlCommands.POWER, v));
+        sunControlData.addCommand(new WindControlCommand(WindControlCommands.POWER, v));
 
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just(String.format("сила ветра: %s", v)), String.class);
+                .body(Mono.just(String.format("освещенность: %s", v)), String.class);
     }
 
-    public Mono<ServerResponse> windOff(ServerRequest rq) {
-        logger.info("--> вентилятор: отключить");
+    public Mono<ServerResponse> sunOff(ServerRequest rq) {
+        logger.info("--> освещение: отключить");
 
-        windControlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, false));
+        sunControlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, false));
 
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("отключить вентилятор"), String.class);
+                .body(Mono.just("отключить освещение"), String.class);
     }
 
-    public Mono<ServerResponse> windOn(ServerRequest rq) {
-        logger.info("--> вентилятор: включить");
+    public Mono<ServerResponse> sunOn(ServerRequest rq) {
+        logger.info("--> освещение: включить");
 
-        windControlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, true));
+        sunControlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, true));
 
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("включить вентилятор"), String.class);
+                .body(Mono.just("включить освещение"), String.class);
     }
 
     public Mono<ServerResponse> getStatus(ServerRequest rq) {
-        logger.info("--> вентилятор: статус");
+        logger.info("--> освещение: статус");
 
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Mono.just(windStatusData), WindStatusData.class);
+                .body(Mono.just(sunStatusData), WindStatusData.class);
     }
 
     // управление сервисом
     public Mono<ServerResponse> stopService(ServerRequest rq) {
-        logger.info("--> задача управления ветром: остановить");
+        logger.info("--> задача управления солнцем: остановить");
 
-        windService.stop();
+        sunService.stop();
 
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("задача управления ветром: остановить"), String.class);
+                .body(Mono.just("задача управления солнцем: остановить"), String.class);
     }
 
     public Mono<ServerResponse> startService(ServerRequest rq) {
-        logger.info("--> задача управления ветром: запустить");
+        logger.info("--> задача управления солнцем: запустить");
 
-        windService.start();
+        sunService.start();
 
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("задача управления ветром: запустить"), String.class);
+                .body(Mono.just("задача управления солнцем: запустить"), String.class);
     }
 
     public Mono<ServerResponse> restartService(ServerRequest rq) {
-        logger.info("--> задача управления ветром: перезапустить");
+        logger.info("--> задача управления солнцем: перезапустить");
 
-        windService.restart();
+        sunService.restart();
 
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("задача управления ветром: перезапустить"), String.class);
+                .body(Mono.just("задача управления солнцем: перезапустить"), String.class);
     }
 
     // работа с прогнозом
     public Mono<ServerResponse> forecastAll(ServerRequest rq) {
-        logger.info("--> прогноз ветра: получить весь список");
+        logger.info("--> прогноз солнца: получить весь список");
 
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(storage.findAll(ForecastTypes.WIND), Forecast.class);
+                .body(storage.findAll(ForecastTypes.SUN), Forecast.class);
     }
 
     public Mono<ServerResponse> forecastCreate(ServerRequest rq) {
-        logger.info("--> прогноз ветра: создать");
+        logger.info("--> прогноз солнца: создать");
 
         return ServerResponse
                 .ok()
@@ -148,7 +146,7 @@ public class WindRouterHandlers {
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(rq.bodyToMono(Forecast.class)
                         .flatMap(e -> {
-                            e.setFc_type(ForecastTypes.WIND);
+                            e.setFc_type(ForecastTypes.SUN);
                             logger.info("--> тело запроса: {}", e);
                             return storage.create(e);
                         }), Forecast.class);

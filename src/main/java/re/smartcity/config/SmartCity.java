@@ -7,6 +7,8 @@ import org.springframework.data.r2dbc.convert.R2dbcCustomConversions;
 import org.springframework.data.r2dbc.dialect.MySqlDialect;
 import re.smartcity.common.converters.JsonFieldReadConverter;
 import re.smartcity.common.converters.JsonFieldWriteConverter;
+import re.smartcity.sun.SunControlData;
+import re.smartcity.sun.SunStatusData;
 import re.smartcity.wind.WindControlData;
 import re.smartcity.wind.WindStatusData;
 
@@ -15,6 +17,14 @@ import java.util.List;
 
 @Configuration
 public class SmartCity {
+
+    @Bean
+    public R2dbcCustomConversions ForecastPointConversions() {
+        List<Converter<?, ?>> converters = new ArrayList<>();
+        converters.add(new JsonFieldReadConverter());
+        converters.add(new JsonFieldWriteConverter());
+        return R2dbcCustomConversions.of(MySqlDialect.INSTANCE, converters);
+    }
 
     // инфраструктура управление ветром
     @Bean
@@ -27,10 +37,15 @@ public class SmartCity {
         return new WindControlData();
     }
 
+    // инфраструктура управление солнцем
     @Bean
-    public R2dbcCustomConversions ForecastPointConversions() {
-        List<Converter<?, ?>> converters = new ArrayList<>();
-        converters.add(new JsonFieldReadConverter());
-        converters.add(new JsonFieldWriteConverter());
-        return R2dbcCustomConversions.of(MySqlDialect.INSTANCE, converters);
-    }}
+    public SunStatusData sunStatusData() {
+        return new SunStatusData();
+    }
+
+    @Bean
+    public SunControlData sunControlData() {
+        return new SunControlData();
+    }
+
+}

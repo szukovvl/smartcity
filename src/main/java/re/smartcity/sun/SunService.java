@@ -1,38 +1,39 @@
-package re.smartcity.wind;
+package re.smartcity.sun;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import re.smartcity.wind.*;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Service
-public class WindService {
+public class SunService {
 
-    private final Logger logger = LoggerFactory.getLogger(WindService.class);
+    private final Logger logger = LoggerFactory.getLogger(SunService.class);
 
     @Autowired
-    private WindStatusData statusData;
+    private SunStatusData statusData;
     @Autowired
-    private WindControlData controlData;
+    private SunControlData controlData;
 
     volatile private ExecutorService executorService;
 
     public void start() {
-        logger.info("запуск сервиса управления ветром");
+        logger.info("запуск сервиса управления солнцем");
         if (executorService == null)
         {
             executorService = Executors.newSingleThreadExecutor();
-            executorService.execute(new WindThread());
+            executorService.execute(new SunService.SunThread());
         } else {
-            logger.info("сервис управления ветром уже запущен");
+            logger.info("сервис управления солнцем уже запущен");
         }
     }
 
     public void stop() {
-        logger.info("останов сервиса управления ветром");
+        logger.info("останов сервиса управления солнцем");
         if (executorService != null) {
             controlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, false));
             Executors.newSingleThreadExecutor().execute(new Runnable() {
@@ -46,20 +47,21 @@ public class WindService {
                 }
             });
         } else {
-            logger.info("сервис управления ветром не запущена");
+            logger.info("сервис управления солнцем не запущена");
         }
     }
 
+    // ВНИМАНИЕ: при перезапуске задач не выполняются блокировки, что может привести к запуску ложного потока
     public void restart() {
-        logger.info("перезапуск сервиса управления ветром");
-        Executors.newSingleThreadExecutor().execute(new RestartWindThread());
+        logger.info("перезапуск сервиса управления солнцем");
+        Executors.newSingleThreadExecutor().execute(new SunService.RestartSunThread());
     }
-    private class WindThread implements Runnable {
+    private class SunThread implements Runnable {
 
-        private final Logger logger = LoggerFactory.getLogger(WindService.WindThread.class);
+        private final Logger logger = LoggerFactory.getLogger(SunService.SunThread.class);
 
         public void run() {
-            logger.info("поток управления ветром запущен.");
+            logger.info("поток управления солнцем запущен.");
             try {
                 statusData.setStatus(WindServiceStatuses.LAUNCHED);
                 while(!executorService.isShutdown() && !executorService.isTerminated()) {
@@ -77,29 +79,29 @@ public class WindService {
                 }
             }
             catch (InterruptedException ex) {
-                logger.info("поток управления ветром прерван.");
+                logger.info("поток управления солнцем прерван.");
             }
             finally {
                 statusData.setStatus(WindServiceStatuses.STOPPED);
                 executorService = null;
-                logger.info("поток управления ветром завершил выполнение.");
+                logger.info("поток управления солнцем завершил выполнение.");
             }
         }
     }
 
-    private class RestartWindThread implements Runnable {
+    private class RestartSunThread implements Runnable {
 
-        private final Logger logger = LoggerFactory.getLogger(WindService.RestartWindThread.class);
+        private final Logger logger = LoggerFactory.getLogger(SunService.RestartSunThread.class);
 
         public void run() {
-            logger.info("перезапуск потока управления ветром.");
+            logger.info("перезапуск потока управления солнцем.");
             try {
-                WindService.this.stop();
+                SunService.this.stop();
                 Thread.sleep(controlData.getRestartingWait());
-                WindService.this.start();
+                SunService.this.start();
             }
             catch (InterruptedException ex) {
-                logger.info("перезапуск потока управления ветром - прерван.");
+                logger.info("перезапуск потока управления солнцем - прерван.");
             }
         }
     }

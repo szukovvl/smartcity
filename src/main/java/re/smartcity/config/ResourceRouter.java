@@ -6,6 +6,7 @@ import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastRouterHandler;
+import re.smartcity.sun.SunRouterHandlers;
 import re.smartcity.wind.WindRouterHandlers;
 
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
@@ -23,6 +24,29 @@ public class ResourceRouter {
                     builder.PUT("/{value}", handler::setWindPower);
                     builder.POST("/off", handler::windOff);
                     builder.POST("/on", handler::windOn);
+
+                    // управление сервисом
+                    builder.PUT("/service/stop", handler::stopService);
+                    builder.PUT("/service/start", handler::startService);
+                    builder.PUT("/service/restart", handler::restartService);
+
+                    // прогноз
+                    builder.GET("/forecast/all", handler::forecastAll);
+                    builder.POST("/forecast", handler::forecastCreate);
+                }
+        ).build();
+    }
+
+    // управление осветителями
+    @Bean
+    public RouterFunction<ServerResponse> sunRouterFunction(SunRouterHandlers handler) {
+        return route().nest(
+                RequestPredicates.path("/api/1_0/sun"),
+                builder -> {
+                    builder.GET("", handler::getStatus);
+                    builder.PUT("/{value}", handler::setSunPower);
+                    builder.POST("/off", handler::sunOff);
+                    builder.POST("/on", handler::sunOn);
 
                     // управление сервисом
                     builder.PUT("/service/stop", handler::stopService);
