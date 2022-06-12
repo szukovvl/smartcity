@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.wind.WindRouterHandlers;
 
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
@@ -14,7 +15,7 @@ public class ResourceRouter {
 
     // управление вентилятором
     @Bean
-    public RouterFunction<ServerResponse> WindRouterFunction(WindRouterHandlers handler) {
+    public RouterFunction<ServerResponse> windRouterFunction(WindRouterHandlers handler) {
         return route().nest(
                 RequestPredicates.path("/api/1_0/wind"),
                 builder -> {
@@ -30,10 +31,23 @@ public class ResourceRouter {
 
                     // прогноз
                     builder.GET("/forecast/all", handler::forecastAll);
-                    builder.GET("/forecast/find/{id}", handler::forecastById);
-                    builder.PUT("/forecast/data", handler::forecastUpdate);
-                    builder.DELETE("/forecast/{id}", handler::forecastRemove);
                     builder.POST("/forecast", handler::forecastCreate);
+                }
+        ).build();
+    }
+
+    // прогнозы
+    @Bean
+    public RouterFunction<ServerResponse> forecastRouterFunction(ForecastRouterHandler handler) {
+        return route().nest(
+                RequestPredicates.path("/api/1_0/forecast"),
+                builder -> {
+
+                    // прогноз
+                    builder.GET("/{id}", handler::forecastById);
+                    builder.PUT("", handler::forecastUpdate);
+                    builder.PUT("/data/{id}", handler::forecastUpdatePoints);
+                    builder.DELETE("/{id}", handler::forecastRemove);
                 }
         ).build();
     }

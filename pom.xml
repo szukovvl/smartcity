@@ -70,14 +70,28 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- аннотации @ThreadSafe и пр. -->
+		<!-- SerializerProvider ? -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.13.1</version>
+        </dependency>
+
+        <!-- аннотации @ThreadSafe и пр. -->
         <!--dependency>
             <groupId>net.jcip</groupId>
             <artifactId>jcip-annotations</artifactId>
             <version>1.0</version>
             <scope>compile</scope>
         </dependency-->
-    </dependencies>
+
+		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-jsr310 -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>2.13.1</version>
+		</dependency>
+	</dependencies>
 
 	<build>
 		<plugins>

@@ -10,11 +10,8 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
-import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.ForecastTypes;
 import reactor.core.publisher.Mono;
-
-import java.util.Date;
 
 @Component
 public class WindRouterHandlers {
@@ -139,70 +136,18 @@ public class WindRouterHandlers {
                 .body(storage.findAll(ForecastTypes.WIND), Forecast.class);
     }
 
-    public Mono<ServerResponse> forecastById(ServerRequest rq) {
-        logger.info("--> прогноз ветра: получить прогноз");
-
-        Long id = 0l;
-        try {
-            id = Long.parseLong(rq.pathVariable("id"));
-        }
-        catch (NumberFormatException e) {
-            return ServerResponse
-                    .status(HttpStatus.NOT_IMPLEMENTED)
-                    .header("Content-Language", "ru")
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body(Mono.just("прогноз ветра: неверный параметр"), String.class);
-        }
-
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just(String.format("прогноз ветра: получить прогноз для %s", id)), String.class);
-    }
-
-    public Mono<ServerResponse> forecastUpdate(ServerRequest rq) {
-        logger.info("--> прогноз ветра: обновить данные");
-
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("прогноз ветра: обновить данные"), String.class);
-    }
-
-    public Mono<ServerResponse> forecastRemove(ServerRequest rq) {
-        logger.info("--> прогноз ветра: удалить прогноз");
-
-        Long id = 0l;
-        try {
-            id = Long.parseLong(rq.pathVariable("id"));
-        }
-        catch (NumberFormatException e) {
-            return ServerResponse
-                    .status(HttpStatus.NOT_IMPLEMENTED)
-                    .header("Content-Language", "ru")
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body(Mono.just("прогноз ветра: неверный параметр"), String.class);
-        }
-
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just(String.format("прогноз ветра: удалить прогноз %s", id)), String.class);
-    }
-
     public Mono<ServerResponse> forecastCreate(ServerRequest rq) {
         logger.info("--> прогноз ветра: создать");
-
-        ForecastPoint[] points = { new ForecastPoint(new Date(), 2.0) };
-        Forecast v = new Forecast("myname", ForecastTypes.WIND, points);
 
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(storage.create(v), Forecast.class);
+                .body(rq.bodyToMono(Forecast.class)
+                        .flatMap(e -> {
+                            e.setFc_type(ForecastTypes.WIND);
+                            logger.info("--> тело запроса: {}", e);
+                            return storage.create(e);
+                        }), Forecast.class);
     }
 }
