@@ -12,7 +12,7 @@ public class ConsumerA implements IComponentIdentification {
     private String identy; // уникальный идентификатор
     private SupportedTypes componenttype = SupportedTypes.CONSUMER; // тип компонента
 
-    private Integer data = 1;
+    private DataA data = new DataA();
 
     public ConsumerA() { }
 
@@ -25,11 +25,11 @@ public class ConsumerA implements IComponentIdentification {
     //endregion
 
 
-    public Integer getData() {
+    public DataA getData() {
         return data;
     }
 
-    public void setData(Integer data) {
+    public void setData(DataA data) {
         this.data = data;
     }
 

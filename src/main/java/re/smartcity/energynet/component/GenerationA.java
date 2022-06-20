@@ -13,7 +13,7 @@ public class GenerationA implements IComponentIdentification {
     private String identy; // уникальный идентификатор
     private SupportedTypes componenttype = SupportedTypes.GENERATOR; // тип компонента
 
-    private Integer data = -1;
+    private DataB data = new DataB();
 
     public GenerationA() { }
 
@@ -26,11 +26,11 @@ public class GenerationA implements IComponentIdentification {
     //endregion
 
 
-    public Integer getData() {
+    public DataB getData() {
         return data;
     }
 
-    public void setData(Integer data) {
+    public void setData(DataB data) {
         this.data = data;
     }
 

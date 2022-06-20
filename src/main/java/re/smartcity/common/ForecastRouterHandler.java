@@ -1,15 +1,28 @@
 package re.smartcity.common;
 
+import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
+import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.r2dbc.support.ArrayUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.Forecast;
+import re.smartcity.common.data.ForecastPoint;
+import re.smartcity.common.data.Point;
 import reactor.core.publisher.Mono;
+
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 @Component
 public class ForecastRouterHandler {
@@ -38,7 +51,56 @@ public class ForecastRouterHandler {
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(storage.findById(id), Forecast.class);
+                .body(storage.findById(id)
+                        .map(e -> {
+                            System.out.println();
+                            Arrays.stream(e.getData()).forEachOrdered(a -> {
+                                System.out.println(String.format("%s\t%s", a.getPoint().toSecondOfDay(), a.getValue()));
+                            });
+                            System.out.println();
+                            System.out.println();
+                            Point[] pts = Stream.generate(() -> new Point()).limit(1440).toArray(Point[]::new);
+                            final Integer[] tm = {0};
+                            Arrays.stream(pts).forEachOrdered(a -> {
+                                a.setX(tm[0].doubleValue());
+                                a.setY(0.0);
+                                tm[0] += 60;
+                            });
+
+
+                            List<ForecastPoint> fpts = new ArrayList<ForecastPoint>();
+                            fpts.addAll(Arrays.asList(e.getData()));
+                            if (fpts.get(0).getPoint().toSecondOfDay() != 0)
+                            {
+                                fpts.add(0, new ForecastPoint());
+                            }
+                            if (fpts.get(fpts.size() - 1).getPoint().toSecondOfDay() < pts[pts.length - 1].getX()) {
+                                fpts.add(new ForecastPoint(LocalTime.ofSecondOfDay(pts[pts.length - 1].getX().longValue()), 0.0));
+                            }
+
+                            var xx = fpts.stream().mapToDouble(b -> (double) b.getPoint().toSecondOfDay()).toArray();
+                            var yy = fpts.stream().mapToDouble(b -> b.getValue()).toArray();
+                            final PolynomialSplineFunction[] funin = { null };
+                            if (fpts.size() < 5) {
+                                funin[0] = (new LinearInterpolator()).interpolate(xx, yy);
+                            } else {
+                                funin[0] = (new AkimaSplineInterpolator()).interpolate(xx, yy);
+                            }
+
+                            Arrays.stream(pts).forEachOrdered(b -> {
+                                double val = funin[0].value(b.getX());
+                                if (val < 0.0) {
+                                    val = 0.0;
+                                } else if (val > 1.0) {
+                                    val = 1.0;
+                                }
+                                b.setY(val);
+                                System.out.println(String.format("%s\t%s", b.getX(), b.getY()));
+                            });
+
+                            System.out.println();
+                            return e;
+                        }), Forecast.class);
     }
 
     public Mono<ServerResponse> forecastUpdate(ServerRequest rq) {

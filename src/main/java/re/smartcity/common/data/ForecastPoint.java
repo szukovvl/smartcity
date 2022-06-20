@@ -13,15 +13,16 @@ import java.time.LocalTime;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class ForecastPoint implements Comparable<ForecastPoint> {
 
     @JsonSerialize(using = LocalTimeSerializer.class)
     @JsonDeserialize(using = LocalTimeDeserializer.class)
     @NonNull
-    private LocalTime point;
+    private LocalTime point = LocalTime.of(0, 0, 0);
 
     @NonNull
-    private Double value;
+    private Double value = 0.0;
 
     @Override
     public boolean equals(Object obj) {

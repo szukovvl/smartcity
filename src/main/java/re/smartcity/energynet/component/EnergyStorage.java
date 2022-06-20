@@ -29,6 +29,9 @@ public class EnergyStorage {
     private EnergyStorage_ChargeBehaviors chargebehavior; // поведение хранилища при восстановлении
     private EnergyStorage_States initstate; // начальное состояние перед началом игрового процесса
 
+    // ??? отнести к мгновенным значениям ???
+    private double currentPower; // текущее значение остатка мощности
+
     // мгновенные значения (instant values / instantaneous values)
     private LocalTime timestamp; // метка времени примененных значений
     private Double currentcost; // действующая стоимость

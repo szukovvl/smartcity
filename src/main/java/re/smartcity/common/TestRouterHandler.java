@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.energynet.IComponentIdentification;
+import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.energynet.component.ConsumerA;
 import re.smartcity.energynet.component.GenerationA;
 import re.smartcity.wind.WindControlCommand;
@@ -35,11 +36,16 @@ public class TestRouterHandler {
     public Mono<ServerResponse> getCmp(ServerRequest rq) {
         logger.info("--> чтение компонент");
 
+        Flux<ConsumerA> res1 = template.select(Query
+                .query(Criteria.where("componenttype").is(SupportedTypes.CONSUMER)), ConsumerA.class);
+        Flux<GenerationA> res2 = template.select(Query
+                .query(Criteria.where("componenttype").is(SupportedTypes.GENERATOR)), GenerationA.class);
+
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("не решил пока..."), String.class);
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Flux.merge(res1, res2), IComponentIdentification.class);
     }
 
     public Mono<ServerResponse> updateCmp(ServerRequest rq) {
