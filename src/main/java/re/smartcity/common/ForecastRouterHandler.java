@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MAX_VALUE;
+import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MIN_VALUE;
+
 @Component
 public class ForecastRouterHandler {
 
@@ -55,7 +58,7 @@ public class ForecastRouterHandler {
                         .map(e -> {
                             System.out.println();
                             Arrays.stream(e.getData()).forEachOrdered(a -> {
-                                System.out.println(String.format("%s\t%s", a.getPoint().toSecondOfDay(), a.getValue()));
+                                System.out.println(String.format("%s\t%s", a.getPoint().toSecondOfDay(), a.getValue() * 100.0));
                             });
                             System.out.println();
                             System.out.println();
@@ -63,7 +66,7 @@ public class ForecastRouterHandler {
                             final Integer[] tm = {0};
                             Arrays.stream(pts).forEachOrdered(a -> {
                                 a.setX(tm[0].doubleValue());
-                                a.setY(0.0);
+                                a.setY(FORECAST_POINT_MIN_VALUE);
                                 tm[0] += 60;
                             });
 
@@ -72,10 +75,10 @@ public class ForecastRouterHandler {
                             fpts.addAll(Arrays.asList(e.getData()));
                             if (fpts.get(0).getPoint().toSecondOfDay() != 0)
                             {
-                                fpts.add(0, new ForecastPoint());
+                                fpts.add(0, new ForecastPoint(LocalTime.ofSecondOfDay(0), FORECAST_POINT_MIN_VALUE));
                             }
                             if (fpts.get(fpts.size() - 1).getPoint().toSecondOfDay() < pts[pts.length - 1].getX()) {
-                                fpts.add(new ForecastPoint(LocalTime.ofSecondOfDay(pts[pts.length - 1].getX().longValue()), 0.0));
+                                fpts.add(new ForecastPoint(LocalTime.ofSecondOfDay((long) pts[pts.length - 1].getX()), FORECAST_POINT_MIN_VALUE));
                             }
 
                             var xx = fpts.stream().mapToDouble(b -> (double) b.getPoint().toSecondOfDay()).toArray();
@@ -89,13 +92,13 @@ public class ForecastRouterHandler {
 
                             Arrays.stream(pts).forEachOrdered(b -> {
                                 double val = funin[0].value(b.getX());
-                                if (val < 0.0) {
-                                    val = 0.0;
-                                } else if (val > 1.0) {
-                                    val = 1.0;
+                                if (val < FORECAST_POINT_MIN_VALUE) {
+                                    val = FORECAST_POINT_MIN_VALUE;
+                                } else if (val > FORECAST_POINT_MAX_VALUE) {
+                                    val = FORECAST_POINT_MAX_VALUE;
                                 }
                                 b.setY(val);
-                                System.out.println(String.format("%s\t%s", b.getX(), b.getY()));
+                                System.out.println(String.format("%s\t%s", b.getX(), b.getY() * 100.0));
                             });
 
                             System.out.println();

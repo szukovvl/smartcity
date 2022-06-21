@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public final class Point {
-    private Double x;
-    private Double y;
+    private double x;
+    private double y;
 }

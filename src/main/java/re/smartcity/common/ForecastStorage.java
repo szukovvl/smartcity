@@ -16,7 +16,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
+
+import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MAX_VALUE;
+import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MIN_VALUE;
 
 @Component
 public class ForecastStorage {
@@ -44,8 +46,8 @@ public class ForecastStorage {
             throw new IllegalArgumentException("Прогноз должен содержать как минимум одну точку.");
         }
         if (pts.length == 1) {
-            if (pts[0].getValue() < 0.0) pts[0].setValue(0.0);
-            if (pts[0].getValue() > 2.0) pts[0].setValue(2.0);
+            if (pts[0].getValue() < FORECAST_POINT_MIN_VALUE) pts[0].setValue(FORECAST_POINT_MIN_VALUE);
+            if (pts[0].getValue() > FORECAST_POINT_MAX_VALUE) pts[0].setValue(FORECAST_POINT_MAX_VALUE);
             return pts;
         }
 
@@ -58,8 +60,8 @@ public class ForecastStorage {
         Arrays.stream(pts).forEachOrdered(e ->
         {
             Double val = e.getValue();
-            if (val < 0.0) e.setValue(0.0);
-            if (val > 2.0) e.setValue(2.0);
+            if (val < FORECAST_POINT_MIN_VALUE) e.setValue(FORECAST_POINT_MIN_VALUE);
+            if (val > FORECAST_POINT_MAX_VALUE) e.setValue(FORECAST_POINT_MAX_VALUE);
         });
 
         return pts;
