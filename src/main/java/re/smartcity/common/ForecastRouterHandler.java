@@ -86,13 +86,11 @@ public class ForecastRouterHandler {
                             var yy = fpts.stream().mapToDouble(b -> b.getValue()).toArray();
                             final PolynomialSplineFunction[] funin = { null };
 
-                            funin[0] = (new LinearInterpolator()).interpolate(xx, yy);
-                            /*
                             if (fpts.size() < 5) {
                                 funin[0] = (new LinearInterpolator()).interpolate(xx, yy);
                             } else {
                                 funin[0] = (new AkimaSplineInterpolator()).interpolate(xx, yy);
-                            }*/
+                            }
 
                             Arrays.stream(pts).forEachOrdered(b -> {
                                 double val = funin[0].value(b.getX());
@@ -102,7 +100,11 @@ public class ForecastRouterHandler {
                                     val = FORECAST_POINT_MAX_VALUE;
                                 }
                                 b.setY(val);
-                                System.out.println(String.format("%.2f\t%.2f", b.getX(), b.getY() * 100.0));
+                                //System.out.println(String.format("%.2f\t%.2f", b.getX(), b.getY() * 100.0));
+                                double v1 = b.getX() / 3600.0;
+                                double v2 = v1 * 3600.0;
+                                System.out.println(String.format("%g\t%g\t%g\t%g\t\t%g\t%s",
+                                        b.getX(), v1, v2, v2 - b.getX(), Math.round(v2) - b.getX(), (long)v2));
                             });
 
                             System.out.println();
