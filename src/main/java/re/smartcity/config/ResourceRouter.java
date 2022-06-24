@@ -6,7 +6,6 @@ import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastRouterHandler;
-import re.smartcity.common.TestRouterHandler;
 import re.smartcity.sun.SunRouterHandlers;
 import re.smartcity.wind.WindRouterHandlers;
 
@@ -73,18 +72,6 @@ public class ResourceRouter {
                     builder.PUT("", handler::forecastUpdate);
                     builder.PUT("/data/{id}", handler::forecastUpdatePoints);
                     builder.DELETE("/{id}", handler::forecastRemove);
-                }
-        ).build();
-    }
-
-    // маршрут для тестирования
-    @Bean
-    public RouterFunction<ServerResponse> testRouterFunction(TestRouterHandler handler) {
-        return route().nest(
-                RequestPredicates.path("/api/1_0/test"),
-                builder -> {
-                    builder.GET("", handler::getCmp);
-                    builder.PUT("", handler::updateCmp);
                 }
         ).build();
     }

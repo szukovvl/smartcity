@@ -22,10 +22,8 @@ public class SmartCity {
         List<Converter<?, ?>> converters = new ArrayList<>();
         converters.add(new JsonFieldReadConverter());
         converters.add(new JsonFieldWriteConverter());
-        converters.add(new JsonDataAType_ReadConverter());
-        converters.add(new JsonDataAType_WriteConverter());
-        converters.add(new JsonDataBType_ReadConverter());
-        converters.add(new JsonDataBType_WriteConverter());
+        converters.add(new MainSubstation_Data_ReadConverter());
+        converters.add(new MainSubstation_Data_WriteConverter());
         return R2dbcCustomConversions.of(MySqlDialect.INSTANCE, converters);
     }
 

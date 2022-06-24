@@ -1,34 +1,15 @@
 package re.smartcity.common;
 
-import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
-import org.apache.commons.math3.analysis.interpolation.DividedDifferenceInterpolator;
-import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
-import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
-import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
-import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.r2dbc.support.ArrayUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.Forecast;
-import re.smartcity.common.data.ForecastPoint;
-import re.smartcity.common.data.Point;
 import reactor.core.publisher.Mono;
-
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
-
-import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MAX_VALUE;
-import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MIN_VALUE;
 
 @Component
 public class ForecastRouterHandler {
