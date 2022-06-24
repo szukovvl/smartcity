@@ -1,7 +1,10 @@
 package re.smartcity.common;
 
 import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
+import org.apache.commons.math3.analysis.interpolation.DividedDifferenceInterpolator;
+import org.apache.commons.math3.analysis.interpolation.SplineInterpolator;
 import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
+import org.apache.commons.math3.analysis.interpolation.LoessInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,8 +58,9 @@ public class ForecastRouterHandler {
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(storage.findById(id)
-                        .map(e -> {
+                        /*.map(e -> {
                             Point[] pts = Stream.generate(() -> new Point()).limit(1440).toArray(Point[]::new);
+                            //Point[] pts = Stream.generate(() -> new Point()).limit(1000).toArray(Point[]::new);
                             final Integer[] tm = {0};
                             Arrays.stream(pts).forEachOrdered(a -> {
                                 a.setX(tm[0].doubleValue());
@@ -77,12 +81,12 @@ public class ForecastRouterHandler {
 
                             System.out.println();
                             fpts.forEach(a -> {
-                                System.out.println(String.format("%.2f\t%.2f", (double) a.getPoint().toSecondOfDay(), a.getValue() * 100.0));
+                                System.out.println(String.format("%.2f\t%.2f", ForecastPoint.TimeToDouble(a.getPoint()), a.getValue() * 100.0));
                             });
                             System.out.println();
                             System.out.println();
 
-                            var xx = fpts.stream().mapToDouble(b -> (double) b.getPoint().toSecondOfDay()).toArray();
+                            var xx = fpts.stream().mapToDouble(b -> ForecastPoint.TimeToDouble(b.getPoint())).toArray();
                             var yy = fpts.stream().mapToDouble(b -> b.getValue()).toArray();
                             final PolynomialSplineFunction[] funin = { null };
 
@@ -93,23 +97,22 @@ public class ForecastRouterHandler {
                             }
 
                             Arrays.stream(pts).forEachOrdered(b -> {
-                                double val = funin[0].value(b.getX());
+                                double vx = ForecastPoint.TimeToDouble(
+                                        LocalTime.ofSecondOfDay((long) b.getX()));
+                                double val = funin[0].value(vx);
                                 if (val < FORECAST_POINT_MIN_VALUE) {
                                     val = FORECAST_POINT_MIN_VALUE;
                                 } else if (val > FORECAST_POINT_MAX_VALUE) {
                                     val = FORECAST_POINT_MAX_VALUE;
                                 }
                                 b.setY(val);
-                                //System.out.println(String.format("%.2f\t%.2f", b.getX(), b.getY() * 100.0));
-                                double v1 = b.getX() / 3600.0;
-                                double v2 = v1 * 3600.0;
-                                System.out.println(String.format("%g\t%g\t%g\t%g\t\t%g\t%s",
-                                        b.getX(), v1, v2, v2 - b.getX(), Math.round(v2) - b.getX(), (long)v2));
+                                System.out.println(String.format("%.2f\t%.2f",
+                                        vx, b.getY() * 100.0));
                             });
 
                             System.out.println();
                             return e;
-                        }), Forecast.class);
+                        })*/, Forecast.class);
     }
 
     public Mono<ServerResponse> forecastUpdate(ServerRequest rq) {

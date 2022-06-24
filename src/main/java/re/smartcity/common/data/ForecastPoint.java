@@ -16,6 +16,8 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class ForecastPoint implements Comparable<ForecastPoint> {
 
+    public static final int SECONDS_IN_HOUR = 3600;
+
     @JsonSerialize(using = LocalTimeSerializer.class)
     @JsonDeserialize(using = LocalTimeDeserializer.class)
     @NonNull
@@ -49,5 +51,13 @@ public class ForecastPoint implements Comparable<ForecastPoint> {
     // !!! ВНИМАНИЕ: строится только по временным точкам
     {
         return this.point.compareTo(obj.point);
+    }
+
+    public static double TimeToDouble(LocalTime time) {
+        return (double) time.toSecondOfDay() / (double) SECONDS_IN_HOUR;
+    }
+
+    public static LocalTime DoubleToTime(double value) {
+        return LocalTime.ofSecondOfDay(Math.round(value * (double) SECONDS_IN_HOUR));
     }
 }
