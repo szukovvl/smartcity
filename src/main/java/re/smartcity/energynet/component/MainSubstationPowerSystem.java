@@ -1,7 +1,9 @@
 package re.smartcity.energynet.component;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.*;
+import lombok.Getter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.IComponentIdentification;
@@ -43,7 +45,7 @@ public class MainSubstationPowerSystem implements IComponentIdentification {
         }
         MainSubstationPowerSystem res = new MainSubstationPowerSystem();
         res.identy = identy;
-        res.setData(MainSubstationSpecification.createDefault());
+        res.setData(MainSubstationSpecification.createDefault(identy));
         return res;
     }
 }

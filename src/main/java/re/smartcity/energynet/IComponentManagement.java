@@ -2,7 +2,7 @@ package re.smartcity.energynet;
 
 public interface IComponentManagement {
 
-    public boolean getIsActive();
+    public boolean getIsactive();
 
-    public void setIsActive(boolean isactive);
+    public void setIsactive(boolean isactive);
 }

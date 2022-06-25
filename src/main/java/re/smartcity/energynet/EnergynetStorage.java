@@ -16,11 +16,12 @@ public class EnergynetStorage {
     @Autowired
     private R2dbcEntityTemplate template;
 
-    public Flux<IComponentIdentification> find(SupportedTypes stype) {
+    public <T> Flux<IComponentIdentification> find(SupportedTypes stype, Class<T> clazz) {
         return template.select(Query
                 .query(Criteria.where("componenttype").is(stype))
-                .sort(Sort.by("identy")), MainSubstationPowerSystem.class)
-                .map(e -> e);
+                .columns("identy", "data")
+                .sort(Sort.by("identy")), clazz)
+                .map(e -> (IComponentIdentification) e);
     }
 
     public <T> Mono<T> insert(T entity) {

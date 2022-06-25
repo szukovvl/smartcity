@@ -25,10 +25,10 @@ public class MainSubstationSpecification implements IComponentManagement {
 
     //region IComponentManagement
     @Override
-    public boolean getIsActive() { return this.isactive; }
+    public boolean getIsactive() { return this.isactive; }
 
     @Override
-    public void setIsActive(boolean isactive) { this.isactive = isactive; }
+    public void setIsactive(boolean isactive) { this.isactive = isactive; }
     //endregion
 
     //region характеристики
@@ -95,10 +95,18 @@ public class MainSubstationSpecification implements IComponentManagement {
     //endregion
     //endregion
 
-    public static MainSubstationSpecification createDefault() {
+    public static MainSubstationSpecification createDefault(String pref) {
         MainSubstationSpecification res = new MainSubstationSpecification();
-        //res.setInputs(new ElectricalSubnet[] { new ElectricalSubnet(), new ElectricalSubnet(), new ElectricalSubnet() });
-        //res.setOutputs(new ElectricalSubnet[] { new ElectricalSubnet(), new ElectricalSubnet(), new ElectricalSubnet() });
+        res.setInputs(new ElectricalSubnet[] {
+                ElectricalSubnet.create(pref + "-Лг-1"),
+                ElectricalSubnet.create(pref + "-Лг-2"),
+                ElectricalSubnet.create(pref + "-Лг-3")
+        });
+        res.setOutputs(new ElectricalSubnet[] {
+                ElectricalSubnet.create(pref + "-Лп-1"),
+                ElectricalSubnet.create(pref + "-Лп-2"),
+                ElectricalSubnet.create(pref + "-Лп-3")
+        });
         return res;
     }
 }

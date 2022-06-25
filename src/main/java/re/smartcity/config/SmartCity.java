@@ -24,6 +24,12 @@ public class SmartCity {
         converters.add(new JsonFieldWriteConverter());
         converters.add(new MainSubstation_Data_ReadConverter());
         converters.add(new MainSubstation_Data_WriteConverter());
+        converters.add(new EnergyDistributor_Data_ReadConverter());
+        converters.add(new EnergyDistributor_Data_WriteConverter());
+        converters.add(new Generation_Data_ReadConverter());
+        converters.add(new Generation_Data_WriteConverter());
+        converters.add(new GreenGeneration_Data_ReadConverter());
+        converters.add(new GreenGeneration_Data_WriteConverter());
         return R2dbcCustomConversions.of(MySqlDialect.INSTANCE, converters);
     }
 
