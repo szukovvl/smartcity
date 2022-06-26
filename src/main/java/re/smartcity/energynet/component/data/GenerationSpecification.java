@@ -1,6 +1,7 @@
 package re.smartcity.energynet.component.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.energynet.GenerationUsageModes;
 import re.smartcity.energynet.IComponentManagement;
@@ -18,14 +19,23 @@ public class GenerationSpecification implements IComponentManagement {
 
     public GenerationSpecification() { }
 
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private Forecast forecast; // прогноз
+
     private boolean useforecast = false; // задействовать прогноз
+
     private double energy = 1.0; // максимальная мощность в МВт
+
     private double highload = 0.8; // значение в процента от генерируемой мощности, высокая нагрузка
+
     private double criticalload = 0.9; // значение в процентах от генерируемой мощности, критическая нагрузка
+
     private int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
+
     private double tariff; // тариф
+
     private double carbon = 930; // г/кВт*ч
+
     private GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
 
     //region IComponentManagement

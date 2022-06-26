@@ -6,6 +6,8 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.r2dbc.convert.R2dbcCustomConversions;
 import org.springframework.data.r2dbc.dialect.MySqlDialect;
 import re.smartcity.common.converters.*;
+import re.smartcity.modeling.ModelingData;
+import re.smartcity.stand.StandControlData;
 import re.smartcity.sun.SunControlData;
 import re.smartcity.sun.SunStatusData;
 import re.smartcity.wind.WindControlData;
@@ -30,10 +32,14 @@ public class SmartCity {
         converters.add(new Generation_Data_WriteConverter());
         converters.add(new GreenGeneration_Data_ReadConverter());
         converters.add(new GreenGeneration_Data_WriteConverter());
+        converters.add(new EnergyStorage_Data_ReadConverter());
+        converters.add(new EnergyStorage_Data_WriteConverter());
+        converters.add(new Consumer_Data_ReadConverter());
+        converters.add(new Consumer_Data_WriteConverter());
         return R2dbcCustomConversions.of(MySqlDialect.INSTANCE, converters);
     }
 
-    // инфраструктура управление ветром
+    //region инфраструктура управление ветром
     @Bean
     public WindStatusData windStatusData() {
         return new WindStatusData();
@@ -43,8 +49,9 @@ public class SmartCity {
     public WindControlData windControlData() {
         return new WindControlData();
     }
+    //endregion
 
-    // инфраструктура управление солнцем
+    //region инфраструктура управление солнцем
     @Bean
     public SunStatusData sunStatusData() {
         return new SunStatusData();
@@ -54,5 +61,15 @@ public class SmartCity {
     public SunControlData sunControlData() {
         return new SunControlData();
     }
+    //endregion
 
+    //region инфраструктура управления стендом
+    @Bean
+    public StandControlData standControlData() { return new StandControlData(); }
+    //endregion
+
+    //region инфраструктура модели
+    @Bean
+    public ModelingData modelingData() { return new ModelingData(); }
+    //endregion
 }

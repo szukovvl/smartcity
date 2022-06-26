@@ -1,9 +1,6 @@
 package re.smartcity.energynet.component;
 
-import com.fasterxml.jackson.annotation.*;
-import lombok.Getter;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.IComponentIdentification;
@@ -13,7 +10,6 @@ import re.smartcity.energynet.component.data.MainSubstationSpecification;
 @Table("component")
 public class MainSubstationPowerSystem implements IComponentIdentification {
 
-    // одинаковые для всех
     @Id
     private String identy; // уникальный идентификатор
 
