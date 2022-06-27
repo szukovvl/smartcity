@@ -8,7 +8,7 @@ import re.smartcity.energynet.component.data.EnergyStorageSpecification;
 import java.time.LocalTime;
 
 @Table("component")
-public class EnergyStorage implements IComponentIdentification, IEnergyStorage, IGeneration {
+public class EnergyStorage implements IComponentIdentification, IEnergyStorage {
 
     private String identy; // уникальный идентификатор
     private final SupportedTypes componenttype = SupportedTypes.STORAGE; // тип компонента

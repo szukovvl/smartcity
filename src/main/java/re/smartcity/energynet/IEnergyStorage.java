@@ -1,4 +1,4 @@
 package re.smartcity.energynet;
 
-public interface IEnergyStorage {
+public interface IEnergyStorage extends IGeneration {
 }
