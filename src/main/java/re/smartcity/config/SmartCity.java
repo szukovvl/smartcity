@@ -8,6 +8,7 @@ import org.springframework.data.r2dbc.dialect.MySqlDialect;
 import re.smartcity.common.converters.*;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.stand.StandControlData;
+import re.smartcity.stand.StandStatusData;
 import re.smartcity.sun.SunControlData;
 import re.smartcity.sun.SunStatusData;
 import re.smartcity.wind.WindControlData;
@@ -71,5 +72,8 @@ public class SmartCity {
     //region инфраструктура модели
     @Bean
     public ModelingData modelingData() { return new ModelingData(); }
+
+    @Bean
+    public StandStatusData standStatusData() { return new StandStatusData(); }
     //endregion
 }

@@ -1,14 +1,12 @@
-package re.smartcity.sun;
+package re.smartcity.stand;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import re.smartcity.wind.WindServiceStatuses;
 
 @Data
-public class SunStatusData {
+public class StandStatusData {
     volatile private WindServiceStatuses status = WindServiceStatuses.STOPPED;
-    volatile private Integer power = 0;
-    volatile private boolean isOn = false;
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     volatile private String errorMsg;

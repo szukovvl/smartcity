@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import re.smartcity.modeling.ModelingData;
+import re.smartcity.wind.WindServiceStatuses;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,6 +20,9 @@ public class StandService {
 
     @Autowired
     private ModelingData modelingData;
+
+    @Autowired
+    private StandStatusData standStatus;
 
     private volatile ExecutorService executorService;
 
@@ -63,6 +67,7 @@ public class StandService {
 
         public void run() {
             logger.info("поток управления стендом запущен.");
+            standStatus.setStatus(WindServiceStatuses.LAUNCHED);
             try {
                 while(!executorService.isShutdown() && !executorService.isTerminated()) {
                     Thread.sleep(controlData.getWaiting());
@@ -74,6 +79,7 @@ public class StandService {
             }
             finally {
                 logger.info("поток управления стендом завершил выполнение.");
+                standStatus.setStatus(WindServiceStatuses.STOPPED);
             }
         }
     }

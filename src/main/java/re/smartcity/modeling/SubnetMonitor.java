@@ -21,8 +21,7 @@ public class SubnetMonitor implements Runnable {
         logger.info("монитор для {} начал выполнение.", taskData.getPowerSystem().getIdenty());
         try {
             while (!taskData.getService().isShutdown() && !taskData.getService().isTerminated()) {
-                Thread.sleep(3000);
-                System.out.println("+ " + taskData.getPowerSystem().getIdenty());
+                Thread.sleep(300);
             }
         }
         catch (InterruptedException ex) {

@@ -2,6 +2,7 @@ package re.smartcity.common.data.exchange;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import re.smartcity.stand.StandStatusData;
 import re.smartcity.sun.SunStatusData;
 import re.smartcity.wind.WindStatusData;
 
@@ -10,4 +11,5 @@ import re.smartcity.wind.WindStatusData;
 public class MainInfoBlock {
     private WindStatusData windData;
     private SunStatusData sunData;
+    private StandStatusData standStatus;
 }
