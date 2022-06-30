@@ -119,6 +119,7 @@ public class EnergynetConfiguration {
                     elements.length, mainSubstations.length);
         }
 
+        model.setAllobjects(elements);
         model.putOnMonitoring(mainSubstations);
     }
 

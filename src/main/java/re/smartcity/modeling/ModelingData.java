@@ -15,6 +15,8 @@ public class ModelingData {
 
     private volatile int discreteness = 500; // дискретность модели, не игровой
 
+    private volatile IComponentIdentification[] allobjects = new IComponentIdentification[] { };
+
     private TaskData[] tasks;
 
     public TaskData[] getTasks() {
@@ -27,6 +29,17 @@ public class ModelingData {
         synchronized (syncObj) {
             this.tasks = tasks;
         }
+    }
+
+    public IComponentIdentification[] getAllobjects() {
+        return allobjects;
+    }
+
+    public void setAllobjects(IComponentIdentification[] allobjects) {
+        if (allobjects == null) {
+            allobjects = new IComponentIdentification[] { };
+        }
+        this.allobjects = allobjects;
     }
 
     public void translate() {
