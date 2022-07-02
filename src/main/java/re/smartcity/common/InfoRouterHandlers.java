@@ -103,6 +103,11 @@ public class InfoRouterHandlers {
             if (c != 0) {
                 itemcounts.put(SupportedTypes.STORAGE.name(), c);
             }
+
+            c = (int) Arrays.stream(all).filter(e -> e.getComponentType() == SupportedTypes.DISTRIBUTOR).count();
+            if (c != 0) {
+                itemcounts.put(SupportedTypes.STORAGE.name(), c);
+            }
         }
         if (itemcounts.keySet().size() != 0) {
             res.setElements(itemcounts);
