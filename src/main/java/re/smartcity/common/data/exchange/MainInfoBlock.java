@@ -18,5 +18,5 @@ public class MainInfoBlock {
     private StandStatusData standStatus;
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
-    private Map<SupportedTypes, Integer> elements;
+    private Map<String, Integer> elements;
 }

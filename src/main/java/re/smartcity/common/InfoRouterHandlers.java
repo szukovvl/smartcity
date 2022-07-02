@@ -9,7 +9,11 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.exchange.MainInfoBlock;
 import re.smartcity.energynet.IComponentIdentification;
+import re.smartcity.energynet.SupportedConsumers;
+import re.smartcity.energynet.SupportedGenerations;
 import re.smartcity.energynet.SupportedTypes;
+import re.smartcity.energynet.component.Consumer;
+import re.smartcity.energynet.component.GreenGeneration;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
 import re.smartcity.stand.StandStatusData;
@@ -38,6 +42,28 @@ public class InfoRouterHandlers {
     @Autowired
     private ModelingData modelingData;
 
+    private Map<String, Integer> getConsumerCounts(Consumer[] items) {
+        Map<String, Integer> res = new HashMap<>();
+        for (SupportedConsumers d : SupportedConsumers.values()) {
+            int c = (int) Arrays.stream(items).filter(e -> e.getData().getConsumertype() == d).count();
+            if (c != 0) {
+                res.put(d.name(), c);
+            }
+        }
+        return res;
+    }
+
+    private Map<String, Integer> getGreenGenerationCounts(GreenGeneration[] items) {
+        Map<String, Integer> res = new HashMap<>();
+        for (SupportedGenerations d : SupportedGenerations.values()) {
+            int c = (int) Arrays.stream(items).filter(e -> e.getData().getGeneration_type() == d).count();
+            if (c != 0) {
+                res.put(d.name(), c);
+            }
+        }
+        return res;
+    }
+
     public Mono<ServerResponse> commonInfo(ServerRequest rq) {
 
         MainInfoBlock res = new MainInfoBlock();
@@ -45,18 +71,37 @@ public class InfoRouterHandlers {
         res.setWindData(windStatus);
         res.setStandStatus(standStatus);
 
-        Map<SupportedTypes, Integer> itemcounts = new HashMap<SupportedTypes, Integer>();
+        Map<String, Integer> itemcounts = new HashMap<String, Integer>();
         TaskData[] tasks = modelingData.getTasks();
         if (tasks != null || tasks.length != 0) {
-            itemcounts.put(SupportedTypes.MAINSUBSTATION, modelingData.getTasks().length);
+            itemcounts.put(SupportedTypes.MAINSUBSTATION.name(), modelingData.getTasks().length);
         }
         IComponentIdentification[] all = modelingData.getAllobjects();
         if (all.length != 0) {
-            for (SupportedTypes d : SupportedTypes.values()) {
-                int c = (int) Arrays.stream(all).filter(e -> e.getComponentType() == d).count();
-                if (c != 0) {
-                    itemcounts.put(d, c);
-                }
+            Map<String, Integer> items = getConsumerCounts(
+                    Arrays.stream(all)
+                            .filter(e -> e.getComponentType() == SupportedTypes.CONSUMER)
+                            .toArray(Consumer[]::new));
+            if (items.keySet().size() != 0) {
+                itemcounts.putAll(items);
+            }
+
+            items = getGreenGenerationCounts(
+                    Arrays.stream(all)
+                            .filter(e -> e.getComponentType() == SupportedTypes.GREEGENERATOR)
+                            .toArray(GreenGeneration[]::new));
+            if (items.keySet().size() != 0) {
+                itemcounts.putAll(items);
+            }
+
+            int c = (int) Arrays.stream(all).filter(e -> e.getComponentType() == SupportedTypes.GENERATOR).count();
+            if (c != 0) {
+                itemcounts.put(SupportedTypes.GENERATOR.name(), c);
+            }
+
+            c = (int) Arrays.stream(all).filter(e -> e.getComponentType() == SupportedTypes.STORAGE).count();
+            if (c != 0) {
+                itemcounts.put(SupportedTypes.STORAGE.name(), c);
             }
         }
         if (itemcounts.keySet().size() != 0) {
