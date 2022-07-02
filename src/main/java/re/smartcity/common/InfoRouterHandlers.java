@@ -11,6 +11,7 @@ import re.smartcity.common.data.exchange.MainInfoBlock;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.modeling.ModelingData;
+import re.smartcity.modeling.TaskData;
 import re.smartcity.stand.StandStatusData;
 import re.smartcity.sun.SunStatusData;
 import re.smartcity.wind.WindStatusData;
@@ -38,25 +39,28 @@ public class InfoRouterHandlers {
     private ModelingData modelingData;
 
     public Mono<ServerResponse> commonInfo(ServerRequest rq) {
-        logger.info("--> информирование: общее состояние");
 
         MainInfoBlock res = new MainInfoBlock();
         res.setSunData(sunStatus);
         res.setWindData(windStatus);
         res.setStandStatus(standStatus);
 
+        Map<SupportedTypes, Integer> itemcounts = new HashMap<SupportedTypes, Integer>();
+        TaskData[] tasks = modelingData.getTasks();
+        if (tasks != null || tasks.length != 0) {
+            itemcounts.put(SupportedTypes.MAINSUBSTATION, modelingData.getTasks().length);
+        }
         IComponentIdentification[] all = modelingData.getAllobjects();
         if (all.length != 0) {
-            Map<SupportedTypes, Integer> itemcounts = new HashMap<SupportedTypes, Integer>();
             for (SupportedTypes d : SupportedTypes.values()) {
                 int c = (int) Arrays.stream(all).filter(e -> e.getComponentType() == d).count();
                 if (c != 0) {
                     itemcounts.put(d, c);
                 }
             }
-            if (itemcounts.keySet().size() != 0) {
-                res.setElements(itemcounts);
-            }
+        }
+        if (itemcounts.keySet().size() != 0) {
+            res.setElements(itemcounts);
         }
 
         return ServerResponse
