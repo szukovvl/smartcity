@@ -73,7 +73,7 @@ public class InfoRouterHandlers {
 
         Map<String, Integer> itemcounts = new HashMap<String, Integer>();
         TaskData[] tasks = modelingData.getTasks();
-        if (tasks != null || tasks.length != 0) {
+        if (tasks != null && tasks.length != 0) {
             itemcounts.put(SupportedTypes.MAINSUBSTATION.name(), modelingData.getTasks().length);
         }
         IComponentIdentification[] all = modelingData.getAllobjects();
