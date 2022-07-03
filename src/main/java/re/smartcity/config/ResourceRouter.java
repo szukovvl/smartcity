@@ -7,6 +7,7 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.InfoRouterHandlers;
+import re.smartcity.energynet.EnergyRouterHandlers;
 import re.smartcity.sun.SunRouterHandlers;
 import re.smartcity.wind.WindRouterHandlers;
 
@@ -86,6 +87,19 @@ public class ResourceRouter {
 
                     // прогноз
                     builder.GET("", handler::commonInfo);
+                }
+        ).build();
+    }
+
+    // объекты энергосистемы
+    @Bean
+    public RouterFunction<ServerResponse> energoRouterFunction(EnergyRouterHandlers handler) {
+        return route().nest(
+                RequestPredicates.path("/api/1_0/energy"),
+                builder -> {
+
+                    // прогноз
+                    builder.GET("/{type}", handler::find);
                 }
         ).build();
     }
