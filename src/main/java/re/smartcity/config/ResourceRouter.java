@@ -100,6 +100,7 @@ public class ResourceRouter {
 
                     // прогноз
                     builder.GET("/find/{type}", handler::find);
+                    builder.PUT("/data/{key}", handler::putData);
                 }
         ).build();
     }

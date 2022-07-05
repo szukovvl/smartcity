@@ -5,6 +5,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
+import org.springframework.data.relational.core.sql.Select;
 import org.springframework.stereotype.Component;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
 import reactor.core.publisher.Flux;
@@ -26,5 +27,9 @@ public class EnergynetStorage {
 
     public <T> Mono<T> insert(T entity) {
         return template.insert(entity);
+    }
+
+    public <T> Mono<T> updateData(T entity) {
+        return Mono.just(entity);
     }
 }
