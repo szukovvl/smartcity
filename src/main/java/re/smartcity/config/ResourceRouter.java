@@ -99,7 +99,7 @@ public class ResourceRouter {
                 builder -> {
 
                     // прогноз
-                    builder.GET("/{type}", handler::find);
+                    builder.GET("/find/{type}", handler::find);
                 }
         ).build();
     }
