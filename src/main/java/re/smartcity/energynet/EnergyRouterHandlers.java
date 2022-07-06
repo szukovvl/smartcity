@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.component.*;
 import re.smartcity.energynet.component.data.*;
 import re.smartcity.energynet.component.data.client.SmallConsumerSpecification;
@@ -158,6 +159,9 @@ public class EnergyRouterHandlers {
                     return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
                             .contentType(MediaType.TEXT_PLAIN)
                             .bodyValue(t.getMessage());
-                });
+                })
+                .switchIfEmpty(ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(Messages.ER_3));
     }
 }
