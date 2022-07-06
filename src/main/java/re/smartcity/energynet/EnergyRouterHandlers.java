@@ -1,6 +1,5 @@
 package re.smartcity.energynet;
 
-import com.sun.source.tree.BreakTree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,9 +8,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
-import re.smartcity.common.data.Forecast;
-import re.smartcity.common.data.exchange.SmallConsumerSpecification;
 import re.smartcity.energynet.component.*;
+import re.smartcity.energynet.component.data.*;
+import re.smartcity.energynet.component.data.client.SmallConsumerSpecification;
 import re.smartcity.modeling.ModelingData;
 import reactor.core.publisher.Mono;
 
@@ -26,6 +25,8 @@ public class EnergyRouterHandlers {
 
     @Autowired
     private ModelingData modelingData;
+
+    @Autowired EnergynetStorage storage;
 
     public Mono<ServerResponse> find(ServerRequest rq) {
 
@@ -64,8 +65,7 @@ public class EnergyRouterHandlers {
 
         String key = rq.pathVariable("key");
 
-        logger.info("--> искомый объект: {}", key);
-
+        // поиск объекта в данных модели
         Optional<IComponentIdentification> felement = Stream.concat(
                 Arrays.stream(modelingData.getAllobjects()),
                 Arrays.stream(modelingData.getTasks())
@@ -81,33 +81,83 @@ public class EnergyRouterHandlers {
                     .body(Mono.just("обновляемый объект не найден."), String.class);
         }
 
-        Optional<IComponentManagement> res;
-        try {
-            res = felement
-                    .map(e -> {
-                        var v = switch (e.getComponentType()) {
-                            case STORAGE -> ((EnergyStorage) e).getData();
-                            case GENERATOR -> ((Generation) e).getData();
-                            case DISTRIBUTOR -> ((EnergyDistributor) e).getData();
-                            case MAINSUBSTATION -> ((MainSubstationPowerSystem) e).getData();
-                            case CONSUMER -> throw new IllegalArgumentException("неверный тип обновляемого объекта1");
-                            case GREEGENERATOR -> ((GreenGeneration) e).getData();
-                            default -> throw new IllegalArgumentException("неверный тип обновляемого объекта");
-                        };
-                        return v;
-                    });
-        } catch (IllegalArgumentException ex) {
-            return ServerResponse
-                    .status(HttpStatus.NOT_IMPLEMENTED)
-                    .header("Content-Language", "ru")
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body(Mono.just("неверный запрашиваемый тип объекта."), String.class);
-        }
+        IComponentIdentification memobj = felement.get();
 
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Mono.just(res), IComponentIdentification.class);
+        return rq.bodyToMono(SmallConsumerSpecification.class)
+                .flatMap(rqobj -> {
+                    IComponentManagement retobj = null;
+                    try {
+                        SmallConsumerSpecification.validate(rqobj);
+
+                        // обновляем объект в данных модели и фиксируем в базе
+                        switch (memobj.getComponentType()) {
+                        /*case STORAGE: {
+                            EnergyStorageSpecification lobj = ((EnergyStorage) memobj).getData();
+                            lobj.setEnergy(rqobj.getEnergy());
+                            retobj = lobj;
+                            storage.updateData(key, lobj, EnergyStorage.class);
+                            break;
+                        }
+                        case GENERATOR: {
+                            GenerationSpecification lobj = ((Generation) memobj).getData();
+                            lobj.setEnergy(rqobj.getEnergy());
+                            retobj = lobj;
+                            storage.updateData(key, lobj, Generation.class);
+                            break;
+                        }
+                        case DISTRIBUTOR: {
+                            EnergyDistributorSpecification lobj = ((EnergyDistributor) memobj).getData();
+                            retobj = lobj;
+                            storage.updateData(key, lobj, EnergyDistributor.class);
+                            break;
+                        }
+                        case MAINSUBSTATION: {
+                            MainSubstationSpecification lobj = ((MainSubstationPowerSystem) memobj).getData();
+                            retobj = lobj;
+                            storage.updateData(key, lobj, MainSubstationPowerSystem.class);
+                            break;
+                        }*/
+                            case CONSUMER: {
+                                ConsumerSpecification lobj = ((Consumer) memobj).getData();
+                                lobj.setEnergy(rqobj.getEnergy());
+                                lobj.setUseforecast(rqobj.isUseforecast());
+                                lobj.setForecast(rqobj.getForecast());
+                                retobj = lobj;
+                                storage.updateData(key, lobj, Consumer.class)
+                                        .map(ures -> {
+                                            if (ures != 1) {
+                                                logger.warn("обновляемый объект {} в хранилище не зафиксирован.", key);
+                                            }
+                                            return ures;
+                                        })
+                                        .subscribe();
+                                break;
+                            }
+                        /*case GREEGENERATOR: {
+                            GreenGenerationSpecification lobj = ((GreenGeneration) memobj).getData();
+                            retobj = lobj;
+                            storage.updateData(key, lobj, GreenGeneration.class);
+                            break;
+                        }*/
+                            default: {
+                                throw new IllegalArgumentException("неверный тип обновляемого объекта");
+                            }
+                        };
+                    }
+                    catch (IllegalArgumentException ex) {
+                        return Mono.error(ex);
+                    }
+
+                    return ServerResponse
+                            .ok()
+                            .header("Content-Language", "ru")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(Mono.just(retobj), IComponentManagement.class);
+                })
+                .onErrorResume(t -> {
+                    return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .contentType(MediaType.TEXT_PLAIN)
+                            .bodyValue(t.getMessage());
+                });
     }
 }
