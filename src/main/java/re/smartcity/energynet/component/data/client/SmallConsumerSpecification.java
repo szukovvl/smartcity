@@ -13,9 +13,9 @@ public class SmallConsumerSpecification {
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private volatile Forecast forecast; // прогноз
 
-    private volatile boolean useforecast = false; // задействовать прогноз
+    private volatile boolean useforecast; // задействовать прогноз
 
-    private volatile double energy = 0.8; // максимальная мощность в МВт
+    private volatile double energy; // максимальная мощность в МВт
 
     public static void validate(SmallConsumerSpecification data) {
         if (data.getEnergy() < 0.0) {
