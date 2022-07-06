@@ -98,9 +98,12 @@ public class ResourceRouter {
                 RequestPredicates.path("/api/1_0/energy"),
                 builder -> {
 
-                    // прогноз
+                    // работа с объектами
                     builder.GET("/find/{type}", handler::find);
                     builder.PUT("/data/{key}", handler::putData);
+
+                    // прогноз
+                    builder.GET("/forecast/{type}", handler::forecast);
                 }
         ).build();
     }

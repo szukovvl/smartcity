@@ -8,6 +8,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.ForecastStorage;
+import re.smartcity.common.data.Forecast;
+import re.smartcity.common.data.ForecastTypes;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.component.*;
 import re.smartcity.energynet.component.data.*;
@@ -27,7 +30,11 @@ public class EnergyRouterHandlers {
     @Autowired
     private ModelingData modelingData;
 
-    @Autowired EnergynetStorage storage;
+    @Autowired
+    EnergynetStorage storage;
+
+    @Autowired
+    ForecastStorage forecastStorage;
 
     public Mono<ServerResponse> find(ServerRequest rq) {
 
@@ -163,5 +170,25 @@ public class EnergyRouterHandlers {
                 .switchIfEmpty(ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .contentType(MediaType.TEXT_PLAIN)
                         .bodyValue(Messages.ER_3));
+    }
+
+    public Mono<ServerResponse> forecast(ServerRequest rq) {
+        ForecastTypes ftype;
+        try {
+            ftype = ForecastTypes.valueOf(rq.pathVariable("type").toUpperCase());
+        }
+        catch (Exception ex) {
+            return ServerResponse
+                    .status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("Content-Language", "ru")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Mono.just("неверное значение типа прогноза."), String.class);
+        }
+
+        return ServerResponse
+                .ok()
+                .header("Content-Language", "ru")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(forecastStorage.findAll(ftype), Forecast.class);
     }
 }

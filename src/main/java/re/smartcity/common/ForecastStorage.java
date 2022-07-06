@@ -26,14 +26,6 @@ public class ForecastStorage {
     @Autowired
     private R2dbcEntityTemplate template;
 
-    public Flux<Forecast> findAll(ForecastTypes fc) {
-        return this.template
-                .select(Query
-                        .query(Criteria.where("fc_type").is(fc))
-                        .sort(Sort.by("name")),
-                        Forecast.class);
-    }
-
     /*
     перед вставкой и обновлением необходимо проверить массив:
      - отсортировать по возрастанию,
@@ -41,7 +33,7 @@ public class ForecastStorage {
      - проверить верхние и нижние границы.
      - ниличие, как минимум, одной точки
      */
-    public ForecastPoint[] validatePoints(ForecastPoint[] pts) {
+    private ForecastPoint[] validatePoints(ForecastPoint[] pts) {
         if (pts == null || pts.length == 0) {
             throw new IllegalArgumentException("Прогноз должен содержать как минимум одну точку.");
         }
@@ -65,6 +57,13 @@ public class ForecastStorage {
         });
 
         return pts;
+    }
+
+    public Flux<Forecast> findAll(ForecastTypes fc) {
+        return this.template.select(Query
+                                .query(Criteria.where("fc_type").is(fc))
+                                .sort(Sort.by("name")),
+                        Forecast.class);
     }
 
     public Mono<Forecast> create(Forecast v) {

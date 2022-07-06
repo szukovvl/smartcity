@@ -4,6 +4,5 @@ public enum ForecastTypes {
     WIND,
     SUN,
     GENERATOR,
-    STORAGE,
     CONSUMER
 }
