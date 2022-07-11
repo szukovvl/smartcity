@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
@@ -35,6 +36,9 @@ public class EnergyRouterHandlers {
 
     @Autowired
     ForecastStorage forecastStorage;
+
+    @Autowired
+    private ForecastRouterHandler forecastHandler;
 
     public Mono<ServerResponse> find(ServerRequest rq) {
 
@@ -190,5 +194,21 @@ public class EnergyRouterHandlers {
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(forecastStorage.findAll(ftype), Forecast.class);
+    }
+
+    public Mono<ServerResponse> forecastCreate(ServerRequest rq) {
+        ForecastTypes ftype;
+        try {
+            ftype = ForecastTypes.valueOf(rq.pathVariable("type").toUpperCase());
+        }
+        catch (Exception ex) {
+            return ServerResponse
+                    .status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("Content-Language", "ru")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Mono.just("неверное значение типа прогноза."), String.class);
+        }
+
+        return forecastHandler.forecastCreate(rq, ftype);
     }
 }

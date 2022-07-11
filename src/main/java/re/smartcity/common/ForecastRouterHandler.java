@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.Forecast;
+import re.smartcity.common.data.ForecastTypes;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -165,5 +166,25 @@ public class ForecastRouterHandler {
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(storage.remove(id), Integer.class);
+    }
+
+    public Mono<ServerResponse> forecastCreate(ServerRequest rq, ForecastTypes ftype) {
+        return rq.bodyToMono(Forecast.class)
+                .flatMap(e -> {
+                    e.setFc_type(ftype);
+                    return storage.create(e)
+                            .flatMap(t -> {
+                                return ServerResponse
+                                        .ok()
+                                        .header("Content-Language", "ru")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .bodyValue(t);
+                            })
+                            .onErrorResume(t -> {
+                                return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                        .contentType(MediaType.TEXT_PLAIN)
+                                        .bodyValue(t.getMessage());
+                            });
+                });
     }
 }

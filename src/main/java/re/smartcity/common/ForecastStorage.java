@@ -9,6 +9,7 @@ import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.data.relational.core.query.Update;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.ForecastTypes;
@@ -33,7 +34,8 @@ public class ForecastStorage {
      - проверить верхние и нижние границы.
      - ниличие, как минимум, одной точки
      */
-    private ForecastPoint[] validatePoints(ForecastPoint[] pts) {
+    private ForecastPoint[] validatePoints(ForecastPoint[] pts)
+        throws IllegalArgumentException {
         if (pts == null || pts.length == 0) {
             throw new IllegalArgumentException("Прогноз должен содержать как минимум одну точку.");
         }
@@ -67,6 +69,12 @@ public class ForecastStorage {
     }
 
     public Mono<Forecast> create(Forecast v) {
+        try{
+            v.setData(validatePoints(v.getData()));
+        }
+        catch (IllegalArgumentException ex) {
+            return Mono.error(ex);
+        }
         return this.template.insert(v);
     }
 

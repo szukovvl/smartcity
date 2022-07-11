@@ -8,9 +8,11 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
+import re.smartcity.energynet.IComponentManagement;
 import re.smartcity.wind.*;
 import reactor.core.publisher.Mono;
 
@@ -30,6 +32,9 @@ public class SunRouterHandlers {
 
     @Autowired
     private ForecastStorage storage;
+
+    @Autowired
+    private ForecastRouterHandler forecastHandler;
 
     public Mono<ServerResponse> setSunPower(ServerRequest rq) {
         logger.info("--> установить освещенность");
@@ -138,17 +143,6 @@ public class SunRouterHandlers {
     }
 
     public Mono<ServerResponse> forecastCreate(ServerRequest rq) {
-        logger.info("--> прогноз солнца: создать");
-
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(rq.bodyToMono(Forecast.class)
-                        .flatMap(e -> {
-                            e.setFc_type(ForecastTypes.SUN);
-                            logger.info("--> тело запроса: {}", e);
-                            return storage.create(e);
-                        }), Forecast.class);
+        return forecastHandler.forecastCreate(rq, ForecastTypes.SUN);
     }
 }

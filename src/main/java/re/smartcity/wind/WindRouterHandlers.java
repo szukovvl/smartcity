@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
@@ -29,6 +30,9 @@ public class WindRouterHandlers {
 
     @Autowired
     private ForecastStorage storage;
+
+    @Autowired
+    private ForecastRouterHandler forecastHandler;
 
     /*
     необходимо выполнить проверку данных в setWindPower и, аналогично, для управления осветителями
@@ -140,17 +144,5 @@ public class WindRouterHandlers {
     }
 
     public Mono<ServerResponse> forecastCreate(ServerRequest rq) {
-        logger.info("--> прогноз ветра: создать");
-
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(rq.bodyToMono(Forecast.class)
-                        .flatMap(e -> {
-                            e.setFc_type(ForecastTypes.WIND);
-                            logger.info("--> тело запроса: {}", e);
-                            return storage.create(e);
-                        }), Forecast.class);
-    }
+        return forecastHandler.forecastCreate(rq, ForecastTypes.SUN);    }
 }
