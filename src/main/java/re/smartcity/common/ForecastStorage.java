@@ -83,6 +83,12 @@ public class ForecastStorage {
     }
 
     public Mono<Forecast> update(Forecast v) {
+        try{
+            v.setData(validatePoints(v.getData()));
+        }
+        catch (IllegalArgumentException ex) {
+            return Mono.error(ex);
+        }
         return this.template.update(v);
     }
 

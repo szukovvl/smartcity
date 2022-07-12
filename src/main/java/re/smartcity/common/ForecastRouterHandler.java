@@ -10,6 +10,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
+import re.smartcity.energynet.component.data.client.SmallForecast;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -32,7 +33,7 @@ public class ForecastRouterHandler {
                     .status(HttpStatus.NOT_IMPLEMENTED)
                     .header("Content-Language", "ru")
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body(Mono.just("прогноз ветра: неверный параметр"), String.class);
+                    .body(Mono.just("прогноз: неверный параметр"), String.class);
         }
 
         return ServerResponse
@@ -100,15 +101,44 @@ public class ForecastRouterHandler {
     public Mono<ServerResponse> forecastUpdate(ServerRequest rq) {
         logger.info("--> прогноз: обновить данные");
 
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(rq.bodyToMono(Forecast.class)
+        final Long id;
+        try {
+            id = Long.parseLong(rq.pathVariable("id"));
+        }
+        catch (NumberFormatException e) {
+            return ServerResponse
+                    .status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("Content-Language", "ru")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Mono.just("прогноз: неверный параметр"), String.class);
+        }
+
+        return rq.bodyToMono(SmallForecast.class)
                         .flatMap(e -> {
-                            logger.info("--> тело запроса: {}", e);
-                            return storage.update(e);
-                        }), Forecast.class);
+                            return storage.findById(id)
+                                    .flatMap(t -> {
+                                        t.setName(e.getName());
+                                        t.setData(e.getData());
+                                        return storage.update(t);
+                                    })
+                                    .flatMap(t -> {
+                                        return ServerResponse
+                                                .ok()
+                                                .header("Content-Language", "ru")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .bodyValue(t);
+                                    })
+                                    .onErrorResume(t -> {
+                                        return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                                .contentType(MediaType.TEXT_PLAIN)
+                                                .bodyValue(t.getMessage());
+                                    });
+                        })
+                .onErrorResume(t -> {
+                    return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .contentType(MediaType.TEXT_PLAIN)
+                            .bodyValue(t.getMessage());
+                });
     }
 
     public Mono<ServerResponse> forecastUpdatePoints(ServerRequest rq) {

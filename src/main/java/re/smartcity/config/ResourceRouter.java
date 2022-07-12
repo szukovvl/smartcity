@@ -72,7 +72,7 @@ public class ResourceRouter {
 
                     // прогноз
                     builder.GET("/{id}", handler::forecastById);
-                    builder.PUT("", handler::forecastUpdate);
+                    builder.PUT("/{id}", handler::forecastUpdate);
                     builder.PUT("/data/{id}", handler::forecastUpdatePoints);
                     builder.DELETE("/{id}", handler::forecastRemove);
                 }
