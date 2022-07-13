@@ -20,6 +20,7 @@ import reactor.core.publisher.Mono;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.stream.Stream;
 
 import static re.smartcity.common.resources.AppConstant.*;
@@ -243,5 +244,51 @@ public class ForecastRouterHandler {
                             .contentType(MediaType.TEXT_PLAIN)
                             .bodyValue(t.getMessage());
                 });
+    }
+
+    public Mono<ServerResponse> randomize(ServerRequest rq) {
+        logger.info("--> прогноз: случайное заполнение");
+
+        Long id = 0l;
+        try {
+            id = Long.parseLong(rq.pathVariable("id"));
+        }
+        catch (NumberFormatException e) {
+            return ServerResponse
+                    .status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("Content-Language", "ru")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Mono.just("прогноз: неверный параметр"), String.class);
+        }
+
+        return storage.findById(id)
+                .flatMap(e -> {
+                    ArrayList<ForecastPoint> data = new ArrayList<>();
+                    final long[] tm = { 0 };
+                    (new Random())
+                            .doubles(0.0, 1.0)
+                            .limit(48)
+                            .forEachOrdered(v -> {
+                                ForecastPoint pt = new ForecastPoint(LocalTime.ofSecondOfDay(tm[0] * 60), v);
+                                tm[0] += 30;
+                                data.add(pt);
+                            });
+                    e.setData(data.toArray(ForecastPoint[]::new));
+                    storage.update(e);
+                    return storage.update(e);
+                })
+                .flatMap(e -> {
+                    return ServerResponse
+                            .ok()
+                            .header("Content-Language", "ru")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(e);
+                })
+                .onErrorResume(t -> {
+                    return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .contentType(MediaType.TEXT_PLAIN)
+                            .bodyValue(t.getMessage());
+                });
+
     }
 }
