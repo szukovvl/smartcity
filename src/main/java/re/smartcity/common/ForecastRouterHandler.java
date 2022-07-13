@@ -1,5 +1,7 @@
 package re.smartcity.common;
 
+import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
+import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,9 +11,18 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.Forecast;
+import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.ForecastTypes;
+import re.smartcity.common.data.exchange.ForecastInterpolation;
 import re.smartcity.energynet.component.data.client.SmallForecast;
 import reactor.core.publisher.Mono;
+
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.stream.Stream;
+
+import static re.smartcity.common.resources.AppConstant.*;
 
 @Component
 public class ForecastRouterHandler {
@@ -40,62 +51,7 @@ public class ForecastRouterHandler {
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(storage.findById(id)
-                        /*.map(e -> {
-                            Point[] pts = Stream.generate(() -> new Point()).limit(1440).toArray(Point[]::new);
-                            //Point[] pts = Stream.generate(() -> new Point()).limit(1000).toArray(Point[]::new);
-                            final Integer[] tm = {0};
-                            Arrays.stream(pts).forEachOrdered(a -> {
-                                a.setX(tm[0].doubleValue());
-                                a.setY(FORECAST_POINT_MIN_VALUE);
-                                tm[0] += 60;
-                            });
-
-
-                            List<ForecastPoint> fpts = new ArrayList<ForecastPoint>();
-                            fpts.addAll(Arrays.asList(e.getData()));
-                            if (fpts.get(0).getPoint().toSecondOfDay() != 0)
-                            {
-                                fpts.add(0, new ForecastPoint(LocalTime.ofSecondOfDay(0), FORECAST_POINT_MIN_VALUE));
-                            }
-                            if (fpts.get(fpts.size() - 1).getPoint().toSecondOfDay() < pts[pts.length - 1].getX()) {
-                                fpts.add(new ForecastPoint(LocalTime.ofSecondOfDay((long) pts[pts.length - 1].getX()), FORECAST_POINT_MIN_VALUE));
-                            }
-
-                            System.out.println();
-                            fpts.forEach(a -> {
-                                System.out.println(String.format("%.2f\t%.2f", ForecastPoint.TimeToDouble(a.getPoint()), a.getValue() * 100.0));
-                            });
-                            System.out.println();
-                            System.out.println();
-
-                            var xx = fpts.stream().mapToDouble(b -> ForecastPoint.TimeToDouble(b.getPoint())).toArray();
-                            var yy = fpts.stream().mapToDouble(b -> b.getValue()).toArray();
-                            final PolynomialSplineFunction[] funin = { null };
-
-                            if (fpts.size() < 5) {
-                                funin[0] = (new LinearInterpolator()).interpolate(xx, yy);
-                            } else {
-                                funin[0] = (new AkimaSplineInterpolator()).interpolate(xx, yy);
-                            }
-
-                            Arrays.stream(pts).forEachOrdered(b -> {
-                                double vx = ForecastPoint.TimeToDouble(
-                                        LocalTime.ofSecondOfDay((long) b.getX()));
-                                double val = funin[0].value(vx);
-                                if (val < FORECAST_POINT_MIN_VALUE) {
-                                    val = FORECAST_POINT_MIN_VALUE;
-                                } else if (val > FORECAST_POINT_MAX_VALUE) {
-                                    val = FORECAST_POINT_MAX_VALUE;
-                                }
-                                b.setY(val);
-                                System.out.println(String.format("%.2f\t%.2f",
-                                        vx, b.getY() * 100.0));
-                            });
-
-                            System.out.println();
-                            return e;
-                        })*/, Forecast.class);
+                .body(storage.findById(id), Forecast.class);
     }
 
     public Mono<ServerResponse> forecastUpdate(ServerRequest rq) {
@@ -188,7 +144,7 @@ public class ForecastRouterHandler {
                     .status(HttpStatus.NOT_IMPLEMENTED)
                     .header("Content-Language", "ru")
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body(Mono.just("прогноз ветра: неверный параметр"), String.class);
+                    .body(Mono.just("прогноз: неверный параметр"), String.class);
         }
 
         return ServerResponse
@@ -215,6 +171,77 @@ public class ForecastRouterHandler {
                                         .contentType(MediaType.TEXT_PLAIN)
                                         .bodyValue(t.getMessage());
                             });
+                });
+    }
+
+    public Mono<ServerResponse> interpolate(ServerRequest rq) {
+        logger.info("--> прогноз: интерполяция");
+
+        Long id = 0l;
+        try {
+            id = Long.parseLong(rq.pathVariable("id"));
+        }
+        catch (NumberFormatException e) {
+            return ServerResponse
+                    .status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("Content-Language", "ru")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Mono.just("прогноз: неверный параметр"), String.class);
+        }
+
+        return storage.findById(id)
+                .map(e -> {
+                    ArrayList<ForecastPoint> wrkdata = new ArrayList<>(Arrays.stream(e.getData()).toList());
+                    ForecastPoint[] data = e.getData();
+                    if (data[0].getPoint().toSecondOfDay() != 0)
+                    {
+                        wrkdata.add(0, new ForecastPoint());
+                    }
+                    if (data[data.length - 1].getPoint().toSecondOfDay() < (GAMEDAY_MAX_MINUTES * 60)) {
+                        ForecastPoint lastpt = new ForecastPoint();
+                        lastpt.setPoint(LocalTime.ofSecondOfDay(GAMEDAY_MAX_MINUTES * 60L));
+                        lastpt.setValue(data[data.length - 1].getValue());
+                        wrkdata.add(lastpt);
+                    }
+                    ForecastInterpolation interpolation = new ForecastInterpolation();
+                    if (wrkdata.size() < 5) {
+                        interpolation.setLinear(true);
+                        interpolation.setItems(wrkdata.toArray(ForecastPoint[]::new));
+                    } else {
+                        double[] xx = wrkdata.stream()
+                                .mapToDouble(b -> ForecastPoint.TimeToDouble(b.getPoint())).toArray();
+                        double[] yy = wrkdata.stream()
+                                .mapToDouble(ForecastPoint::getValue).toArray();
+                        PolynomialSplineFunction splineFunction = (new AkimaSplineInterpolator()).interpolate(xx, yy);
+                        ForecastPoint[] pts = Stream.generate(ForecastPoint::new).limit(720).toArray(ForecastPoint[]::new);
+                        long[] tm = { 0 };
+                        Arrays.stream(pts).forEachOrdered(pt -> {
+                            pt.setPoint(LocalTime.ofSecondOfDay(tm[0]));
+                            tm[0] += 120;
+                            double val = splineFunction.value(ForecastPoint.TimeToDouble(pt.getPoint()));
+                            if (val < FORECAST_POINT_MIN_VALUE) {
+                                val = FORECAST_POINT_MIN_VALUE;
+                            } else if (val > FORECAST_POINT_MAX_VALUE) {
+                                val = FORECAST_POINT_MAX_VALUE;
+                            }
+                            pt.setValue(val);
+                        });
+                        interpolation.setItems(pts);
+                    }
+
+                    return interpolation;
+                })
+                .flatMap(e -> {
+                    return ServerResponse
+                            .ok()
+                            .header("Content-Language", "ru")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(e);
+                })
+                .onErrorResume(t -> {
+                    return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .contentType(MediaType.TEXT_PLAIN)
+                            .bodyValue(t.getMessage());
                 });
     }
 }

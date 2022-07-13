@@ -75,6 +75,7 @@ public class ResourceRouter {
                     builder.PUT("/{id}", handler::forecastUpdate);
                     builder.PUT("/data/{id}", handler::forecastUpdatePoints);
                     builder.DELETE("/{id}", handler::forecastRemove);
+                    builder.GET("/interpolate/{id}", handler::interpolate);
                 }
         ).build();
     }
