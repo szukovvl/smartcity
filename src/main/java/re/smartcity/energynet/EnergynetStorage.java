@@ -8,6 +8,7 @@ import org.springframework.data.relational.core.query.Query;
 import org.springframework.data.relational.core.query.Update;
 import org.springframework.data.relational.core.sql.Select;
 import org.springframework.stereotype.Component;
+import re.smartcity.common.data.Forecast;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
 import re.smartcity.energynet.component.data.client.SmallConsumerSpecification;
 import reactor.core.publisher.Flux;
@@ -21,9 +22,9 @@ public class EnergynetStorage {
 
     public <T> Flux<IComponentIdentification> find(SupportedTypes stype, Class<T> clazz) {
         return template.select(Query
-                .query(Criteria.where("componenttype").is(stype))
-                .columns("identy", "data")
-                .sort(Sort.by("identy")), clazz)
+                        .query(Criteria.where("componenttype").is(stype))
+                        .columns("identy", "data")
+                        .sort(Sort.by("identy")), clazz)
                 .map(e -> (IComponentIdentification) e);
     }
 

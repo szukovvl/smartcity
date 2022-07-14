@@ -108,6 +108,9 @@ public class ResourceRouter {
                     // прогноз
                     builder.GET("/forecast/{type}", handler::forecast);
                     builder.POST("/forecast/{type}", handler::forecastCreate);
+
+                    // разное
+                    builder.GET("/interpolate/{key}", handler::interpolate);
                 }
         ).build();
     }

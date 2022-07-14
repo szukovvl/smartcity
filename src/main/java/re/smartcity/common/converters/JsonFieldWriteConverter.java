@@ -13,11 +13,9 @@ public class JsonFieldWriteConverter implements Converter<ForecastPoint[], Strin
 
     @Override
     public String convert(ForecastPoint[] from) {
-        logger.info("--> преобразование: {}", from.length);
         String s;
         try {
             s = new ObjectMapper().writeValueAsString(from);
-            logger.info("--> преобразование (результат): {}", s);
         }
         catch (JsonProcessingException ex) {
             logger.error(ex.getMessage());

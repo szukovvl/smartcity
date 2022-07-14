@@ -11,8 +11,11 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
+import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.ForecastTypes;
+import re.smartcity.common.data.exchange.ForecastInterpolation;
 import re.smartcity.common.resources.Messages;
+import re.smartcity.common.utils.Interpolation;
 import re.smartcity.energynet.component.*;
 import re.smartcity.energynet.component.data.*;
 import re.smartcity.energynet.component.data.client.SmallConsumerSpecification;
@@ -22,6 +25,9 @@ import reactor.core.publisher.Mono;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MAX_VALUE;
+import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MIN_VALUE;
 
 @Component
 public class EnergyRouterHandlers {
@@ -39,6 +45,25 @@ public class EnergyRouterHandlers {
 
     @Autowired
     private ForecastRouterHandler forecastHandler;
+
+    private ForecastPoint[] checkForecastBounds(ForecastPoint[] items) {
+        if (items == null || items.length == 0) {
+            return items;
+        }
+        var s = Arrays.stream(items)
+                .sorted()
+                .distinct();
+        items = s.toArray(ForecastPoint[]::new);
+
+        Arrays.stream(items).forEachOrdered(e ->
+        {
+            Double val = e.getValue();
+            if (val < FORECAST_POINT_MIN_VALUE) e.setValue(FORECAST_POINT_MIN_VALUE);
+            if (val > FORECAST_POINT_MAX_VALUE) e.setValue(FORECAST_POINT_MAX_VALUE);
+        });
+
+        return items;
+    }
 
     public Mono<ServerResponse> find(ServerRequest rq) {
 
@@ -100,6 +125,10 @@ public class EnergyRouterHandlers {
                     IComponentManagement retobj = null;
                     try {
                         SmallConsumerSpecification.validate(rqobj);
+                        if (rqobj.getForecast() != null)
+                        {
+                            rqobj.getForecast().setData(checkForecastBounds(rqobj.getForecast().getData()));
+                        }
 
                         // обновляем объект в данных модели и фиксируем в базе
                         switch (memobj.getComponentType()) {
@@ -210,5 +239,63 @@ public class EnergyRouterHandlers {
         }
 
         return forecastHandler.forecastCreate(rq, ftype);
+    }
+
+    public Mono<ServerResponse> interpolate(ServerRequest rq) {
+
+        String key = rq.pathVariable("key");
+
+        // поиск объекта в данных модели
+        Optional<IComponentIdentification> felement = Stream.concat(
+                        Arrays.stream(modelingData.getAllobjects()),
+                        Arrays.stream(modelingData.getTasks())
+                                .map(e -> e.getPowerSystem()))
+                .filter(e -> e.getIdenty().equals(key))
+                .findFirst();
+
+        if (felement.isEmpty()) {
+            return ServerResponse
+                    .status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("Content-Language", "ru")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Mono.just("обновляемый объект не найден."), String.class);
+        }
+
+        IComponentIdentification memobj = felement.get();
+        double scale = 1.0;
+        Forecast forecast;
+        switch (memobj.getComponentType()) {
+            case CONSUMER: {
+                forecast = ((Consumer) memobj).getData().getForecast();
+                scale = ((Consumer) memobj).getData().getEnergy();
+                break;
+            }
+            case GENERATOR: {
+                forecast = ((Generation) memobj).getData().getForecast();
+                scale = ((Generation) memobj).getData().getEnergy();
+                break;
+            }
+            default: {
+                return ServerResponse
+                        .status(HttpStatus.NOT_IMPLEMENTED)
+                        .header("Content-Language", "ru")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body(Mono.just("не поддерживаемый тип объекта."), String.class);
+            }
+        }
+
+        if (forecast == null) {
+            return ServerResponse
+                    .status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("Content-Language", "ru")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Mono.just("прогноз не установлен."), String.class);
+        }
+
+        return ServerResponse
+                .ok()
+                .header("Content-Language", "ru")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Interpolation.interpolate(forecast.getData(), scale));
     }
 }
