@@ -258,7 +258,7 @@ public class EnergyRouterHandlers {
                     .status(HttpStatus.NOT_IMPLEMENTED)
                     .header("Content-Language", "ru")
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body(Mono.just("обновляемый объект не найден."), String.class);
+                    .body(Mono.just("объект не найден."), String.class);
         }
 
         IComponentIdentification memobj = felement.get();
