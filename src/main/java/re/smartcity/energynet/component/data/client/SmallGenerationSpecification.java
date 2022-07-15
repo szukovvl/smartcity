@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.resources.Messages;
+import re.smartcity.energynet.GenerationUsageModes;
 import re.smartcity.energynet.component.data.GenerationSpecification;
 
 @Data
@@ -27,6 +28,8 @@ public final class SmallGenerationSpecification {
     private int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
 
     private double tariff = 0.0; // тариф
+
+    private GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
 
     public static void validate(SmallGenerationSpecification data) {
         if (data.getEnergy() < 0.0) {
@@ -59,5 +62,6 @@ public final class SmallGenerationSpecification {
         dest.setCriticalload(src.getCriticalload());
         dest.setBlackouttime(src.getBlackouttime());
         dest.setTariff(src.getTariff());
+        dest.setMode(src.getMode());
     }
 }
