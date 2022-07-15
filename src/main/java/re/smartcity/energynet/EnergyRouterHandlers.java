@@ -160,9 +160,7 @@ public class EnergyRouterHandlers {
                         }*/
                             case CONSUMER: {
                                 ConsumerSpecification lobj = ((Consumer) memobj).getData();
-                                lobj.setEnergy(rqobj.getEnergy());
-                                lobj.setUseforecast(rqobj.isUseforecast());
-                                lobj.setForecast(rqobj.getForecast());
+                                SmallConsumerSpecification.AssignTo(rqobj, lobj);
                                 retobj = lobj;
                                 storage.updateData(key, lobj, Consumer.class)
                                         .map(ures -> {

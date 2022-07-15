@@ -3,9 +3,7 @@ package re.smartcity.energynet.component.data;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import re.smartcity.common.data.Forecast;
-import re.smartcity.energynet.IComponentManagement;
-import re.smartcity.energynet.IGeneration;
-import re.smartcity.energynet.SupportedConsumers;
+import re.smartcity.energynet.*;
 import re.smartcity.energynet.component.ElectricalSubnet;
 
 public class ConsumerSpecification implements IComponentManagement {
@@ -27,6 +25,12 @@ public class ConsumerSpecification implements IComponentManagement {
     private volatile boolean useforecast = false; // задействовать прогноз
 
     private volatile double energy = 0.8; // максимальная мощность в МВт
+
+    private volatile int carbon = 0; // выброс CO2 (экология)
+
+    private volatile SupportedPriceCategories catprice = SupportedPriceCategories.CATEGORY_1; // ценовая категория
+
+    private volatile SupportedVoltageLevels voltagelevel = SupportedVoltageLevels.AVG_VOLTAGE_1; // уровень напряжения
 
     private volatile ElectricalSubnet[] inputs; // энерговвод
 
@@ -66,6 +70,30 @@ public class ConsumerSpecification implements IComponentManagement {
 
     public void setEnergy(double energy) {
         this.energy = energy;
+    }
+
+    public int getCarbon() {
+        return carbon;
+    }
+
+    public void setCarbon(int carbon) {
+        this.carbon = carbon;
+    }
+
+    public SupportedPriceCategories getCatprice() {
+        return catprice;
+    }
+
+    public void setCatprice(SupportedPriceCategories catprice) {
+        this.catprice = catprice;
+    }
+
+    public SupportedVoltageLevels getVoltagelevel() {
+        return voltagelevel;
+    }
+
+    public void setVoltagelevel(SupportedVoltageLevels voltagelevel) {
+        this.voltagelevel = voltagelevel;
     }
 
     public ElectricalSubnet[] getInputs() {
