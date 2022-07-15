@@ -26,7 +26,7 @@ public class ConsumerSpecification implements IComponentManagement {
 
     private volatile double energy = 0.8; // максимальная мощность в МВт
 
-    private volatile int carbon = 0; // выброс CO2 (экология)
+    private volatile double carbon = 0; // выброс CO2 (экология)
 
     private volatile SupportedPriceCategories catprice = SupportedPriceCategories.CATEGORY_1; // ценовая категория
 
@@ -72,11 +72,11 @@ public class ConsumerSpecification implements IComponentManagement {
         this.energy = energy;
     }
 
-    public int getCarbon() {
+    public double getCarbon() {
         return carbon;
     }
 
-    public void setCarbon(int carbon) {
+    public void setCarbon(double carbon) {
         this.carbon = carbon;
     }
 

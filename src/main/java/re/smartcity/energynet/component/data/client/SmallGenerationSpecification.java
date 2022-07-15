@@ -18,7 +18,7 @@ public final class SmallGenerationSpecification {
 
     private double energy; // максимальная мощность в МВт
 
-    private int carbon = 0; // выброс CO2 (экология)
+    private double carbon = 0.0; // выброс CO2 (экология)
 
     private double highload = 0.8; // значение в процента от генерируемой мощности, высокая нагрузка
 
@@ -35,7 +35,7 @@ public final class SmallGenerationSpecification {
         if (data.isUseforecast() && data.getForecast() == null) {
             throw new IllegalArgumentException(Messages.ER_2);
         }
-        if (data.getCarbon() < 0) {
+        if (data.getCarbon() < 0.0) {
             throw new IllegalArgumentException(Messages.ER_4);
         }
 

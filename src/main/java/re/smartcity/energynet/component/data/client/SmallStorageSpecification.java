@@ -16,7 +16,7 @@ public final class SmallStorageSpecification {
 
     private double energy; // максимальная мощность в МВт
 
-    private int carbon = 799; // выброс CO2 (экология)
+    private double carbon = 798.7; // выброс CO2 (экология)
 
     private int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
 
@@ -46,7 +46,7 @@ public final class SmallStorageSpecification {
         if (data.getEnergy() < 0.0) {
             throw new IllegalArgumentException(Messages.ER_1);
         }
-        if (data.getCarbon() < 0) {
+        if (data.getCarbon() < 0.0) {
             throw new IllegalArgumentException(Messages.ER_4);
         }
 
