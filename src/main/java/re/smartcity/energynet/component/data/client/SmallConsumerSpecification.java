@@ -11,20 +11,20 @@ import re.smartcity.energynet.component.data.ConsumerSpecification;
 
 @Data
 @NoArgsConstructor
-public class SmallConsumerSpecification {
+public final class SmallConsumerSpecification {
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
-    private volatile Forecast forecast; // прогноз
+    private Forecast forecast; // прогноз
 
-    private volatile boolean useforecast; // задействовать прогноз
+    private boolean useforecast; // задействовать прогноз
 
-    private volatile double energy; // максимальная мощность в МВт
+    private double energy; // максимальная мощность в МВт
 
-    private volatile int carbon = 0; // выброс CO2 (экология)
+    private int carbon = 0; // выброс CO2 (экология)
 
-    private volatile SupportedPriceCategories catprice = SupportedPriceCategories.CATEGORY_1; // ценовая категория
+    private SupportedPriceCategories catprice = SupportedPriceCategories.CATEGORY_1; // ценовая категория
 
-    private volatile SupportedVoltageLevels voltagelevel = SupportedVoltageLevels.AVG_VOLTAGE_1; // уровень напряжения
+    private SupportedVoltageLevels voltagelevel = SupportedVoltageLevels.AVG_VOLTAGE_1; // уровень напряжения
 
     public static void validate(SmallConsumerSpecification data) {
         if (data.getEnergy() < 0.0) {

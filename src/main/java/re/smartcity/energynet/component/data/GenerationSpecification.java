@@ -32,7 +32,7 @@ public class GenerationSpecification implements IComponentManagement {
 
     private int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
 
-    private double tariff; // тариф
+    private double tariff = 0.0; // тариф
 
     private double carbon = 930; // г/кВт*ч
 

@@ -13,13 +13,14 @@ import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.ForecastTypes;
-import re.smartcity.common.data.exchange.ForecastInterpolation;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.common.utils.Interpolation;
 import re.smartcity.energynet.component.*;
 import re.smartcity.energynet.component.data.*;
 import re.smartcity.energynet.component.data.client.SmallConsumerSpecification;
+import re.smartcity.energynet.component.data.client.SmallGenerationSpecification;
 import re.smartcity.modeling.ModelingData;
+import re.smartcity.modeling.TaskData;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
@@ -57,12 +58,20 @@ public class EnergyRouterHandlers {
 
         Arrays.stream(items).forEachOrdered(e ->
         {
-            Double val = e.getValue();
+            double val = e.getValue();
             if (val < FORECAST_POINT_MIN_VALUE) e.setValue(FORECAST_POINT_MIN_VALUE);
             if (val > FORECAST_POINT_MAX_VALUE) e.setValue(FORECAST_POINT_MAX_VALUE);
         });
 
         return items;
+    }
+
+    private Class getObjectScpecification(SupportedTypes st) throws IllegalArgumentException {
+        switch (st) {
+            case CONSUMER: return SmallConsumerSpecification.class;
+            case GENERATOR: return SmallGenerationSpecification.class;
+            default: throw new IllegalArgumentException(Messages.ER_8);
+        }
     }
 
     public Mono<ServerResponse> find(ServerRequest rq) {
@@ -85,7 +94,7 @@ public class EnergyRouterHandlers {
                     .header("Content-Language", "ru")
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Mono.just(Arrays.stream(this.modelingData.getTasks())
-                            .map(e -> e.getPowerSystem())
+                            .map(TaskData::getPowerSystem)
                             .toArray()), IComponentIdentification.class);
         }
 
@@ -106,7 +115,7 @@ public class EnergyRouterHandlers {
         Optional<IComponentIdentification> felement = Stream.concat(
                 Arrays.stream(modelingData.getAllobjects()),
                 Arrays.stream(modelingData.getTasks())
-                        .map(e -> e.getPowerSystem()))
+                        .map(TaskData::getPowerSystem))
                 .filter(e -> e.getIdenty().equals(key))
                 .findFirst();
 
@@ -120,16 +129,10 @@ public class EnergyRouterHandlers {
 
         IComponentIdentification memobj = felement.get();
 
-        return rq.bodyToMono(SmallConsumerSpecification.class)
+        return rq.bodyToMono(getObjectScpecification(memobj.getComponentType()))
                 .flatMap(rqobj -> {
-                    IComponentManagement retobj = null;
+                    IComponentManagement retobj;
                     try {
-                        SmallConsumerSpecification.validate(rqobj);
-                        if (rqobj.getForecast() != null)
-                        {
-                            rqobj.getForecast().setData(checkForecastBounds(rqobj.getForecast().getData()));
-                        }
-
                         // обновляем объект в данных модели и фиксируем в базе
                         switch (memobj.getComponentType()) {
                         /*case STORAGE: {
@@ -138,15 +141,28 @@ public class EnergyRouterHandlers {
                             retobj = lobj;
                             storage.updateData(key, lobj, EnergyStorage.class);
                             break;
-                        }
-                        case GENERATOR: {
-                            GenerationSpecification lobj = ((Generation) memobj).getData();
-                            lobj.setEnergy(rqobj.getEnergy());
-                            retobj = lobj;
-                            storage.updateData(key, lobj, Generation.class);
-                            break;
-                        }
-                        case DISTRIBUTOR: {
+                        }*/
+                            case GENERATOR: {
+                                SmallGenerationSpecification sgs = (SmallGenerationSpecification) rqobj;
+                                SmallGenerationSpecification.validate(sgs);
+                                if (sgs.getForecast() != null)
+                                {
+                                    sgs.getForecast().setData(checkForecastBounds(sgs.getForecast().getData()));
+                                }
+                                GenerationSpecification lobj = ((Generation) memobj).getData();
+                                SmallGenerationSpecification.AssignTo(sgs, lobj);
+                                retobj = lobj;
+                                storage.updateData(key, lobj, Generation.class)
+                                        .map(ures -> {
+                                            if (ures != 1) {
+                                                logger.warn(Messages.FER_0, key);
+                                            }
+                                            return ures;
+                                        })
+                                        .subscribe();
+                                break;
+                            }
+                        /*case DISTRIBUTOR: {
                             EnergyDistributorSpecification lobj = ((EnergyDistributor) memobj).getData();
                             retobj = lobj;
                             storage.updateData(key, lobj, EnergyDistributor.class);
@@ -159,13 +175,19 @@ public class EnergyRouterHandlers {
                             break;
                         }*/
                             case CONSUMER: {
+                                SmallConsumerSpecification scs = (SmallConsumerSpecification) rqobj;
+                                SmallConsumerSpecification.validate(scs);
+                                if (scs.getForecast() != null)
+                                {
+                                    scs.getForecast().setData(checkForecastBounds(scs.getForecast().getData()));
+                                }
                                 ConsumerSpecification lobj = ((Consumer) memobj).getData();
-                                SmallConsumerSpecification.AssignTo(rqobj, lobj);
+                                SmallConsumerSpecification.AssignTo(scs, lobj);
                                 retobj = lobj;
                                 storage.updateData(key, lobj, Consumer.class)
                                         .map(ures -> {
                                             if (ures != 1) {
-                                                logger.warn("обновляемый объект {} в хранилище не зафиксирован.", key);
+                                                logger.warn(Messages.FER_0, key);
                                             }
                                             return ures;
                                         })
@@ -181,7 +203,7 @@ public class EnergyRouterHandlers {
                             default: {
                                 throw new IllegalArgumentException("неверный тип обновляемого объекта");
                             }
-                        };
+                        }
                     }
                     catch (IllegalArgumentException ex) {
                         return Mono.error(ex);
@@ -192,11 +214,11 @@ public class EnergyRouterHandlers {
                             .header("Content-Language", "ru")
                             .contentType(MediaType.APPLICATION_JSON)
                             .body(Mono.just(retobj), IComponentManagement.class);
-                })
-                .onErrorResume(t -> {
+                }).
+                onErrorResume(t -> {
                     return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
                             .contentType(MediaType.TEXT_PLAIN)
-                            .bodyValue(t.getMessage());
+                            .bodyValue(((Throwable) t).getMessage());
                 })
                 .switchIfEmpty(ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .contentType(MediaType.TEXT_PLAIN)
@@ -247,7 +269,7 @@ public class EnergyRouterHandlers {
         Optional<IComponentIdentification> felement = Stream.concat(
                         Arrays.stream(modelingData.getAllobjects()),
                         Arrays.stream(modelingData.getTasks())
-                                .map(e -> e.getPowerSystem()))
+                                .map(TaskData::getPowerSystem))
                 .filter(e -> e.getIdenty().equals(key))
                 .findFirst();
 
@@ -260,7 +282,7 @@ public class EnergyRouterHandlers {
         }
 
         IComponentIdentification memobj = felement.get();
-        double scale = 1.0;
+        double scale;
         Forecast forecast;
         switch (memobj.getComponentType()) {
             case CONSUMER: {
