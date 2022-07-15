@@ -143,7 +143,7 @@ public class EnergyRouterHandlers {
                                 SmallStorageSpecification.validate(sss);
                                 EnergyStorageSpecification lobj = ((EnergyStorage) memobj).getData();
                                 SmallStorageSpecification.AssignTo(sss, lobj);
-                                clazz = EnergyStorageSpecification.class;
+                                clazz = EnergyStorage.class;
                                 retobj = lobj;
                                 break;
                             }
@@ -156,7 +156,7 @@ public class EnergyRouterHandlers {
                                 }
                                 GenerationSpecification lobj = ((Generation) memobj).getData();
                                 SmallGenerationSpecification.AssignTo(sgs, lobj);
-                                clazz = GenerationSpecification.class;
+                                clazz = Generation.class;
                                 retobj = lobj;
                                 break;
                             }
@@ -181,7 +181,7 @@ public class EnergyRouterHandlers {
                                 }
                                 ConsumerSpecification lobj = ((Consumer) memobj).getData();
                                 SmallConsumerSpecification.AssignTo(scs, lobj);
-                                clazz = ConsumerSpecification.class;
+                                clazz = Consumer.class;
                                 retobj = lobj;
                                 break;
                             }
