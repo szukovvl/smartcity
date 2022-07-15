@@ -31,8 +31,8 @@ public class EnergyStorageSpecification implements IComponentManagement {
     private double tariff; // тариф
     private double carbon = 798.9; // г/кВт*ч
     private GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
-    private EnergyStorage_ChargeBehaviors chargebehavior; // поведение хранилища при восстановлении
-    private EnergyStorage_States initstate; // начальное состояние перед началом игрового процесса
+    private EnergyStorage_ChargeBehaviors chargebehavior = EnergyStorage_ChargeBehaviors.LOWTARIFF; // поведение хранилища при восстановлении
+    private EnergyStorage_States initstate = EnergyStorage_States.CHARGED; // начальное состояние перед началом игрового процесса
 
     //region IComponentManagement
     @Override
