@@ -73,7 +73,7 @@ public class EnergyRouterHandlers {
             case CONSUMER: return SmallConsumerSpecification.class;
             case GENERATOR: return SmallGenerationSpecification.class;
             case STORAGE: return SmallStorageSpecification.class;
-            case GREEGENERATOR: return GreenGenerationSpecification.class;
+            case GREEGENERATOR: return SmallGreenGenerationSpecification.class;
             default: throw new IllegalArgumentException(Messages.ER_8);
         }
     }
