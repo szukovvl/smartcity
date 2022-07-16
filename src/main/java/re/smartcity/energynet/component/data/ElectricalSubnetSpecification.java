@@ -2,6 +2,7 @@ package re.smartcity.energynet.component.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.IComponentManagement;
 
@@ -21,7 +22,7 @@ public class ElectricalSubnetSpecification implements IComponentManagement {
     private double energy = 1.0; // максимальная мощность в МВт
     private volatile double lossfactor = 0.9; // потери в сети (устанавливается при первой инициализации)
 
-    @JsonInclude(JsonInclude.Include.NON_ABSENT)
+    @JsonProperty(value = "components", access = JsonProperty.Access.READ_ONLY)
     private volatile IComponentIdentification[] components; // компоненты электросети, подключенные к данной подсети
 
     private volatile double highload = 0.8; // значение в процента от мощности, высокая нагрузка (80%)

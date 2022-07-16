@@ -17,10 +17,7 @@ import re.smartcity.common.resources.Messages;
 import re.smartcity.common.utils.Interpolation;
 import re.smartcity.energynet.component.*;
 import re.smartcity.energynet.component.data.*;
-import re.smartcity.energynet.component.data.client.SmallConsumerSpecification;
-import re.smartcity.energynet.component.data.client.SmallGenerationSpecification;
-import re.smartcity.energynet.component.data.client.SmallGreenGenerationSpecification;
-import re.smartcity.energynet.component.data.client.SmallStorageSpecification;
+import re.smartcity.energynet.component.data.client.*;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
 import reactor.core.publisher.Mono;
@@ -74,6 +71,7 @@ public class EnergyRouterHandlers {
             case GENERATOR: return SmallGenerationSpecification.class;
             case STORAGE: return SmallStorageSpecification.class;
             case GREEGENERATOR: return SmallGreenGenerationSpecification.class;
+            case DISTRIBUTOR: return SmallSubnetSpecification[].class;
             default: throw new IllegalArgumentException(Messages.ER_8);
         }
     }
@@ -162,13 +160,24 @@ public class EnergyRouterHandlers {
                                 retobj = lobj;
                                 break;
                             }
-                        /*case DISTRIBUTOR: {
-                            EnergyDistributorSpecification lobj = ((EnergyDistributor) memobj).getData();
-                            retobj = lobj;
-                            storage.updateData(key, lobj, EnergyDistributor.class);
-                            break;
-                        }
-                        case MAINSUBSTATION: {
+                            case DISTRIBUTOR: {
+                                SmallSubnetSpecification[] sss = Arrays.stream((SmallSubnetSpecification[]) rqobj)
+                                        .map(e -> {
+                                            SmallSubnetSpecification.validate(e);
+                                            return e;
+                                        })
+                                        .toArray(SmallSubnetSpecification[]::new);
+
+                                EnergyDistributorSpecification lobj = ((EnergyDistributor) memobj).getData();
+                                for (int i = 0; i < sss.length; i++) {
+                                    SmallSubnetSpecification.AssignTo(sss[i], lobj.getOutputs()[i].getData());
+                                }
+
+                                clazz = EnergyDistributor.class;
+                                retobj = lobj;
+                                break;
+                            }
+                        /*case MAINSUBSTATION: {
                             MainSubstationSpecification lobj = ((MainSubstationPowerSystem) memobj).getData();
                             retobj = lobj;
                             storage.updateData(key, lobj, MainSubstationPowerSystem.class);
