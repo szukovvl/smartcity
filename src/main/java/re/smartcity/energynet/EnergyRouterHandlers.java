@@ -184,7 +184,7 @@ public class EnergyRouterHandlers {
                                 MainSubstationSpecification lobj = ((MainSubstationPowerSystem) memobj).getData();
                                 SmallMainStationSpecification.AssignTo(smss, lobj);
 
-                                clazz = MainSubstationSpecification.class;
+                                clazz = MainSubstationPowerSystem.class;
                                 retobj = lobj;
                                 break;
                             }
