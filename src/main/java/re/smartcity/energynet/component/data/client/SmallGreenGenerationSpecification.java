@@ -9,6 +9,7 @@ import re.smartcity.energynet.component.data.GreenGenerationSpecification;
 @Data
 @NoArgsConstructor
 public class SmallGreenGenerationSpecification {
+
     private double energy = 0.1; // максимальная мощность в МВт
     private double highload = 0.8; // значение в процента от генерируемой мощности, высокая нагрузка
     private double criticalload = 0.95; // значение в процентах от генерируемой мощности, критическая нагрузка
