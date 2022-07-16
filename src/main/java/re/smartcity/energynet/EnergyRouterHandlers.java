@@ -19,6 +19,7 @@ import re.smartcity.energynet.component.*;
 import re.smartcity.energynet.component.data.*;
 import re.smartcity.energynet.component.data.client.SmallConsumerSpecification;
 import re.smartcity.energynet.component.data.client.SmallGenerationSpecification;
+import re.smartcity.energynet.component.data.client.SmallGreenGenerationSpecification;
 import re.smartcity.energynet.component.data.client.SmallStorageSpecification;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
@@ -185,12 +186,15 @@ public class EnergyRouterHandlers {
                                 retobj = lobj;
                                 break;
                             }
-                        /*case GREEGENERATOR: {
-                            GreenGenerationSpecification lobj = ((GreenGeneration) memobj).getData();
-                            retobj = lobj;
-                            storage.updateData(key, lobj, GreenGeneration.class);
-                            break;
-                        }*/
+                            case GREEGENERATOR: {
+                                SmallGreenGenerationSpecification sggs = (SmallGreenGenerationSpecification) rqobj;
+                                SmallGreenGenerationSpecification.validate(sggs);
+                                GreenGenerationSpecification lobj = ((GreenGeneration) memobj).getData();
+                                SmallGreenGenerationSpecification.AssignTo(sggs, lobj);
+                                clazz = GreenGeneration.class;
+                                retobj = lobj;
+                                break;
+                            }
                             default: {
                                 throw new IllegalArgumentException("неверный тип обновляемого объекта");
                             }

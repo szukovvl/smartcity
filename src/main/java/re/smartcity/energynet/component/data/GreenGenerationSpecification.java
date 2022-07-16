@@ -18,14 +18,14 @@ public class GreenGenerationSpecification implements IComponentManagement {
 
     public GreenGenerationSpecification() { }
 
-    private double energy = 0.1; // максимальная мощность в МВт
-    private SupportedGenerations generation_type; // тип генерации
-    private double highload = 0.8; // значение в процента от генерируемой мощности, высокая нагрузка
-    private double criticalload = 0.95; // значение в процентах от генерируемой мощности, критическая нагрузка
-    private int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
-    private double tariff; // тариф
-    private double carbon; // г/кВт*ч
-    private GenerationUsageModes mode = GenerationUsageModes.ALWAYS; // режим использования
+    private volatile double energy = 0.1; // максимальная мощность в МВт
+    private volatile SupportedGenerations generation_type; // тип генерации
+    private volatile double highload = 0.8; // значение в процента от генерируемой мощности, высокая нагрузка
+    private volatile double criticalload = 0.95; // значение в процентах от генерируемой мощности, критическая нагрузка
+    private volatile int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
+    private volatile double tariff = 0.0; // тариф
+    private volatile double carbon = 700.0; // г/кВт*ч
+    private volatile GenerationUsageModes mode = GenerationUsageModes.ALWAYS; // режим использования
 
     //region IComponentManagement
     @Override

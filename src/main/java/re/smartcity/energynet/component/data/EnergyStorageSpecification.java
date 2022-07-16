@@ -19,20 +19,20 @@ public class EnergyStorageSpecification implements IComponentManagement {
 
     public EnergyStorageSpecification() { }
 
-    private double energy = 1.1; // емкость в мВт*ч
-    private double performance = 0.88; // показатель эффективности системы хранения
-    private double peckertexponent = 1.1; // экспонента Пекерта
-    private double outpower = 0.5; // граница нормального значения мощности, отдаваемой потребителю, в процентах
-    private boolean overload_enabled = false; // разрешение превышения установленного параметра границы нормального значения отдаваемой мощности
-    private double maxdischarge = 0.2; // максимальная разрядка хранилища, в процентах
-    private double undercharging = 0.7; // недозарядка, когда устройство может быть вновь использовано
-    private double criticalload = 0.9; // критическое значение нагрузки на хранилище
-    private int blackouttime = 90; // время в секундах, прежде чем произойдет отключение хранилища
-    private double tariff; // тариф
-    private double carbon = 798.9; // г/кВт*ч
-    private GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
-    private EnergyStorage_ChargeBehaviors chargebehavior = EnergyStorage_ChargeBehaviors.LOWTARIFF; // поведение хранилища при восстановлении
-    private EnergyStorage_States initstate = EnergyStorage_States.CHARGED; // начальное состояние перед началом игрового процесса
+    private volatile double energy = 1.1; // емкость в мВт*ч
+    private volatile double performance = 0.88; // показатель эффективности системы хранения
+    private volatile double peckertexponent = 1.1; // экспонента Пекерта
+    private volatile double outpower = 0.5; // граница нормального значения мощности, отдаваемой потребителю, в процентах
+    private volatile boolean overload_enabled = false; // разрешение превышения установленного параметра границы нормального значения отдаваемой мощности
+    private volatile double maxdischarge = 0.2; // максимальная разрядка хранилища, в процентах
+    private volatile double undercharging = 0.7; // недозарядка, когда устройство может быть вновь использовано
+    private volatile double criticalload = 0.9; // критическое значение нагрузки на хранилище
+    private volatile int blackouttime = 90; // время в секундах, прежде чем произойдет отключение хранилища
+    private volatile double tariff; // тариф
+    private volatile double carbon = 798.9; // г/кВт*ч
+    private volatile GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
+    private volatile EnergyStorage_ChargeBehaviors chargebehavior = EnergyStorage_ChargeBehaviors.LOWTARIFF; // поведение хранилища при восстановлении
+    private volatile EnergyStorage_States initstate = EnergyStorage_States.CHARGED; // начальное состояние перед началом игрового процесса
 
     //region IComponentManagement
     @Override
