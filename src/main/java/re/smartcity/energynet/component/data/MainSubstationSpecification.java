@@ -19,8 +19,8 @@ public class MainSubstationSpecification implements IComponentManagement {
 
     private volatile ElectricalSubnet[] inputs; // подсети ввода энергии только генерация
     private volatile ElectricalSubnet[] outputs; // подсети потребителей только потребление
-    private volatile double external_energy; // внешний стабильный источник энергии
-    private volatile double tariff; // тариф на внешний источник энергии (ВИЭ)
+    private volatile double external_energy = 0; // внешний стабильный источник энергии
+    private volatile double tariff = 0.0; // тариф на внешний источник энергии (ВИЭ)
     private volatile double carbon = 684.75; // г/кВт*ч только для внешней энергии
 
     //region IComponentManagement

@@ -72,6 +72,7 @@ public class EnergyRouterHandlers {
             case STORAGE: return SmallStorageSpecification.class;
             case GREEGENERATOR: return SmallGreenGenerationSpecification.class;
             case DISTRIBUTOR: return SmallSubnetSpecification[].class;
+            case MAINSUBSTATION: return SmallMainStationSpecification.class;
             default: throw new IllegalArgumentException(Messages.ER_8);
         }
     }
@@ -177,12 +178,16 @@ public class EnergyRouterHandlers {
                                 retobj = lobj;
                                 break;
                             }
-                        /*case MAINSUBSTATION: {
-                            MainSubstationSpecification lobj = ((MainSubstationPowerSystem) memobj).getData();
-                            retobj = lobj;
-                            storage.updateData(key, lobj, MainSubstationPowerSystem.class);
-                            break;
-                        }*/
+                            case MAINSUBSTATION: {
+                                SmallMainStationSpecification smss = (SmallMainStationSpecification) rqobj;
+                                SmallMainStationSpecification.validate(smss);
+                                MainSubstationSpecification lobj = ((MainSubstationPowerSystem) memobj).getData();
+                                SmallMainStationSpecification.AssignTo(smss, lobj);
+
+                                clazz = MainSubstationSpecification.class;
+                                retobj = lobj;
+                                break;
+                            }
                             case CONSUMER: {
                                 SmallConsumerSpecification scs = (SmallConsumerSpecification) rqobj;
                                 SmallConsumerSpecification.validate(scs);
