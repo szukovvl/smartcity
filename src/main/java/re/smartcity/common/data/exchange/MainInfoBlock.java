@@ -3,7 +3,6 @@ package re.smartcity.common.data.exchange;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.stand.StandStatusData;
 import re.smartcity.sun.SunStatusData;
 import re.smartcity.wind.WindStatusData;

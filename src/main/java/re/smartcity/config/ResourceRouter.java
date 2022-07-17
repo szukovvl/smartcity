@@ -7,7 +7,6 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.InfoRouterHandlers;
-import re.smartcity.common.data.ForecastTypes;
 import re.smartcity.energynet.EnergyRouterHandlers;
 import re.smartcity.sun.SunRouterHandlers;
 import re.smartcity.wind.WindRouterHandlers;

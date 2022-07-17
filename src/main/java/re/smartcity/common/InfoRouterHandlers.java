@@ -1,7 +1,5 @@
 package re.smartcity.common;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -27,8 +25,6 @@ import java.util.Map;
 
 @Component
 public class InfoRouterHandlers {
-
-    private final Logger logger = LoggerFactory.getLogger(InfoRouterHandlers.class);
 
     @Autowired
     private WindStatusData windStatus;
@@ -71,7 +67,7 @@ public class InfoRouterHandlers {
         res.setWindData(windStatus);
         res.setStandStatus(standStatus);
 
-        Map<String, Integer> itemcounts = new HashMap<String, Integer>();
+        Map<String, Integer> itemcounts = new HashMap<>();
         TaskData[] tasks = modelingData.getTasks();
         if (tasks != null && tasks.length != 0) {
             itemcounts.put(SupportedTypes.MAINSUBSTATION.name(), modelingData.getTasks().length);

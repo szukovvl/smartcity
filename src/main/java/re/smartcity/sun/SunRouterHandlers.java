@@ -1,7 +1,5 @@
 package re.smartcity.sun;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -12,14 +10,11 @@ import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
-import re.smartcity.energynet.IComponentManagement;
 import re.smartcity.wind.*;
 import reactor.core.publisher.Mono;
 
 @Component
 public class SunRouterHandlers {
-
-    private final Logger logger = LoggerFactory.getLogger(SunRouterHandlers.class);
 
     @Autowired
     private SunService sunService;
@@ -37,9 +32,7 @@ public class SunRouterHandlers {
     private ForecastRouterHandler forecastHandler;
 
     public Mono<ServerResponse> setSunPower(ServerRequest rq) {
-        logger.info("--> установить освещенность");
-
-        Integer v = 0;
+        int v;
         try {
             v = Integer.parseInt(rq.pathVariable("value"));
         }
@@ -61,8 +54,6 @@ public class SunRouterHandlers {
     }
 
     public Mono<ServerResponse> sunOff(ServerRequest rq) {
-        logger.info("--> освещение: отключить");
-
         sunControlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, false));
 
         return ServerResponse
@@ -73,8 +64,6 @@ public class SunRouterHandlers {
     }
 
     public Mono<ServerResponse> sunOn(ServerRequest rq) {
-        logger.info("--> освещение: включить");
-
         sunControlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, true));
 
         return ServerResponse
@@ -85,8 +74,6 @@ public class SunRouterHandlers {
     }
 
     public Mono<ServerResponse> getStatus(ServerRequest rq) {
-        logger.info("--> освещение: статус");
-
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
@@ -96,8 +83,6 @@ public class SunRouterHandlers {
 
     // управление сервисом
     public Mono<ServerResponse> stopService(ServerRequest rq) {
-        logger.info("--> задача управления солнцем: остановить");
-
         sunService.stop();
 
         return ServerResponse
@@ -108,8 +93,6 @@ public class SunRouterHandlers {
     }
 
     public Mono<ServerResponse> startService(ServerRequest rq) {
-        logger.info("--> задача управления солнцем: запустить");
-
         sunService.start();
 
         return ServerResponse
@@ -120,8 +103,6 @@ public class SunRouterHandlers {
     }
 
     public Mono<ServerResponse> restartService(ServerRequest rq) {
-        logger.info("--> задача управления солнцем: перезапустить");
-
         sunService.restart();
 
         return ServerResponse
@@ -133,8 +114,6 @@ public class SunRouterHandlers {
 
     // работа с прогнозом
     public Mono<ServerResponse> forecastAll(ServerRequest rq) {
-        logger.info("--> прогноз солнца: получить весь список");
-
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")

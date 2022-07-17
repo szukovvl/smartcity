@@ -9,10 +9,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class SunControlData {
 
     private final Logger logger = LoggerFactory.getLogger(SunControlData.class);
-    volatile private Integer waiting = 500; // ожидание между опросом ПЛК
-    volatile private Integer restartingWait = 3000; // ожидание при перезапуске, после останова сервиса
+    volatile private int waiting = 500; // ожидание между опросом ПЛК
+    volatile private int restartingWait = 3000; // ожидание при перезапуске, после останова сервиса
 
-    private final ConcurrentLinkedQueue<WindControlCommand> commands = new ConcurrentLinkedQueue<WindControlCommand>();
+    private final ConcurrentLinkedQueue<WindControlCommand> commands = new ConcurrentLinkedQueue<>();
 
     public Integer getWaiting() {
         return waiting;
@@ -23,7 +23,6 @@ public class SunControlData {
     }
 
     public void addCommand(WindControlCommand command) {
-        logger.info("запрос на выполнение: {}", command);
         while (commands.remove(command)) {
             logger.info("поглощение подобной команды");
         }

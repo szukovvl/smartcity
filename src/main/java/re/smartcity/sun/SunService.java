@@ -12,8 +12,6 @@ import java.util.concurrent.Executors;
 @Service
 public class SunService {
 
-    private final Logger logger = LoggerFactory.getLogger(SunService.class);
-
     @Autowired
     private SunStatusData statusData;
     @Autowired
@@ -22,38 +20,28 @@ public class SunService {
     volatile private ExecutorService executorService;
 
     public void start() {
-        logger.info("запуск сервиса управления солнцем");
         if (executorService == null)
         {
             executorService = Executors.newSingleThreadExecutor();
             executorService.execute(new SunService.SunThread());
-        } else {
-            logger.info("сервис управления солнцем уже запущен");
         }
     }
 
     public void stop() {
-        logger.info("останов сервиса управления солнцем");
         if (executorService != null) {
             controlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, false));
-            Executors.newSingleThreadExecutor().execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(controlData.getWaiting() * 2);
-                        executorService.shutdown();
-                    }
-                    catch (InterruptedException ex) { }
+            Executors.newSingleThreadExecutor().execute(() -> {
+                try {
+                    Thread.sleep(controlData.getWaiting() * 2);
+                    executorService.shutdown();
                 }
+                catch (InterruptedException ignored) { }
             });
-        } else {
-            logger.info("сервис управления солнцем не запущена");
         }
     }
 
     // ВНИМАНИЕ: при перезапуске задач не выполняются блокировки, что может привести к запуску ложного потока
     public void restart() {
-        logger.info("перезапуск сервиса управления солнцем");
         Executors.newSingleThreadExecutor().execute(new SunService.RestartSunThread());
     }
     private class SunThread implements Runnable {
@@ -65,14 +53,14 @@ public class SunService {
             try {
                 statusData.setStatus(WindServiceStatuses.LAUNCHED);
                 while(!executorService.isShutdown() && !executorService.isTerminated()) {
-                    Thread.sleep(controlData.getWaiting());
+                    wait(controlData.getWaiting());
 
                     if (controlData.commandExists()) {
                         WindControlCommand cmd = controlData.currentCommand();
                         logger.info("выполнение команды: {}", cmd);
                         switch (cmd.getCommand()) {
-                            case ACTIVATE -> { statusData.setOn(cmd.getValueAsBoolean()); }
-                            case POWER -> { statusData.setPower(cmd.getValueAsInt()); }
+                            case ACTIVATE -> statusData.setOn(cmd.getValueAsBoolean());
+                            case POWER -> statusData.setPower(cmd.getValueAsInt());
                         }
                         continue;
                     }
@@ -91,18 +79,13 @@ public class SunService {
 
     private class RestartSunThread implements Runnable {
 
-        private final Logger logger = LoggerFactory.getLogger(SunService.RestartSunThread.class);
-
         public void run() {
-            logger.info("перезапуск потока управления солнцем.");
             try {
                 SunService.this.stop();
                 Thread.sleep(controlData.getRestartingWait());
                 SunService.this.start();
             }
-            catch (InterruptedException ex) {
-                logger.info("перезапуск потока управления солнцем - прерван.");
-            }
+            catch (InterruptedException ignored) { }
         }
     }
 }
