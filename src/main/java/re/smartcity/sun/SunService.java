@@ -53,7 +53,7 @@ public class SunService {
             try {
                 statusData.setStatus(WindServiceStatuses.LAUNCHED);
                 while(!executorService.isShutdown() && !executorService.isTerminated()) {
-                    wait(controlData.getWaiting());
+                    Thread.sleep(controlData.getWaiting());
 
                     if (controlData.commandExists()) {
                         WindControlCommand cmd = controlData.currentCommand();
@@ -67,7 +67,7 @@ public class SunService {
                 }
             }
             catch (InterruptedException ex) {
-                logger.info("поток управления солнцем прерван.");
+                logger.warn("поток управления солнцем прерван.");
             }
             finally {
                 statusData.setStatus(WindServiceStatuses.STOPPED);
