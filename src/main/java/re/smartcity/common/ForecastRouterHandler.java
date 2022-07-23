@@ -22,10 +22,14 @@ import reactor.core.publisher.Mono;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class ForecastRouterHandler {
@@ -251,16 +255,6 @@ public class ForecastRouterHandler {
                     image.content()
                             .map(DataBuffer::asInputStream)
                             .subscribe(e -> {
-                                /*InputStreamReader reader = new InputStreamReader(e, StandardCharsets.UTF_8);
-                                try {
-                                    while (reader.ready()) {
-                                        System.out.print((char) reader.read());
-                                    }
-                                }
-                                catch (IOException ex) {
-                                    logger.error(ex.getMessage());
-                                }*/
-
                                 try {
                                     ByteArrayOutputStream result = new ByteArrayOutputStream();
                                     byte[] buffer = new byte[1024];
@@ -269,9 +263,27 @@ public class ForecastRouterHandler {
                                         result.write(buffer, 0, length);
                                     }
 
-                                    System.out.println(result.toString(StandardCharsets.UTF_8));
+                                    String text = result.toString(StandardCharsets.UTF_8);
+
+                                    Pattern text_pattern = Pattern.compile("(.+?)\\r");
+                                    Pattern line_pattern = Pattern.compile("^(\\S+?)\\t(\\S+?)$");
+                                    Matcher matcher = text_pattern.matcher(text);
+                                    NumberFormat nf = NumberFormat.getInstance();
+
+                                    while(matcher.find()) {
+                                        Matcher line = line_pattern.matcher(matcher.group(1));
+                                        if (line.find()) {
+                                            if (line.groupCount() != 2) {
+                                                System.out.println("...");
+                                            } else {
+                                                System.out.printf("%s -> %s\n",
+                                                        LocalTime.parse(line.group(1)),
+                                                        nf.parse(line.group(2)).doubleValue());
+                                            }
+                                        }
+                                    }
                                 }
-                                catch (IOException ex) {
+                                catch (IOException | ParseException ex) {
                                     logger.error(ex.getMessage());
                                 }
                             });
