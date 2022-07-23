@@ -2,6 +2,7 @@ package re.smartcity.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -76,6 +77,11 @@ public class ResourceRouter {
                     builder.DELETE("/{id}", handler::forecastRemove);
                     builder.GET("/interpolate/{id}", handler::interpolate);
                     builder.GET("/random/{id}", handler::randomize);
+
+                    builder.POST("/upload/{id}",
+                            RequestPredicates.contentType(MediaType.MULTIPART_FORM_DATA),
+                            handler::uploadFile);
+
                 }
         ).build();
     }
@@ -87,7 +93,7 @@ public class ResourceRouter {
                 RequestPredicates.path("/api/1_0/common"),
                 builder -> {
 
-                    // прогноз
+                    // обобщенное состояние
                     builder.GET("", handler::commonInfo);
 
                     // тарифы
