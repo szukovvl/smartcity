@@ -1,11 +1,14 @@
 package re.smartcity.common;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.data.Tariffs;
 import re.smartcity.common.data.exchange.MainInfoBlock;
+import re.smartcity.common.data.exchange.TariffsData;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedConsumers;
 import re.smartcity.energynet.SupportedGenerations;
@@ -38,6 +41,9 @@ public class InfoRouterHandlers {
     @Autowired
     private ModelingData modelingData;
 
+    @Autowired
+    private CommonStorage commonStorage;
+
     private Map<String, Integer> getConsumerCounts(Consumer[] items) {
         Map<String, Integer> res = new HashMap<>();
         for (SupportedConsumers d : SupportedConsumers.values()) {
@@ -60,7 +66,7 @@ public class InfoRouterHandlers {
         return res;
     }
 
-    public Mono<ServerResponse> commonInfo(ServerRequest rq) {
+    public Mono<ServerResponse> commonInfo(ServerRequest ignoredRq) {
 
         MainInfoBlock res = new MainInfoBlock();
         res.setSunData(sunStatus);
@@ -114,5 +120,41 @@ public class InfoRouterHandlers {
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Mono.just(res), MainInfoBlock.class);
+    }
+
+    public Mono<ServerResponse> getTariffs(ServerRequest ignoredRq) {
+        return commonStorage.getAndCreate(Tariffs.key, Tariffs.class)
+                .flatMap(e -> ServerResponse
+                        .ok()
+                        .header("Content-Language", "ru")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(e.getData()))
+                .onErrorResume(t -> ServerResponse
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(t.getMessage()));
+    }
+
+    public Mono<ServerResponse> putTariffs(ServerRequest rq) {
+        return rq.bodyToMono(TariffsData.class)
+                .flatMap(e -> commonStorage.putData(Tariffs.key, e, Tariffs.class))
+                .flatMap(e -> {
+                    if (e != 0) {
+                        return ServerResponse
+                                .ok()
+                                .header("Content-Language", "ru")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(e);
+                    }
+                    return ServerResponse
+                            .status(HttpStatus.NOT_FOUND)
+                            .header("Content-Language", "ru")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(e);
+                })
+                .onErrorResume(t -> ServerResponse
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(t.getMessage()));
     }
 }

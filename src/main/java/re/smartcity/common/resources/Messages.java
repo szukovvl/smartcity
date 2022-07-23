@@ -12,4 +12,5 @@ public final class Messages {
     public static String ER_8 = "Не поддерживаемый тип объекта.";
 
     public static String FER_0 = "обновляемый объект {} в хранилище не зафиксирован.";
+    public static String FER_1 = "ошибка при создании объекта конфигурации {}.";
 }

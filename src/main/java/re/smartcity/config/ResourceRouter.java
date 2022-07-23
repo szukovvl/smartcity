@@ -80,7 +80,7 @@ public class ResourceRouter {
         ).build();
     }
 
-    // информирование
+    // информирование и прочее
     @Bean
     public RouterFunction<ServerResponse> infoRouterFunction(InfoRouterHandlers handler) {
         return route().nest(
@@ -89,6 +89,10 @@ public class ResourceRouter {
 
                     // прогноз
                     builder.GET("", handler::commonInfo);
+
+                    // тарифы
+                    builder.GET("/tariffs", handler::getTariffs);
+                    builder.PUT("/tariffs", handler::putTariffs);
                 }
         ).build();
     }

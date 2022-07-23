@@ -37,6 +37,8 @@ public class SmartCity {
         converters.add(new EnergyStorage_Data_WriteConverter());
         converters.add(new Consumer_Data_ReadConverter());
         converters.add(new Consumer_Data_WriteConverter());
+        converters.add(new Tariffs_Data_ReadConverter());
+        converters.add(new Tariffs_Data_WriteConverter());
         return R2dbcCustomConversions.of(MySqlDialect.INSTANCE, converters);
     }
 
