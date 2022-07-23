@@ -6,7 +6,9 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.data.GameCriteria;
 import re.smartcity.common.data.Tariffs;
+import re.smartcity.common.data.exchange.GameCriteriaData;
 import re.smartcity.common.data.exchange.MainInfoBlock;
 import re.smartcity.common.data.exchange.TariffsData;
 import re.smartcity.energynet.IComponentIdentification;
@@ -138,6 +140,42 @@ public class InfoRouterHandlers {
     public Mono<ServerResponse> putTariffs(ServerRequest rq) {
         return rq.bodyToMono(TariffsData.class)
                 .flatMap(e -> commonStorage.putData(Tariffs.key, e, Tariffs.class))
+                .flatMap(e -> {
+                    if (e != 0) {
+                        return ServerResponse
+                                .ok()
+                                .header("Content-Language", "ru")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(e);
+                    }
+                    return ServerResponse
+                            .status(HttpStatus.NOT_FOUND)
+                            .header("Content-Language", "ru")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(e);
+                })
+                .onErrorResume(t -> ServerResponse
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(t.getMessage()));
+    }
+
+    public Mono<ServerResponse> getCriteria(ServerRequest ignoredRq) {
+        return commonStorage.getAndCreate(GameCriteria.key, GameCriteria.class)
+                .flatMap(e -> ServerResponse
+                        .ok()
+                        .header("Content-Language", "ru")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(e.getData()))
+                .onErrorResume(t -> ServerResponse
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(t.getMessage()));
+    }
+
+    public Mono<ServerResponse> putCriteria(ServerRequest rq) {
+        return rq.bodyToMono(GameCriteriaData.class)
+                .flatMap(e -> commonStorage.putData(GameCriteria.key, e, GameCriteria.class))
                 .flatMap(e -> {
                     if (e != 0) {
                         return ServerResponse

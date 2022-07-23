@@ -93,6 +93,10 @@ public class ResourceRouter {
                     // тарифы
                     builder.GET("/tariffs", handler::getTariffs);
                     builder.PUT("/tariffs", handler::putTariffs);
+
+                    // критерии оценки игры
+                    builder.GET("/criteria", handler::getCriteria);
+                    builder.PUT("/criteria", handler::putCriteria);
                 }
         ).build();
     }
