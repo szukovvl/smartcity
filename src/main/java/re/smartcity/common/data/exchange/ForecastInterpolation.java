@@ -7,6 +7,6 @@ import re.smartcity.common.data.ForecastPoint;
 @Data
 @NoArgsConstructor
 public class ForecastInterpolation {
-    boolean isLinear = false;
-    ForecastPoint[] items;
+    private boolean isLinear = false;
+    private ForecastPoint[] items = new ForecastPoint[0];
 }

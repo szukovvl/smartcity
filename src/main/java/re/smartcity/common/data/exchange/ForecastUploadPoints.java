@@ -11,6 +11,8 @@ public class ForecastUploadPoints {
 
     private ForecastPoint[] points = new ForecastPoint[0];
 
+    private ForecastInterpolation interpolation;
+
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String errormsg;
 }

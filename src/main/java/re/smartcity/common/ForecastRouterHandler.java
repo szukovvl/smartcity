@@ -21,8 +21,6 @@ import reactor.core.publisher.Mono;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.text.NumberFormat;
-import java.text.ParseException;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -207,7 +205,9 @@ public class ForecastRouterHandler {
                             .doubles(0.0, 1.0)
                             .limit(48)
                             .forEachOrdered(v -> {
-                                ForecastPoint pt = new ForecastPoint(LocalTime.ofSecondOfDay(tm[0] * 60), v);
+                                ForecastPoint pt = new ForecastPoint(
+                                        LocalTime.ofSecondOfDay(tm[0] * 60),
+                                        Math.round(v * 100.0) / 100.0);
                                 tm[0] += 30;
                                 data.add(pt);
                             });
@@ -274,7 +274,6 @@ public class ForecastRouterHandler {
                                 Pattern text_pattern = Pattern.compile("(.+?)\\r");
                                 Pattern line_pattern = Pattern.compile("^(\\S+?)\\t(\\S+?)$");
                                 Matcher matcher = text_pattern.matcher(text);
-                                //NumberFormat nf = NumberFormat.getInstance();
                                 int pat_count = 0;
                                 int err_count = 0;
 
@@ -286,9 +285,6 @@ public class ForecastRouterHandler {
                                             points.add(new ForecastPoint(
                                                     LocalTime.parse(line.group(1)),
                                                     Double.parseDouble(line.group(2).replace(',', '.'))));
-                                            /*points.add(new ForecastPoint(
-                                                    LocalTime.parse(line.group(1)),
-                                                    nf.parse(line.group(2)).doubleValue()));*/
                                         }
                                         catch (NumberFormatException ex) {
                                             err_count++;
@@ -308,6 +304,7 @@ public class ForecastRouterHandler {
                                 }
 
                                 ret_data.setPoints(points.toArray(ForecastPoint[]::new));
+                                ret_data.setInterpolation(Interpolation.interpolate(ret_data.getPoints()));
 
                                 return ret_data;
                             })
