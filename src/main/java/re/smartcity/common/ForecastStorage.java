@@ -9,7 +9,6 @@ import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.data.relational.core.query.Update;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.ForecastTypes;
@@ -53,7 +52,7 @@ public class ForecastStorage {
 
         Arrays.stream(pts).forEachOrdered(e ->
         {
-            Double val = e.getValue();
+            double val = e.getValue();
             if (val < FORECAST_POINT_MIN_VALUE) e.setValue(FORECAST_POINT_MIN_VALUE);
             if (val > FORECAST_POINT_MAX_VALUE) e.setValue(FORECAST_POINT_MAX_VALUE);
         });
@@ -107,5 +106,19 @@ public class ForecastStorage {
         return this.template.update(Query.query(Criteria.where("id").is(id)),
                 Update.update("data", body),
                 Forecast.class);
+    }
+
+    public Mono<Integer> updatePoints(long id, ForecastPoint[] points) {
+        points = validatePoints(points);
+        try{
+            String body = new ObjectMapper().writeValueAsString(points);
+
+            return this.template.update(Query.query(Criteria.where("id").is(id)),
+                    Update.update("data", body),
+                    Forecast.class);
+        }
+        catch (JsonProcessingException ex) {
+            return Mono.error(ex);
+        }
     }
 }

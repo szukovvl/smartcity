@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.ForecastTypes;
+import re.smartcity.common.data.exchange.ForecastUploadPoints;
 import re.smartcity.common.utils.Interpolation;
 import re.smartcity.energynet.component.data.client.SmallForecast;
 import reactor.core.publisher.Mono;
@@ -26,6 +27,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.regex.Matcher;
@@ -228,7 +230,6 @@ public class ForecastRouterHandler {
     }
 
     public Mono<ServerResponse> uploadFile(ServerRequest rq) {
-        logger.info("--> загрузка файла");
 
         long id;
         try {
@@ -241,60 +242,89 @@ public class ForecastRouterHandler {
                     .contentType(MediaType.TEXT_PLAIN)
                     .body(Mono.just("прогноз: неверный параметр"), String.class);
         }
-        logger.info("--> загрузка файла для {}", id);
 
-        var res = rq.body(BodyExtractors.toMultipartData())
+        return rq.body(BodyExtractors.toMultipartData())
                 .flatMap(parts -> {
+                    ForecastUploadPoints ret_data = new ForecastUploadPoints();
                     Map<String, Part> partMap = parts.toSingleValueMap();
 
-                    partMap.forEach((partName, value) -> logger.info("Name: {}, value: {}", partName, value));
+                    FilePart image = (FilePart) partMap.get("points_file");
+                    if (image == null) {
+                        ret_data.setErrormsg("запрос не содержит данных.");
+                        return Mono.just(ret_data);
+                    }
 
-                    FilePart image = (FilePart) partMap.get("myfile");
-                    logger.info("File name: {}", image.filename());
-
-                    image.content()
+                    return image
+                            .content()
                             .map(DataBuffer::asInputStream)
-                            .subscribe(e -> {
+                            .map(inputStream -> {
+                                List<ForecastPoint> points = new ArrayList<>();
+                                ByteArrayOutputStream result = new ByteArrayOutputStream();
+                                byte[] buffer = new byte[1024];
+                                int length;
                                 try {
-                                    ByteArrayOutputStream result = new ByteArrayOutputStream();
-                                    byte[] buffer = new byte[1024];
-                                    int length;
-                                    while ((length = e.read(buffer)) != -1) {
+                                    while ((length = inputStream.read(buffer)) != -1) {
                                         result.write(buffer, 0, length);
                                     }
+                                }
+                                catch (IOException ex) {
+                                    ret_data.setErrormsg(ex.getMessage());
+                                    return ret_data;
+                                }
 
-                                    String text = result.toString(StandardCharsets.UTF_8);
+                                String text = result.toString(StandardCharsets.UTF_8);
+                                Pattern text_pattern = Pattern.compile("(.+?)\\r");
+                                Pattern line_pattern = Pattern.compile("^(\\S+?)\\t(\\S+?)$");
+                                Matcher matcher = text_pattern.matcher(text);
+                                NumberFormat nf = NumberFormat.getInstance();
+                                int pat_count = 0;
+                                int err_count = 0;
 
-                                    Pattern text_pattern = Pattern.compile("(.+?)\\r");
-                                    Pattern line_pattern = Pattern.compile("^(\\S+?)\\t(\\S+?)$");
-                                    Matcher matcher = text_pattern.matcher(text);
-                                    NumberFormat nf = NumberFormat.getInstance();
-
-                                    while(matcher.find()) {
-                                        Matcher line = line_pattern.matcher(matcher.group(1));
-                                        if (line.find()) {
-                                            if (line.groupCount() != 2) {
-                                                System.out.println("...");
-                                            } else {
-                                                System.out.printf("%s -> %s\n",
-                                                        LocalTime.parse(line.group(1)),
-                                                        nf.parse(line.group(2)).doubleValue());
-                                            }
+                                while (matcher.find()) {
+                                    Matcher line = line_pattern.matcher(matcher.group(1));
+                                    if (line.find()) {
+                                        pat_count++;
+                                        try {
+                                            points.add(new ForecastPoint(
+                                                    LocalTime.parse(line.group(1)),
+                                                    nf.parse(line.group(2)).doubleValue()));
+                                        }
+                                        catch (ParseException ex) {
+                                            err_count++;
                                         }
                                     }
                                 }
-                                catch (IOException | ParseException ex) {
-                                    logger.error(ex.getMessage());
+
+                                if (points.size() == 0)
+                                {
+                                    ret_data.setErrormsg("данные не соотвествуют шаблону или отсутствуют.");
+                                } else if ((err_count * 100) / pat_count > 50) {
+                                    ret_data.setErrormsg("данные содержат слишком много ошибок.");
+                                } else if (err_count != 0) {
+                                    ret_data.setErrormsg("преобразование выполнено с ошибками.");
                                 }
+
+                                ret_data.setPoints(points.toArray(ForecastPoint[]::new));
+
+                                return ret_data;
+                            })
+                            .single()
+                            .flatMap(e -> storage.updatePoints(id, e.getPoints()))
+                            .map(e -> {
+                                if (e == 0) {
+                                    ret_data.setErrormsg("синхронизация с хранилищем не выполнена.");
+                                }
+                                return ret_data;
                             });
-
-                    return Mono.just("Ok!");
-                });
-
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(res, String.class);
+                })
+                .flatMap(res -> ServerResponse
+                        .ok()
+                        .header("Content-Language", "ru")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(res))
+                .onErrorResume(t -> ServerResponse
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(t.getMessage()));
     }
 }
