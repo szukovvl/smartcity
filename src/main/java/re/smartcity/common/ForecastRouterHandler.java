@@ -1,7 +1,5 @@
 package re.smartcity.common;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
@@ -311,7 +309,12 @@ public class ForecastRouterHandler {
                                 return ret_data;
                             })
                             .single()
-                            .flatMap(e -> storage.updatePoints(id, e.getPoints()))
+                            .flatMap(e -> {
+                                if (e.getPoints().length != 0) {
+                                    return storage.updatePoints(id, e.getPoints());
+                                }
+                                return Mono.just(-1);
+                            })
                             .map(e -> {
                                 if (e == 0) {
                                     ret_data.setErrormsg("синхронизация с хранилищем не выполнена.");
