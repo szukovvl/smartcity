@@ -360,6 +360,7 @@ public class ForecastRouterHandler {
                     return ServerResponse
                             .ok()
                             .header("Content-Language", "ru")
+                            .header("Content-Disposition", "attachment; filename=\"data.txt\"")
                             .contentType(MediaType.TEXT_PLAIN)
                             .bodyValue(text.toString());
                 })
