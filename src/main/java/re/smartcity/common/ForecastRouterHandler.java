@@ -354,7 +354,7 @@ public class ForecastRouterHandler {
                         text.append(pt.getPoint());
                         text.append("\t");
                         text.append(pt.getValue());
-                        text.append("\n");
+                        text.append("\r\n");
                     });
 
                     return ServerResponse
