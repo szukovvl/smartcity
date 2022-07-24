@@ -274,7 +274,7 @@ public class ForecastRouterHandler {
                                 Pattern text_pattern = Pattern.compile("(.+?)\\r");
                                 Pattern line_pattern = Pattern.compile("^(\\S+?)\\t(\\S+?)$");
                                 Matcher matcher = text_pattern.matcher(text);
-                                NumberFormat nf = NumberFormat.getInstance();
+                                //NumberFormat nf = NumberFormat.getInstance();
                                 int pat_count = 0;
                                 int err_count = 0;
 
@@ -285,9 +285,12 @@ public class ForecastRouterHandler {
                                         try {
                                             points.add(new ForecastPoint(
                                                     LocalTime.parse(line.group(1)),
-                                                    nf.parse(line.group(2)).doubleValue()));
+                                                    Double.parseDouble(line.group(2).replace(',', '.'))));
+                                            /*points.add(new ForecastPoint(
+                                                    LocalTime.parse(line.group(1)),
+                                                    nf.parse(line.group(2)).doubleValue()));*/
                                         }
-                                        catch (ParseException ex) {
+                                        catch (NumberFormatException ex) {
                                             err_count++;
                                         }
                                     }
@@ -310,6 +313,9 @@ public class ForecastRouterHandler {
                             })
                             .single()
                             .flatMap(e -> {
+                                if (id < 0) {
+                                    return Mono.just(1);
+                                }
                                 if (e.getPoints().length != 0) {
                                     return storage.updatePoints(id, e.getPoints());
                                 }
