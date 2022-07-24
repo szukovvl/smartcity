@@ -351,7 +351,7 @@ public class ForecastRouterHandler {
                 .flatMap(points -> {
                     StringBuilder text = new StringBuilder();
                     Arrays.stream(points).forEachOrdered(pt -> {
-                        text.append(pt.getPoint().toString());
+                        text.append(pt.getPoint());
                         text.append("\t");
                         text.append(pt.getValue());
                         text.append("\n");
