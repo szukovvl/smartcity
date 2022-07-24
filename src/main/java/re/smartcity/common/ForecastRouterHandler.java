@@ -298,8 +298,10 @@ public class ForecastRouterHandler {
                                 if (points.size() == 0)
                                 {
                                     ret_data.setErrormsg("данные не соотвествуют шаблону или отсутствуют.");
+                                    return ret_data;
                                 } else if ((err_count * 100) / pat_count > 50) {
                                     ret_data.setErrormsg("данные содержат слишком много ошибок.");
+                                    return ret_data;
                                 } else if (err_count != 0) {
                                     ret_data.setErrormsg("преобразование выполнено с ошибками.");
                                 }
