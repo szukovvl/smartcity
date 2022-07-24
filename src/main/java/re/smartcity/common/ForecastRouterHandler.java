@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
 @Component
 public class ForecastRouterHandler {
 
-    private final Logger logger = LoggerFactory.getLogger(ForecastRouterHandler.class);
+    // private final Logger logger = LoggerFactory.getLogger(ForecastRouterHandler.class);
 
     @Autowired
     private ForecastStorage storage;
