@@ -22,10 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -330,6 +327,42 @@ public class ForecastRouterHandler {
                         .header("Content-Language", "ru")
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(res))
+                .onErrorResume(t -> ServerResponse
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(t.getMessage()));
+    }
+
+    public Mono<ServerResponse> exportPoints(ServerRequest rq) {
+        long id;
+        try {
+            id = Long.parseLong(rq.pathVariable("id"));
+        }
+        catch (NumberFormatException e) {
+            return ServerResponse
+                    .status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("Content-Language", "ru")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Mono.just("прогноз: неверный параметр"), String.class);
+        }
+
+        return storage.findById(id)
+                .map(Forecast::getData)
+                .flatMap(points -> {
+                    StringBuilder text = new StringBuilder();
+                    Arrays.stream(points).forEachOrdered(pt -> {
+                        text.append(pt.getPoint().toString());
+                        text.append("\t");
+                        text.append(pt.getValue());
+                        text.append("\n");
+                    });
+
+                    return ServerResponse
+                            .ok()
+                            .header("Content-Language", "ru")
+                            .contentType(MediaType.TEXT_PLAIN)
+                            .bodyValue(text.toString());
+                })
                 .onErrorResume(t -> ServerResponse
                         .status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .contentType(MediaType.TEXT_PLAIN)

@@ -81,6 +81,7 @@ public class ResourceRouter {
                     builder.POST("/upload/{id}",
                             RequestPredicates.contentType(MediaType.MULTIPART_FORM_DATA),
                             handler::uploadFile);
+                    builder.GET("/export/{id}", handler::exportPoints);
 
                 }
         ).build();
