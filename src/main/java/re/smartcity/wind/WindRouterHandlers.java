@@ -14,9 +14,8 @@ import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
+import re.smartcity.common.data.exchange.SimpleWindData;
 import reactor.core.publisher.Mono;
-
-import java.net.MalformedURLException;
 
 @Component
 public class WindRouterHandlers {
@@ -108,15 +107,22 @@ public class WindRouterHandlers {
 
     public Mono<ServerResponse> setWindURL(ServerRequest rq) {
 
-        windStatusData.setUrl(rq.pathVariable("value"));
+        return rq.bodyToMono(SimpleWindData.class)
+                        .flatMap(data -> {
+                            windStatusData.setUrl(data.getUrl());
 
-        internalSetPower();
+                            internalSetPower();
 
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(windStatusData);
+                            return ServerResponse
+                                    .ok()
+                                    .header("Content-Language", "ru")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .bodyValue(windStatusData);
+                        })
+                .onErrorResume(t -> ServerResponse
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(t.getMessage()));
     }
 
     public Mono<ServerResponse> windOff(ServerRequest ignoredRq) {

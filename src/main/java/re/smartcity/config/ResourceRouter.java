@@ -25,7 +25,7 @@ public class ResourceRouter {
                 builder -> {
                     builder.GET("", handler::getStatus);
                     builder.PUT("/power/{value}", handler::setWindPower);
-                    builder.PUT("/url/{value}", handler::setWindURL);
+                    builder.PUT("/url", handler::setWindURL);
                     builder.POST("/off", handler::windOff);
                     builder.POST("/on", handler::windOn);
 

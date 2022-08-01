@@ -42,6 +42,8 @@ public class SmartCity {
         converters.add(new Tariffs_Data_WriteConverter());
         converters.add(new GameCriteria_Data_ReadConverter());
         converters.add(new GameCriteria_Data_WriteConverter());
+        converters.add(new SimpleWind_Data_ReadConverter());
+        converters.add(new SimpleWind_Data_WriteConverter());
         return R2dbcCustomConversions.of(MySqlDialect.INSTANCE, converters);
     }
 
