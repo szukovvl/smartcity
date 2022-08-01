@@ -58,7 +58,7 @@ public class SunService {
                     if (controlData.commandExists()) {
                         WindControlCommand cmd = controlData.currentCommand();
                         logger.info("выполнение команды: {}", cmd);
-                        switch (cmd.getCommand()) {
+                        switch (cmd.command()) {
                             case ACTIVATE -> statusData.setOn(cmd.getValueAsBoolean());
                             case POWER -> statusData.setPower(cmd.getValueAsInt());
                         }

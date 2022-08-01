@@ -24,14 +24,10 @@ public class ResourceRouter {
                 RequestPredicates.path("/api/1_0/wind"),
                 builder -> {
                     builder.GET("", handler::getStatus);
-                    builder.PUT("/{value}", handler::setWindPower);
+                    builder.PUT("/power/{value}", handler::setWindPower);
+                    builder.PUT("/url/{value}", handler::setWindURL);
                     builder.POST("/off", handler::windOff);
                     builder.POST("/on", handler::windOn);
-
-                    // управление сервисом
-                    builder.PUT("/service/stop", handler::stopService);
-                    builder.PUT("/service/start", handler::startService);
-                    builder.PUT("/service/restart", handler::restartService);
 
                     // прогноз
                     builder.GET("/forecast/all", handler::forecastAll);

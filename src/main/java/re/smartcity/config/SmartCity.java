@@ -5,13 +5,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.r2dbc.convert.R2dbcCustomConversions;
 import org.springframework.data.r2dbc.dialect.MySqlDialect;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.WebClient;
 import re.smartcity.common.converters.*;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.stand.StandControlData;
 import re.smartcity.stand.StandStatusData;
 import re.smartcity.sun.SunControlData;
 import re.smartcity.sun.SunStatusData;
-import re.smartcity.wind.WindControlData;
 import re.smartcity.wind.WindStatusData;
 
 import java.util.ArrayList;
@@ -51,8 +52,8 @@ public class SmartCity {
     }
 
     @Bean
-    public WindControlData windControlData() {
-        return new WindControlData();
+    public WebClient webClient() {
+        return WebClient.builder().build();
     }
     //endregion
 

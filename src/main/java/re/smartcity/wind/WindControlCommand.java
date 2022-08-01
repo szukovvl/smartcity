@@ -1,21 +1,6 @@
 package re.smartcity.wind;
 
-public class WindControlCommand {
-    private WindControlCommands command;
-    private Object value;
-
-    public WindControlCommand(WindControlCommands command, Object value) {
-        this.command = command;
-        this.value = value;
-    }
-
-    public WindControlCommands getCommand() {
-        return command;
-    }
-
-    public Object getValue() {
-        return value;
-    }
+public record WindControlCommand(WindControlCommands command, Object value) {
 
     public Boolean getValueAsBoolean() {
         return (Boolean) value;
@@ -28,9 +13,15 @@ public class WindControlCommand {
     @Override
     public boolean equals(Object obj) {
         // !!! ВНИАМЕНИЕ: проверяю только команды
-        if (obj == this) { return true; }
-        if (obj == null) { return false; }
-        if (!(obj instanceof WindControlCommand)) { return false; }
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof WindControlCommand)) {
+            return false;
+        }
         return ((WindControlCommand) obj).command == this.command;
     }
 
