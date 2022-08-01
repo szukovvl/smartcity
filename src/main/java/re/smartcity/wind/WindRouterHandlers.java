@@ -45,6 +45,10 @@ public class WindRouterHandlers {
                 .toUri()
                 .toASCIIString());
 
+        if (windStatusData.getUrl() == null || windStatusData.getUrl().equals("")) {
+            return;
+        }
+
         windClient
                 .get()
                 .uri(UriComponentsBuilder

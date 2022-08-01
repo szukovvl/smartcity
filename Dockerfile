@@ -1,6 +1,6 @@
 # back
 # устанавливаем самую лёгкую версию JVM
-FROM openjdk:17-jdk-alpine
+FROM openjdk:17-jdk
 
 ENV DATA_HOST=mysql
 
