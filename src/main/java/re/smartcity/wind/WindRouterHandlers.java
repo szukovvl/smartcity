@@ -46,6 +46,7 @@ public class WindRouterHandlers {
                 .toASCIIString());
 
         if (windStatusData.getUrl() == null || windStatusData.getUrl().equals("")) {
+            windStatusData.setErrorMsg("Адрес сетевого ресурса устройста управления вентилятором не задан.");
             return;
         }
 
