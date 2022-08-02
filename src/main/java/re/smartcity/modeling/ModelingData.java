@@ -52,7 +52,7 @@ public class ModelingData {
             logger.info("--> остановка модели");
             for (TaskData item : items) {
                 item.getService().shutdown();
-                logger.info("--> остановка моделирования для %s", item.getPowerSystem().getIdenty());
+                logger.info("--> остановка моделирования для {}", item.getPowerSystem().getIdenty());
             }
         }
     }

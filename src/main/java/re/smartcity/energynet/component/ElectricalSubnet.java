@@ -1,5 +1,6 @@
 package re.smartcity.energynet.component;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.*;
@@ -7,17 +8,16 @@ import re.smartcity.energynet.component.data.ElectricalSubnetSpecification;
 
 public class ElectricalSubnet implements IComponentIdentification {
 
+    // одинаковые для всех
     @JsonProperty(value = "id", access = JsonProperty.Access.READ_ONLY)
     private final long id = -1; // для данного типа не используется
 
-    // одинаковые для всех
-    @JsonProperty(value = "identy", access = JsonProperty.Access.READ_ONLY)
     private String identy; // уникальный идентификатор
 
     @JsonProperty(value = "devaddr", access = JsonProperty.Access.READ_ONLY)
     private final byte devaddr = 0; // для данного типа не используется
 
-    @JsonProperty(value = "componenttype", access = JsonProperty.Access.READ_ONLY)
+    @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
     private final SupportedTypes componenttype = SupportedTypes.LINE; // тип компонента
 
     private volatile ElectricalSubnetSpecification data;
