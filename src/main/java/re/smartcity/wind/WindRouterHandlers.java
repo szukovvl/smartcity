@@ -60,13 +60,11 @@ public class WindRouterHandlers {
                         .build()
                         .toUri())
                 .exchangeToMono(response -> {
-                    logger.warn("exchange");
                     if (response.statusCode() == HttpStatus.OK) {
                         windStatusData.setErrorMsg(null);
                     } else {
                         response.bodyToMono(String.class)
                                 .map(msg -> {
-                                    logger.warn("response.map");
                                     if (msg != null && !msg.equals("")) {
                                         windStatusData.setErrorMsg(String.format("Ошибка %d: %s", response.statusCode().value(), msg));
                                     } else {
