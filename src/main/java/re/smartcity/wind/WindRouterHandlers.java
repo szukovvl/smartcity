@@ -36,20 +36,10 @@ public class WindRouterHandlers {
 
     private void internalSetPower() {
 
-        logger.info(windStatusData.getUrl());
-
         if (windStatusData.getUrl() == null || windStatusData.getUrl().equals("")) {
             windStatusData.setErrorMsg("Адрес сетевого ресурса устройста управления вентилятором не задан.");
             return;
         }
-
-        logger.info(UriComponentsBuilder
-                .fromHttpUrl(windStatusData.getUrl())
-                .path("Fan")
-                .queryParam("params", windStatusData.isOn() ? windStatusData.getPower() : 0)
-                .build()
-                .toUri()
-                .toASCIIString());
 
         windClient
                 .get()
