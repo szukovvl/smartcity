@@ -1,6 +1,6 @@
-package re.smartcity.wind;
+package re.smartcity.sun;
 
-public enum WindControlCommands {
+public enum SunControlCommands {
     POWER, // установка мощности
     ACTIVATE // включить-отключить
 }

@@ -7,10 +7,17 @@ import re.smartcity.energynet.component.data.ElectricalSubnetSpecification;
 
 public class ElectricalSubnet implements IComponentIdentification {
 
+    @JsonProperty(value = "id", access = JsonProperty.Access.READ_ONLY)
+    private final long id = -1; // для данного типа не используется
+
     // одинаковые для всех
+    @JsonProperty(value = "identy", access = JsonProperty.Access.READ_ONLY)
     private String identy; // уникальный идентификатор
 
-    @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
+    @JsonProperty(value = "devaddr", access = JsonProperty.Access.READ_ONLY)
+    private final byte devaddr = 0; // для данного типа не используется
+
+    @JsonProperty(value = "componenttype", access = JsonProperty.Access.READ_ONLY)
     private final SupportedTypes componenttype = SupportedTypes.LINE; // тип компонента
 
     private volatile ElectricalSubnetSpecification data;
@@ -19,7 +26,17 @@ public class ElectricalSubnet implements IComponentIdentification {
 
     //region IComponentIdentification
     @Override
+    public long getId() {
+        return id;
+    }
+
+    @Override
     public String getIdenty() { return this.identy; }
+
+    @Override
+    public byte getDevaddr() {
+        return devaddr;
+    }
 
     @Override
     public SupportedTypes getComponentType() { return this.componenttype; }

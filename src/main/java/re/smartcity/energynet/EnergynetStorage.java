@@ -6,11 +6,7 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
 import org.springframework.data.relational.core.query.Update;
-import org.springframework.data.relational.core.sql.Select;
 import org.springframework.stereotype.Component;
-import re.smartcity.common.data.Forecast;
-import re.smartcity.energynet.component.MainSubstationPowerSystem;
-import re.smartcity.energynet.component.data.client.SmallConsumerSpecification;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

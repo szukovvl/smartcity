@@ -29,7 +29,7 @@ public class SunService {
 
     public void stop() {
         if (executorService != null) {
-            controlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, false));
+            controlData.addCommand(new SunControlCommand(SunControlCommands.ACTIVATE, false));
             Executors.newSingleThreadExecutor().execute(() -> {
                 try {
                     Thread.sleep(controlData.getWaiting() * 2);
@@ -56,7 +56,7 @@ public class SunService {
                     Thread.sleep(controlData.getWaiting());
 
                     if (controlData.commandExists()) {
-                        WindControlCommand cmd = controlData.currentCommand();
+                        SunControlCommand cmd = controlData.currentCommand();
                         logger.info("выполнение команды: {}", cmd);
                         switch (cmd.command()) {
                             case ACTIVATE -> statusData.setOn(cmd.getValueAsBoolean());

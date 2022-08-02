@@ -1,6 +1,6 @@
-package re.smartcity.wind;
+package re.smartcity.sun;
 
-public record WindControlCommand(WindControlCommands command, Object value) {
+public record SunControlCommand(SunControlCommands command, Object value) {
 
     public Boolean getValueAsBoolean() {
         return (Boolean) value;
@@ -19,10 +19,10 @@ public record WindControlCommand(WindControlCommands command, Object value) {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof WindControlCommand)) {
+        if (!(obj instanceof SunControlCommand)) {
             return false;
         }
-        return ((WindControlCommand) obj).command == this.command;
+        return ((SunControlCommand) obj).command == this.command;
     }
 
     @Override

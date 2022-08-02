@@ -26,7 +26,8 @@ public class EnergynetConfiguration {
         logger.info("--> конфигурация энергосети.");
 
         // 1. выбираю главные подстанции
-        MainSubstationPowerSystem[] mainSubstations = storage.find(SupportedTypes.MAINSUBSTATION, MainSubstationPowerSystem.class)
+        MainSubstationPowerSystem[] mainSubstations = storage
+                .find(SupportedTypes.MAINSUBSTATION, MainSubstationPowerSystem.class)
                 .toStream()
                 .toArray(MainSubstationPowerSystem[]::new);
 
@@ -38,65 +39,63 @@ public class EnergynetConfiguration {
             logger.info("--> генерация элементов энергосети.");
 
             mainSubstations = Flux.merge(
-                            storage.insert(MainSubstationPowerSystem.create("Гп-1")),
-                            storage.insert(MainSubstationPowerSystem.create("Гп-2"))
+                            storage.insert(MainSubstationPowerSystem.create("Гп-1", (byte) 0x62)),
+                            storage.insert(MainSubstationPowerSystem.create("Гп-2", (byte) 0x63))
                     )
                     .toStream()
                     .toArray(MainSubstationPowerSystem[]::new);
 
             elements = Flux.merge(
                             Flux.merge(
-                                    storage.insert(EnergyDistributor.create("Мп-1")),
-                                    storage.insert(EnergyDistributor.create("Мп-2"))
+                                    storage.insert(EnergyDistributor.create("Мп-1", (byte) 0x64)),
+                                    storage.insert(EnergyDistributor.create("Мп-2", (byte) 0x65))
                             ),
                             Flux.merge(
-                                    storage.insert(Generation.create("Дг-1")),
-                                    storage.insert(Generation.create("Дг-2")),
-                                    storage.insert(Generation.create("Дг-3")),
-                                    storage.insert(Generation.create("Дг-4")),
-                                    storage.insert(Generation.create("Дг-5"))
+                                    storage.insert(Generation.create("Дг-1", (byte) 0x03)),
+                                    storage.insert(Generation.create("Дг-2", (byte) 0x04)),
+                                    storage.insert(Generation.create("Дг-3", (byte) 0x05)),
+                                    storage.insert(Generation.create("Дг-4", (byte) 0x06)),
+                                    storage.insert(Generation.create("Дг-5", (byte) 0x07))
                             ),
                             Flux.merge(
-                                    storage.insert(GreenGeneration.create("Сг-1", SupportedGenerations.SOLAR)),
-                                    storage.insert(GreenGeneration.create("Сг-2", SupportedGenerations.SOLAR)),
-                                    storage.insert(GreenGeneration.create("Сг-3", SupportedGenerations.SOLAR)),
-                                    storage.insert(GreenGeneration.create("Сг-4", SupportedGenerations.SOLAR)),
-                                    storage.insert(GreenGeneration.create("Сг-5", SupportedGenerations.SOLAR))
+                                    storage.insert(GreenGeneration.create("Сг-1", (byte) 0x16, SupportedGenerations.SOLAR)),
+                                    storage.insert(GreenGeneration.create("Сг-2", (byte) 0x17, SupportedGenerations.SOLAR)),
+                                    storage.insert(GreenGeneration.create("Сг-3", (byte) 0x18, SupportedGenerations.SOLAR)),
+                                    storage.insert(GreenGeneration.create("Сг-4", (byte) 0x19, SupportedGenerations.SOLAR)),
+                                    storage.insert(GreenGeneration.create("Сг-5", (byte) 0x1A, SupportedGenerations.SOLAR))
                             ),
                             Flux.merge(
-                                    storage.insert(GreenGeneration.create("Вг-1", SupportedGenerations.WIND)),
-                                    storage.insert(GreenGeneration.create("Вг-2", SupportedGenerations.WIND)),
-                                    storage.insert(GreenGeneration.create("Вг-3", SupportedGenerations.WIND)),
-                                    storage.insert(GreenGeneration.create("Вг-4", SupportedGenerations.WIND)),
-                                    storage.insert(GreenGeneration.create("Вг-5", SupportedGenerations.WIND))
+                                    storage.insert(GreenGeneration.create("Вг-1", (byte) 0x1B, SupportedGenerations.WIND)),
+                                    storage.insert(GreenGeneration.create("Вг-2", (byte) 0x1C, SupportedGenerations.WIND)),
+                                    storage.insert(GreenGeneration.create("Вг-3", (byte) 0x1D, SupportedGenerations.WIND))
                             ),
                             Flux.merge(
-                                    storage.insert(EnergyStorage.create("ЭХакб-1")),
-                                    storage.insert(EnergyStorage.create("ЭХакб-2")),
-                                    storage.insert(EnergyStorage.create("ЭХакб-3")),
-                                    storage.insert(EnergyStorage.create("ЭХакб-4")),
-                                    storage.insert(EnergyStorage.create("ЭХакб-5"))
+                                    storage.insert(EnergyStorage.create("ЭХакб-1", (byte) 0x08)),
+                                    storage.insert(EnergyStorage.create("ЭХакб-2", (byte) 0x09)),
+                                    storage.insert(EnergyStorage.create("ЭХакб-3", (byte) 0x0A)),
+                                    storage.insert(EnergyStorage.create("ЭХакб-4", (byte) 0x0B)),
+                                    storage.insert(EnergyStorage.create("ЭХакб-5", (byte) 0x0C))
                             ),
                             Flux.merge(
-                                    storage.insert(Consumer.create("ЖМ-1", SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-2", SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-3", SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-4", SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-5", SupportedConsumers.DISTRICT))
+                                    storage.insert(Consumer.create("ЖМ-1", (byte) 0x0D, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer.create("ЖМ-2", (byte) 0x0E, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer.create("ЖМ-3", (byte) 0x0F, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer.create("ЖМ-4", (byte) 0x10, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer.create("ЖМ-5", (byte) 0x11, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer.create("ЖМ-6", (byte) 0x12, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer.create("ЖМ-7", (byte) 0x13, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer.create("ЖМ-8", (byte) 0x14, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer.create("ЖМ-9", (byte) 0x15, SupportedConsumers.DISTRICT))
                             ),
                             Flux.merge(
-                                    storage.insert(Consumer.create("П-1", SupportedConsumers.INDUSTRY)),
-                                    storage.insert(Consumer.create("П-2", SupportedConsumers.INDUSTRY)),
-                                    storage.insert(Consumer.create("П-3", SupportedConsumers.INDUSTRY)),
-                                    storage.insert(Consumer.create("П-4", SupportedConsumers.INDUSTRY)),
-                                    storage.insert(Consumer.create("П-5", SupportedConsumers.INDUSTRY))
+                                    storage.insert(Consumer.create("П-1", (byte) 0x66, SupportedConsumers.INDUSTRY)),
+                                    storage.insert(Consumer.create("П-2", (byte) 0x67, SupportedConsumers.INDUSTRY)),
+                                    storage.insert(Consumer.create("П-3", (byte) 0x68, SupportedConsumers.INDUSTRY))
                             ),
                             Flux.merge(
-                                    storage.insert(Consumer.create("С-1", SupportedConsumers.HOSPITAL)),
-                                    storage.insert(Consumer.create("С-2", SupportedConsumers.HOSPITAL)),
-                                    storage.insert(Consumer.create("С-3", SupportedConsumers.HOSPITAL)),
-                                    storage.insert(Consumer.create("С-4", SupportedConsumers.HOSPITAL)),
-                                    storage.insert(Consumer.create("С-5", SupportedConsumers.HOSPITAL))
+                                    storage.insert(Consumer.create("С-1", (byte) 0x69, SupportedConsumers.HOSPITAL)),
+                                    storage.insert(Consumer.create("С-2", (byte) 0x6A, SupportedConsumers.HOSPITAL)),
+                                    storage.insert(Consumer.create("С-3", (byte) 0x6B, SupportedConsumers.HOSPITAL))
                             )
                     )
                     .toStream()
@@ -126,15 +125,12 @@ public class EnergynetConfiguration {
     @PostConstruct
     public void appPreStart() {
 
-        Executors.newSingleThreadExecutor().execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    prepareConfiguration();
-                }
-                catch (Exception ex) {
-                    logger.error("Ошибка подготовки элементов энергосети", ex);
-                }
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                prepareConfiguration();
+            }
+            catch (Exception ex) {
+                logger.error("Ошибка подготовки элементов энергосети", ex);
             }
         });
 

@@ -1,6 +1,9 @@
 package re.smartcity.energynet;
 
 public interface IComponentIdentification {
-    public String getIdenty();
-    public SupportedTypes getComponentType();
+
+    long getId();
+    String getIdenty();
+    byte getDevaddr();
+    SupportedTypes getComponentType();
 }

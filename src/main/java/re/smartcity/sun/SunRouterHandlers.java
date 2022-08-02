@@ -44,7 +44,7 @@ public class SunRouterHandlers {
                     .body(Mono.just("освещенность: неверный параметр"), String.class);
         }
 
-        sunControlData.addCommand(new WindControlCommand(WindControlCommands.POWER, v));
+        sunControlData.addCommand(new SunControlCommand(SunControlCommands.POWER, v));
 
         return ServerResponse
                 .ok()
@@ -54,7 +54,7 @@ public class SunRouterHandlers {
     }
 
     public Mono<ServerResponse> sunOff(ServerRequest rq) {
-        sunControlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, false));
+        sunControlData.addCommand(new SunControlCommand(SunControlCommands.ACTIVATE, false));
 
         return ServerResponse
                 .ok()
@@ -64,7 +64,7 @@ public class SunRouterHandlers {
     }
 
     public Mono<ServerResponse> sunOn(ServerRequest rq) {
-        sunControlData.addCommand(new WindControlCommand(WindControlCommands.ACTIVATE, true));
+        sunControlData.addCommand(new SunControlCommand(SunControlCommands.ACTIVATE, true));
 
         return ServerResponse
                 .ok()
