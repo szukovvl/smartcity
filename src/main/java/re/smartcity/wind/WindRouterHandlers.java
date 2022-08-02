@@ -73,9 +73,17 @@ public class WindRouterHandlers {
 
                                     return Mono.empty();
                                 })
+                                .onErrorResume(t -> {
+                                    windStatusData.setErrorMsg(t.getMessage());
+                                    return Mono.empty();
+                                })
                                 .subscribe();
                     }
 
+                    return Mono.empty();
+                })
+                .onErrorResume(t -> {
+                    windStatusData.setErrorMsg(t.getMessage());
                     return Mono.empty();
                 })
                 .subscribe();
