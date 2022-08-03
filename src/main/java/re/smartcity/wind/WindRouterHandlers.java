@@ -154,6 +154,16 @@ public class WindRouterHandlers {
                 .bodyValue(windStatusData);
     }
 
+    public Mono<ServerResponse> windReconnect(ServerRequest ingnoredRq) {
+        internalSetPower();
+
+        return ServerResponse
+                .ok()
+                .header("Content-Language", "ru")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(windStatusData);
+    }
+
     public Mono<ServerResponse> getStatus(ServerRequest ignoredRq) {
         return ServerResponse
                 .ok()

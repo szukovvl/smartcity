@@ -14,13 +14,11 @@ public class WindTask {
 
     @PostConstruct
     public void appPostStart() {
-        System.out.println("----------- appPostStart");
         routerHandlers.internalSetOff();
     }
 
     @PreDestroy
     public void appShutdown() {
-        System.out.println("----------- appShutdown");
         routerHandlers.internalSetOff();
         try {
             Thread.sleep(300); // !!! делаю просто "небольшую" задержку, предполагая, что команда "ушла".

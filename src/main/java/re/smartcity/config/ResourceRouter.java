@@ -28,6 +28,7 @@ public class ResourceRouter {
                     builder.PUT("/url", handler::setWindURL);
                     builder.POST("/off", handler::windOff);
                     builder.POST("/on", handler::windOn);
+                    builder.POST("/reconnect", handler::windReconnect);
 
                     // прогноз
                     builder.GET("/forecast/all", handler::forecastAll);
