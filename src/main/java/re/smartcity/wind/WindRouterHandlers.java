@@ -79,6 +79,11 @@ public class WindRouterHandlers {
                 .subscribe();
     }
 
+    public void internalSetOff() {
+        windStatusData.setOn(false);
+        internalSetPower();
+    }
+
     public Mono<ServerResponse> setWindPower(ServerRequest rq) {
         int v;
         try {
