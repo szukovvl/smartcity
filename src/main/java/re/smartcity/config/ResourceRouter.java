@@ -9,6 +9,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.InfoRouterHandlers;
 import re.smartcity.energynet.EnergyRouterHandlers;
+import re.smartcity.stand.StandRouterHandlers;
 import re.smartcity.sun.SunRouterHandlers;
 import re.smartcity.wind.WindRouterHandlers;
 
@@ -56,6 +57,22 @@ public class ResourceRouter {
                     // прогноз
                     builder.GET("/forecast/all", handler::forecastAll);
                     builder.POST("/forecast", handler::forecastCreate);
+                }
+        ).build();
+    }
+
+    // стэнд
+    @Bean
+    public RouterFunction<ServerResponse> standRouterFunction(StandRouterHandlers handler) {
+        return route().nest(
+                RequestPredicates.path("/api/1_0/stand"),
+                builder -> {
+                    builder.GET("", handler::getStatus);
+
+                    // управление сервисом
+                    builder.PUT("/service/stop", handler::stopService);
+                    builder.PUT("/service/start", handler::startService);
+                    builder.PUT("/service/restart", handler::restartService);
                 }
         ).build();
     }
