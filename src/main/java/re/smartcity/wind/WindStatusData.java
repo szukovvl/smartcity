@@ -2,6 +2,7 @@ package re.smartcity.wind;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
+import re.smartcity.common.data.exchange.SimpleWindData;
 
 @Data
 public class WindStatusData {
@@ -12,4 +13,9 @@ public class WindStatusData {
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     volatile private String errorMsg;
+
+    public void apply(SimpleWindData data) {
+        setUrl(data.getUrl());
+        setPower(data.getPower());
+    }
 }

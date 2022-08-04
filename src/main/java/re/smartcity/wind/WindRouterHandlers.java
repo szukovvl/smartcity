@@ -10,17 +10,24 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.util.UriComponentsBuilder;
+import re.smartcity.common.CommonStorage;
 import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
 import re.smartcity.common.data.exchange.SimpleWindData;
+import re.smartcity.common.data.exchange.WindConfiguration;
 import reactor.core.publisher.Mono;
+
+import static re.smartcity.common.resources.Messages.FER_0;
 
 @Component
 public class WindRouterHandlers {
 
     private final Logger logger = LoggerFactory.getLogger(WindRouterHandlers.class);
+
+    @Autowired
+    private CommonStorage commonStorage;
 
     @Autowired
     private WindStatusData windStatusData;
@@ -51,6 +58,22 @@ public class WindRouterHandlers {
                         .toUri())
                 .exchangeToMono(response -> {
                     if (response.statusCode() == HttpStatus.OK) {
+
+                        commonStorage.putData(WindConfiguration.key,
+                                        new SimpleWindData(windStatusData.getPower(), windStatusData.getUrl()),
+                                        WindConfiguration.class)
+                                .map(res -> {
+                                    if (res == 0) {
+                                        logger.warn(FER_0, WindConfiguration.key);
+                                    }
+                                    return res;
+                                })
+                                .onErrorResume(t -> {
+                                    logger.error(t.getMessage());
+                                    return Mono.empty();
+                                })
+                                .subscribe();
+
                         windStatusData.setErrorMsg(null);
                     } else {
                         response.bodyToMono(String.class)
