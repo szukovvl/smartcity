@@ -17,16 +17,17 @@ public class StandTask {
     private final Logger logger = LoggerFactory.getLogger(StandTask.class);
 
     @Autowired
-    private CommonStorage storage;
-
-    @Autowired
     private StandService service;
 
     @PostConstruct
     public void appPostStart() {
         logger.info("--> запуск сервиса управления стендом.");
-        service.loadConfiguration();
-        service.start();
+        service.loadConfiguration()
+                .map(e -> {
+                    service.start();
+                    return e;
+                })
+                .subscribe();
     }
 
     @PreDestroy

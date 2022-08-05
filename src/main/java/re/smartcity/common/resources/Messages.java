@@ -11,6 +11,9 @@ public final class Messages {
     public static String ER_7 = "Тариф задается положительным числом.";
     public static String ER_8 = "Не поддерживаемый тип объекта.";
     public static String ER_9 = "Сетевой адрес устройства не может быть ноль.";
+    public static String ER_10 = "Порт подключения блока управления не задан.";
+    public static String ER_11 = "Нет доступных портов.";
+    public static String ER_12 = "Неверная длина пакета.";
 
     public static String FER_0 = "обновляемый объект {} в хранилище не зафиксирован.";
     public static String FER_1 = "ошибка при создании объекта конфигурации {}.";
