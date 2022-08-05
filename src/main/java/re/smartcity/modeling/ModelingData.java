@@ -42,10 +42,6 @@ public class ModelingData {
         this.allobjects = allobjects;
     }
 
-    public void translate() {
-
-    }
-
     public void stopAll() {
         TaskData[] items = getTasks();
         if (items != null) {

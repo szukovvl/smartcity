@@ -68,6 +68,9 @@ public class ResourceRouter {
                 RequestPredicates.path("/api/1_0/stand"),
                 builder -> {
                     builder.GET("", handler::getStatus);
+                    builder.GET("/control", handler::getControl);
+                    builder.PUT("/control", handler::putControl);
+                    builder.GET("/ports", handler::getPortNames);
 
                     // управление сервисом
                     builder.PUT("/service/stop", handler::stopService);

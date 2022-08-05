@@ -4,8 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import re.smartcity.modeling.ModelingData;
+import re.smartcity.common.CommonStorage;
+import re.smartcity.common.data.exchange.StandConfiguration;
 import re.smartcity.wind.WindServiceStatuses;
+import reactor.core.publisher.Mono;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,13 +18,12 @@ public class StandService {
     private final Logger logger = LoggerFactory.getLogger(StandService.class);
 
     @Autowired
-    private StandControlData controlData;
-
-    @Autowired
-    private ModelingData modelingData;
-
-    @Autowired
     private StandStatusData standStatus;
+
+    @Autowired
+    private CommonStorage storage;
+
+    private final StandControlData controlData = new StandControlData();
 
     private volatile ExecutorService executorService;
 
@@ -40,17 +41,7 @@ public class StandService {
     public void stop() {
         logger.info("останов сервиса управления стендом");
         if (executorService != null) {
-            Executors.newSingleThreadExecutor().execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        modelingData.translate();
-                        Thread.sleep(controlData.getWaiting() * 2);
-                        executorService.shutdown();
-                    }
-                    catch (InterruptedException ex) { }
-                }
-            });
+            executorService.shutdown();
         } else {
             logger.info("сервис управления стендом не запущена");
         }
@@ -59,6 +50,25 @@ public class StandService {
     public void restart() {
         logger.info("перезапуск сервиса управления стендом");
         Executors.newSingleThreadExecutor().execute(new RestartThread());
+    }
+
+    public void loadConfiguration() {
+        storage.getAndCreate(StandConfiguration.key, StandConfiguration.class)
+                .map(data -> {
+                    controlData.apply(data.getData());
+                    return Mono.empty();
+                })
+                .subscribe();
+    }
+
+    public StandControlData getControlData() {
+        return controlData;
+    }
+
+    public Mono<Integer> setControlData(StandControlData src) {
+        controlData.apply(src);
+
+        return storage.putData(StandConfiguration.key, src, StandConfiguration.class);
     }
 
     private class StandThread implements Runnable {
@@ -70,7 +80,7 @@ public class StandService {
             standStatus.setStatus(WindServiceStatuses.LAUNCHED);
             try {
                 while(!executorService.isShutdown() && !executorService.isTerminated()) {
-                    Thread.sleep(controlData.getWaiting());
+                    Thread.sleep(StandControlData.DELAY_WHEN_EMPTY);
 
                 }
             }
@@ -78,6 +88,7 @@ public class StandService {
                 logger.info("поток управления стендом прерван.");
             }
             finally {
+                executorService = null;
                 logger.info("поток управления стендом завершил выполнение.");
                 standStatus.setStatus(WindServiceStatuses.STOPPED);
             }

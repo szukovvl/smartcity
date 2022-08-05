@@ -45,6 +45,8 @@ public class SmartCity {
         converters.add(new GameCriteria_Data_WriteConverter());
         converters.add(new SimpleWind_Data_ReadConverter());
         converters.add(new SimpleWind_Data_WriteConverter());
+        converters.add(new SimpleStand_Data_ReadConverter());
+        converters.add(new SimpleStand_Data_WriteConverter());
         return R2dbcCustomConversions.of(MySqlDialect.INSTANCE, converters);
     }
 
@@ -74,16 +76,13 @@ public class SmartCity {
     }
     //endregion
 
-    //region инфраструктура управления стендом
+    //region инфраструктура стэнда
     @Bean
-    public StandControlData standControlData() { return new StandControlData(); }
+    public StandStatusData standStatusData() { return new StandStatusData(); }
     //endregion
 
     //region инфраструктура модели
     @Bean
     public ModelingData modelingData() { return new ModelingData(); }
-
-    @Bean
-    public StandStatusData standStatusData() { return new StandStatusData(); }
     //endregion
 }
