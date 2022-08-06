@@ -49,11 +49,6 @@ public class ResourceRouter {
                     builder.POST("/off", handler::sunOff);
                     builder.POST("/on", handler::sunOn);
 
-                    // управление сервисом
-                    builder.PUT("/service/stop", handler::stopService);
-                    builder.PUT("/service/start", handler::startService);
-                    builder.PUT("/service/restart", handler::restartService);
-
                     // прогноз
                     builder.GET("/forecast/all", handler::forecastAll);
                     builder.POST("/forecast", handler::forecastCreate);

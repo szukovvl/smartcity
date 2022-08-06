@@ -6,30 +6,54 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import re.smartcity.common.CommonStorage;
 import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
+import re.smartcity.common.data.exchange.SimpleSunData;
+import re.smartcity.common.data.exchange.SunConfiguration;
+import re.smartcity.stand.SerialCommand;
+import re.smartcity.stand.SerialElementAddresses;
+import re.smartcity.stand.SerialPackageTypes;
+import re.smartcity.stand.StandService;
 import re.smartcity.wind.*;
 import reactor.core.publisher.Mono;
 
 @Component
 public class SunRouterHandlers {
 
-    @Autowired
-    private SunService sunService;
+    // private final Logger logger = LoggerFactory.getLogger(SunRouterHandlers.class);
 
     @Autowired
     private SunStatusData sunStatusData;
-
-    @Autowired
-    private SunControlData sunControlData;
 
     @Autowired
     private ForecastStorage storage;
 
     @Autowired
     private ForecastRouterHandler forecastHandler;
+
+    @Autowired
+    private StandService standService;
+
+    @Autowired
+    private CommonStorage commonStorage;
+
+    private Mono<ServerResponse> internalSaveCfg() {
+        return commonStorage.putData(SunConfiguration.key,
+                new SimpleSunData(sunStatusData.getPower()),
+                SunConfiguration.class)
+                .flatMap(count -> ServerResponse
+                        .ok()
+                        .header("Content-Language", "ru")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(sunStatusData))
+                .onErrorResume(t -> ServerResponse
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(t.getMessage()));
+    }
 
     public Mono<ServerResponse> setSunPower(ServerRequest rq) {
         int v;
@@ -44,36 +68,32 @@ public class SunRouterHandlers {
                     .body(Mono.just("освещенность: неверный параметр"), String.class);
         }
 
-        sunControlData.addCommand(new SunControlCommand(SunControlCommands.POWER, v));
+        sunStatusData.setPower(v);
+        standService.pushSerialCommand(new SerialCommand(SerialElementAddresses.SUN_SIMULATOR,
+                SerialPackageTypes.SET_BRIGHTNESS_SUN_SIMULATOR, sunStatusData.isOn() ? v : 0));
 
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just(String.format("освещенность: %s", v)), String.class);
+        return internalSaveCfg();
     }
 
-    public Mono<ServerResponse> sunOff(ServerRequest rq) {
-        sunControlData.addCommand(new SunControlCommand(SunControlCommands.ACTIVATE, false));
+    public Mono<ServerResponse> sunOff(ServerRequest ignoredRq) {
 
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("отключить освещение"), String.class);
+        sunStatusData.setOn(false);
+        standService.pushSerialCommand(new SerialCommand(SerialElementAddresses.SUN_SIMULATOR,
+                SerialPackageTypes.SET_BRIGHTNESS_SUN_SIMULATOR, 0));
+
+        return internalSaveCfg();
     }
 
-    public Mono<ServerResponse> sunOn(ServerRequest rq) {
-        sunControlData.addCommand(new SunControlCommand(SunControlCommands.ACTIVATE, true));
+    public Mono<ServerResponse> sunOn(ServerRequest ignoredRq) {
 
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("включить освещение"), String.class);
+        sunStatusData.setOn(true);
+        standService.pushSerialCommand(new SerialCommand(SerialElementAddresses.SUN_SIMULATOR,
+                SerialPackageTypes.SET_BRIGHTNESS_SUN_SIMULATOR, sunStatusData.getPower()));
+
+        return internalSaveCfg();
     }
 
-    public Mono<ServerResponse> getStatus(ServerRequest rq) {
+    public Mono<ServerResponse> getStatus(ServerRequest ignoredRq) {
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")
@@ -81,39 +101,8 @@ public class SunRouterHandlers {
                 .body(Mono.just(sunStatusData), WindStatusData.class);
     }
 
-    // управление сервисом
-    public Mono<ServerResponse> stopService(ServerRequest rq) {
-        sunService.stop();
-
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("задача управления солнцем: остановить"), String.class);
-    }
-
-    public Mono<ServerResponse> startService(ServerRequest rq) {
-        sunService.start();
-
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("задача управления солнцем: запустить"), String.class);
-    }
-
-    public Mono<ServerResponse> restartService(ServerRequest rq) {
-        sunService.restart();
-
-        return ServerResponse
-                .ok()
-                .header("Content-Language", "ru")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(Mono.just("задача управления солнцем: перезапустить"), String.class);
-    }
-
     // работа с прогнозом
-    public Mono<ServerResponse> forecastAll(ServerRequest rq) {
+    public Mono<ServerResponse> forecastAll(ServerRequest ignoredRq) {
         return ServerResponse
                 .ok()
                 .header("Content-Language", "ru")

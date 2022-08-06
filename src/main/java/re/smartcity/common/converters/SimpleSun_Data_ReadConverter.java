@@ -5,22 +5,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.converter.Converter;
-import re.smartcity.common.data.exchange.SimpleWindData;
+import re.smartcity.common.data.exchange.SimpleSunData;
 
-public class SimpleWind_Data_WriteConverter implements Converter<SimpleWindData, String> {
+public class SimpleSun_Data_ReadConverter implements Converter<String, SimpleSunData> {
 
-    private final Logger logger = LoggerFactory.getLogger(SimpleWind_Data_WriteConverter.class);
+    private final Logger logger = LoggerFactory.getLogger(SimpleSun_Data_ReadConverter.class);
 
     @Override
-    public String convert(SimpleWindData from) {
-        String s;
+    public SimpleSunData convert(String from) {
+
+        SimpleSunData res;
         try {
-            s = new ObjectMapper().writeValueAsString(from);
+            res = new ObjectMapper().readValue(from, SimpleSunData.class);
         }
         catch (JsonProcessingException ex) {
             logger.error(ex.getMessage());
             return null;
         }
-        return s;
+        return res;
     }
 }

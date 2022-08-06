@@ -13,9 +13,6 @@ public class StandControlData {
     public static int DELAY_WHEN_EMPTY = 100;
     public static int DELAY_COMMAND_FLOW = 5;
 
-    public static byte START_SQ_CHAR = 0x7B;
-    public static byte END_SQ_CHAR = 0x7D;
-
     volatile private Integer restartingWait = 3000; // ожидание при перезапуске, после останова сервиса
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)

@@ -8,9 +8,7 @@ import org.springframework.data.r2dbc.dialect.MySqlDialect;
 import org.springframework.web.reactive.function.client.WebClient;
 import re.smartcity.common.converters.*;
 import re.smartcity.modeling.ModelingData;
-import re.smartcity.stand.StandControlData;
 import re.smartcity.stand.StandStatusData;
-import re.smartcity.sun.SunControlData;
 import re.smartcity.sun.SunStatusData;
 import re.smartcity.wind.WindStatusData;
 
@@ -47,6 +45,8 @@ public class SmartCity {
         converters.add(new SimpleWind_Data_WriteConverter());
         converters.add(new SimpleStand_Data_ReadConverter());
         converters.add(new SimpleStand_Data_WriteConverter());
+        converters.add(new SimpleSun_Data_ReadConverter());
+        converters.add(new SimpleSun_Data_WriteConverter());
         return R2dbcCustomConversions.of(MySqlDialect.INSTANCE, converters);
     }
 
@@ -68,11 +68,6 @@ public class SmartCity {
     @Bean
     public SunStatusData sunStatusData() {
         return new SunStatusData();
-    }
-
-    @Bean
-    public SunControlData sunControlData() {
-        return new SunControlData();
     }
     //endregion
 

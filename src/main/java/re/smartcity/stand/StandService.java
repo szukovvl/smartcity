@@ -31,6 +31,45 @@ public class StandService {
 
     private volatile ExecutorService executorService;
 
+    private final SerialCommandQueue serialCommands = new SerialCommandQueue();
+
+    private final Object _serialLock = new Object();
+
+    //region частные методы
+    private void toOriginalState(SerialPort serialPort)
+        throws SerialPortException, InterruptedException {
+        // отключение осветителя
+        SerialPackageBuilder.printBytes("-->", SerialPackageBuilder.setBrightnessSunSimulator(0));
+        synchronized (_serialLock) {
+            serialPort.writeBytes(SerialPackageBuilder.setBrightnessSunSimulator(0));
+            Thread.sleep(StandControlData.DELAY_COMMAND_FLOW);
+        }
+        // отключение подсветки модели
+        SerialPackageBuilder.printBytes("-->", SerialPackageBuilder.setHighlightLevel(0));
+        synchronized (_serialLock) {
+            serialPort.writeBytes(SerialPackageBuilder.setHighlightLevel(0));
+            Thread.sleep(StandControlData.DELAY_COMMAND_FLOW);
+        }
+    }
+
+    private void translatePacket(Byte[] packet) {
+        /*
+            0x01 данные о схеме соединения элементов стенда
+            0x02 данные о напряжении питания элемента стенда
+            0x03 данные об освещенности от элемента стенда "солнечная батарея"
+            0x04 данные о силе ветра от элемента стенда "ветрогенератор"
+            0x05 данные о уровне подсветки модели
+            0x06 данные о токе, потребляемом стендом
+            0x07 сообщение о переполнении внутренних буферов элемента стенда
+         */
+        if (packet.length < 2) {
+            logger.error(Messages.ER_12);
+            return;
+        }
+    }
+    //endregion
+
+    //region общедоступные методы
     public void start() {
         logger.info("запуск сервиса управления стендом");
         if (executorService == null)
@@ -64,22 +103,6 @@ public class StandService {
                 });
     }
 
-    public void translatePacket(Byte[] packet) {
-        /*
-            0x01 данные о схеме соединения элементов стенда
-            0x02 данные о напряжении питания элемента стенда
-            0x03 данные об освещенности от элемента стенда "солнечная батарея"
-            0x04 данные о силе ветра от элемента стенда "ветрогенератор"
-            0x05 данные о уровне подсветки модели
-            0x06 данные о токе, потребляемом стендом
-            0x07 сообщение о переполнении внутренних буферов элемента стенда
-         */
-        if (packet.length < 2) {
-            logger.error(Messages.ER_12);
-            return;
-        }
-    }
-
     public StandControlData getControlData() {
         return controlData;
     }
@@ -90,6 +113,12 @@ public class StandService {
         return storage.putData(StandConfiguration.key, src, StandConfiguration.class);
     }
 
+    public void pushSerialCommand(SerialCommand command) {
+        serialCommands.pushCommand(command);
+    }
+    //endregion
+
+    //region внутренние классы
     private class StandThread implements Runnable {
 
         private final Logger logger = LoggerFactory.getLogger(StandThread.class);
@@ -159,22 +188,59 @@ public class StandService {
                 return;
             }
 
-            standStatus.setErrorMsg(null);
+            try {
+                // привожу все в исходное состояние
+                toOriginalState(serialPort);
+                // опрос схемы подключения
+            }
+            catch (SerialPortException | InterruptedException ex) {
+                logger.error(ex.getMessage());
+                standStatus.setErrorMsg(ex.getMessage());
+                if (serialPort.isOpened()) {
+                    try {
+                        serialPort.closePort();
+                    }
+                    catch (SerialPortException ignored) { }
+                }
+                return;
+            }
 
             // ...
-            logger.info("поток управления стендом запущен.");
-            standStatus.setStatus(WindServiceStatuses.LAUNCHED);
             try {
+                standStatus.setErrorMsg(null);
+                logger.info("поток управления стендом запущен.");
+                standStatus.setStatus(WindServiceStatuses.LAUNCHED);
+                serialCommands.clear();
+                pushSerialCommand(new SerialCommand(SerialPackageTypes.REQUEST_SCHEME_CONNECTION_ELEMENTS));
                 while(!executorService.isShutdown() && !executorService.isTerminated()) {
-                    Thread.sleep(StandControlData.DELAY_WHEN_EMPTY);
-
+                    if (serialCommands.empty()) {
+                        Thread.sleep(StandControlData.DELAY_WHEN_EMPTY);
+                    } else {
+                        SerialCommand cmd = serialCommands.poll();
+                        if (cmd != null) {
+                            SerialPackageBuilder.printBytes("-->", SerialPackageBuilder.createPackage(cmd));
+                            synchronized (_serialLock) {
+                                serialPort.writeBytes(SerialPackageBuilder.createPackage(cmd));
+                                Thread.sleep(StandControlData.DELAY_COMMAND_FLOW);
+                            }
+                        }
+                    }
                 }
+            }
+            catch (SerialPortException ex) {
+                logger.error(ex.getMessage());
+                standStatus.setErrorMsg(ex.getMessage());
             }
             catch (InterruptedException ex) {
                 logger.info("поток управления стендом прерван.");
             }
             finally {
                 executorService = null;
+                // привожу все в исходное состояние
+                try {
+                    toOriginalState(serialPort);
+                }
+                catch (SerialPortException | InterruptedException ignored) { }
                 try {
                     serialPort.closePort();
                 }
@@ -198,8 +264,10 @@ public class StandService {
             if (event.isRXCHAR() && event.getEventValue() > 0) {
 
                 try {
-                    buffer = event.getPort().readBytes(event.getEventValue());
-                    Thread.sleep(StandControlData.DELAY_COMMAND_FLOW);
+                    synchronized (_serialLock) {
+                        buffer = event.getPort().readBytes(event.getEventValue());
+                        Thread.sleep(StandControlData.DELAY_COMMAND_FLOW);
+                    }
                 }
                 catch (SerialPortException ex) {
                     logger.error(ex.getMessage());
@@ -212,8 +280,8 @@ public class StandService {
 
                 for (byte b : buffer) {
                     if (startOk) { // ищу завершение пакета
-                        if (b != StandControlData.END_SQ_CHAR) {
-                            if (b == StandControlData.START_SQ_CHAR) {
+                        if (b != SerialServiceSymbols.PACKAGE_END) {
+                            if (b == SerialServiceSymbols.PACKAGE_START) {
                                 logger.error("неожиданное начало пакета");
                                 startOk = true;
                                 pack.clear();
@@ -225,7 +293,7 @@ public class StandService {
                             pack.clear();
                         }
                     } else { // ищу начало пакета
-                        if (b == StandControlData.START_SQ_CHAR) {
+                        if (b == SerialServiceSymbols.PACKAGE_START) {
                             startOk = true;
                             pack.clear();
                         }
@@ -251,4 +319,5 @@ public class StandService {
             }
         }
     }
+    //endregion
 }
