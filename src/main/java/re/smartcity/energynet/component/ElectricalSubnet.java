@@ -18,7 +18,7 @@ public class ElectricalSubnet implements IComponentIdentification {
     private final byte devaddr = 0; // для данного типа не используется
 
     @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
-    private final SupportedTypes componenttype = SupportedTypes.LINE; // тип компонента
+    private final SupportedTypes componentType = SupportedTypes.LINE; // тип компонента
 
     private volatile ElectricalSubnetSpecification data;
 
@@ -39,7 +39,7 @@ public class ElectricalSubnet implements IComponentIdentification {
     }
 
     @Override
-    public SupportedTypes getComponentType() { return this.componenttype; }
+    public SupportedTypes getComponentType() { return this.componentType; }
     //endregion
 
     public void setIdenty(String identy) {

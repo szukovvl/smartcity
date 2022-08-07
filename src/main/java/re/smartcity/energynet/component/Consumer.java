@@ -17,8 +17,8 @@ public class Consumer implements IComponentIdentification, IConsumer {
 
     private byte devaddr; // сетевой уникальный адрес устройства
 
-    @JsonProperty(value = "componenttype", access = JsonProperty.Access.READ_ONLY)
-    private final SupportedTypes componenttype = SupportedTypes.CONSUMER; // тип компонента
+    @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
+    private final SupportedTypes componentType = SupportedTypes.CONSUMER; // тип компонента
 
     private volatile ConsumerSpecification data;
 
@@ -27,7 +27,7 @@ public class Consumer implements IComponentIdentification, IConsumer {
     //region IComponentIdentification
     @Override
     public long getId() {
-        return id;
+        return this.id;
     }
 
     @Override
@@ -35,11 +35,11 @@ public class Consumer implements IComponentIdentification, IConsumer {
 
     @Override
     public byte getDevaddr() {
-        return devaddr;
+        return this.devaddr;
     }
 
     @Override
-    public SupportedTypes getComponentType() { return this.componenttype; }
+    public SupportedTypes getComponentType() { return this.componentType; }
     //endregion
 
     public ConsumerSpecification getData() {

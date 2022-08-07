@@ -21,8 +21,8 @@ public class MainSubstationPowerSystem implements IComponentIdentification {
     @JsonProperty(value = "devaddr", access = JsonProperty.Access.READ_ONLY)
     private byte devaddr; // сетевой уникальный адрес устройства
 
-    @JsonProperty(value = "componenttype", access = JsonProperty.Access.READ_ONLY)
-    private final SupportedTypes componenttype = SupportedTypes.MAINSUBSTATION; // тип компонента
+    @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
+    private final SupportedTypes componentType = SupportedTypes.MAINSUBSTATION; // тип компонента
 
     private volatile MainSubstationSpecification data;
 
@@ -43,7 +43,7 @@ public class MainSubstationPowerSystem implements IComponentIdentification {
     }
 
     @Override
-    public SupportedTypes getComponentType() { return this.componenttype; }
+    public SupportedTypes getComponentType() { return this.componentType; }
     //endregion
 
     public MainSubstationSpecification getData() {

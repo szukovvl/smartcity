@@ -54,17 +54,62 @@ public class StandService {
 
     private void translatePacket(Byte[] packet) {
         /*
-            0x01 данные о схеме соединения элементов стенда
-            0x02 данные о напряжении питания элемента стенда
-            0x03 данные об освещенности от элемента стенда "солнечная батарея"
-            0x04 данные о силе ветра от элемента стенда "ветрогенератор"
-            0x05 данные о уровне подсветки модели
-            0x06 данные о токе, потребляемом стендом
-            0x07 сообщение о переполнении внутренних буферов элемента стенда
+    public final static byte INTERNAL_BUFFER_OVERFLOW = 0x07; // сообщение о переполнении внутренних буферов элемента стенда
          */
         if (packet.length < 2) {
-            logger.error(Messages.ER_12);
+            logger.warn(Messages.ER_12);
             return;
+        }
+
+        switch (packet[1]) {
+            case SerialPackageTypes.DATA_SCHEME_CONNECTION -> {
+                byte[] scheme = new byte[packet.length - 2];
+                System.arraycopy(packet, 2, scheme, 0, scheme.length);
+                SerialPackageBuilder.printBytes(String.format("<-- схема %02X:", packet[0]), scheme);
+            }
+            case SerialPackageTypes.DATA_SUPPLY_VOLTAGE -> {
+                byte[] bytes = new byte[packet.length - 2];
+                System.arraycopy(packet, 2, bytes, 0, bytes.length);
+                float voltage = Float.parseFloat(new String(bytes));
+                System.out.printf("<-- напряжение %02X: %f\n", packet[0], voltage);
+                logger.warn(String.format(Messages.FER_2, packet[0], voltage));
+            }
+            case SerialPackageTypes.ILLUMINATION_DATA_SOLAR_BATTERY -> {
+                byte[] bytes = new byte[4];
+                System.arraycopy(packet, 2, bytes, 0, bytes.length);
+                int luxury = Integer.parseInt(new String(bytes));
+                System.arraycopy(packet, 6, bytes, 0, bytes.length);
+                int bg = Integer.parseInt(new String(bytes));
+                System.out.printf("<-- СЭС %02X: %d/%d\n", packet[0], luxury, bg);
+            }
+            case SerialPackageTypes.WIND_FORCE_DATA -> {
+                byte[] bytes = new byte[4];
+                System.arraycopy(packet, 2, bytes, 0, bytes.length);
+                float windSpeed = Float.parseFloat(new String(bytes));
+                System.arraycopy(packet, 6, bytes, 0, bytes.length);
+                float calibration = Float.parseFloat(new String(bytes));
+                System.out.printf("<-- ВГ %02X: %f/%f\n", packet[0], windSpeed, calibration);
+            }
+            case SerialPackageTypes.MODEL_HIGHLIGHT_DATA -> {
+                byte[] bytes = new byte[packet.length - 2];
+                System.arraycopy(packet, 2, bytes, 0, bytes.length);
+                int level = Integer.parseInt(new String(bytes));
+                System.out.printf("<-- подсветка %02X: %d\n", packet[0], level);
+            }
+            case SerialPackageTypes.DATA_CURRENT_CONSUMED -> {
+                System.out.printf("<-- перегруз по току %02X\n", packet[0]);
+                logger.warn(String.format(Messages.FER_3, packet[0]));
+            }
+            case SerialPackageTypes.INTERNAL_BUFFER_OVERFLOW -> {
+                System.out.printf("<-- переполнение буфера %02X\n", packet[0]);
+                logger.warn(String.format(Messages.FER_4, packet[0]));
+            }
+            default -> {
+                byte[] bytes = new byte[packet.length];
+                System.arraycopy(packet, 0, bytes, 0, bytes.length);
+                SerialPackageBuilder.printBytes("<-- неизвестный тип пакета:", bytes);
+                logger.warn(String.format(Messages.FER_5, packet[1], packet[0]));
+            }
         }
     }
     //endregion
@@ -124,7 +169,6 @@ public class StandService {
         private final Logger logger = LoggerFactory.getLogger(StandThread.class);
 
         public void run() {
-            logger.info("controlData: {}", controlData);
             // подготовка
             if (controlData.getPort() == null || "".equals(controlData.getPort())) {
                 // порт не задан
@@ -288,7 +332,7 @@ public class StandService {
                             }
                             pack.add(b);
                         } else {
-                            translatePacket(pack.toArray(Byte[]::new));
+                            Executors.newSingleThreadExecutor().execute(() -> translatePacket(pack.toArray(Byte[]::new)));
                             startOk = false;
                             pack.clear();
                         }

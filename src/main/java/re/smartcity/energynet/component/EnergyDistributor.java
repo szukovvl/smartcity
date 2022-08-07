@@ -20,8 +20,8 @@ public class EnergyDistributor implements IComponentIdentification {
     @JsonProperty(value = "devaddr", access = JsonProperty.Access.READ_ONLY)
     private byte devaddr; // сетевой уникальный адрес устройства
 
-    @JsonProperty(value = "componenttype", access = JsonProperty.Access.READ_ONLY)
-    private final SupportedTypes componenttype = SupportedTypes.DISTRIBUTOR;
+    @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
+    private final SupportedTypes componentType = SupportedTypes.DISTRIBUTOR;
 
     private volatile EnergyDistributorSpecification data;
 
@@ -42,7 +42,7 @@ public class EnergyDistributor implements IComponentIdentification {
     }
 
     @Override
-    public SupportedTypes getComponentType() { return this.componenttype; }
+    public SupportedTypes getComponentType() { return this.componentType; }
     //endregion
 
     public EnergyDistributorSpecification getData() {

@@ -13,7 +13,7 @@ public class ModelingData {
     private final Logger logger = LoggerFactory.getLogger(ModelingData.class);
     private final Object syncObj = new Object();
 
-    private volatile int discreteness = 500; // дискретность модели, не игровой
+    private final int discreteness = 500; // дискретность модели, не игровой
 
     private volatile IComponentIdentification[] allobjects = new IComponentIdentification[] { };
 
@@ -55,9 +55,7 @@ public class ModelingData {
 
     public void putOnMonitoring(MainSubstationPowerSystem[] substations) {
         stopAll();
-        TaskData[] tasks = Arrays.stream(substations).map(e -> {
-                    return new TaskData(Executors.newSingleThreadExecutor(), e);
-                })
+        TaskData[] tasks = Arrays.stream(substations).map(e -> new TaskData(Executors.newSingleThreadExecutor(), e))
                 .toArray(TaskData[]::new);
         setTasks(tasks);
         for (TaskData task : tasks) {

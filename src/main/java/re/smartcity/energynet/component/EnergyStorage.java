@@ -22,8 +22,8 @@ public class EnergyStorage implements IComponentIdentification, IEnergyStorage {
     @JsonProperty(value = "devaddr", access = JsonProperty.Access.READ_ONLY)
     private byte devaddr; // сетевой уникальный адрес устройства
 
-    @JsonProperty(value = "componenttype", access = JsonProperty.Access.READ_ONLY)
-    private final SupportedTypes componenttype = SupportedTypes.STORAGE; // тип компонента
+    @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
+    private final SupportedTypes componentType = SupportedTypes.STORAGE; // тип компонента
 
     private volatile EnergyStorageSpecification data;
 
@@ -44,7 +44,7 @@ public class EnergyStorage implements IComponentIdentification, IEnergyStorage {
     }
 
     @Override
-    public SupportedTypes getComponentType() { return this.componenttype; }
+    public SupportedTypes getComponentType() { return this.componentType; }
     //endregion
 
     public EnergyStorageSpecification getData() {

@@ -23,8 +23,8 @@ public class GreenGeneration implements IComponentIdentification {
     @JsonProperty(value = "devaddr", access = JsonProperty.Access.READ_ONLY)
     private byte devaddr; // сетевой уникальный адрес устройства
 
-    @JsonProperty(value = "componenttype", access = JsonProperty.Access.READ_ONLY)
-    private final SupportedTypes componenttype = SupportedTypes.GREEGENERATOR;
+    @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
+    private final SupportedTypes componentType = SupportedTypes.GREEGENERATOR;
 
     private volatile GreenGenerationSpecification data;
 
@@ -45,7 +45,7 @@ public class GreenGeneration implements IComponentIdentification {
     }
 
     @Override
-    public SupportedTypes getComponentType() { return this.componenttype; }
+    public SupportedTypes getComponentType() { return this.componentType; }
     //endregion
 
     public GreenGenerationSpecification getData() {

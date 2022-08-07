@@ -19,7 +19,7 @@ public class EnergynetStorage {
     public <T> Flux<IComponentIdentification> find(SupportedTypes stype, Class<T> clazz) {
         return template.select(Query
                         .query(Criteria.where("componenttype").is(stype))
-                        .columns("identy", "data")
+                        .columns("id", "identy", "devaddr", "data")
                         .sort(Sort.by("identy")), clazz)
                 .map(e -> (IComponentIdentification) e);
     }

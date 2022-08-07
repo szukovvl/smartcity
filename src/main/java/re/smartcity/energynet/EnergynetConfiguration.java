@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import re.smartcity.energynet.component.*;
 import re.smartcity.modeling.ModelingData;
+import re.smartcity.stand.SerialElementAddresses;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.PostConstruct;
@@ -39,63 +40,100 @@ public class EnergynetConfiguration {
             logger.info("--> генерация элементов энергосети.");
 
             mainSubstations = Flux.merge(
-                            storage.insert(MainSubstationPowerSystem.create("Гп-1", (byte) 0x62)),
-                            storage.insert(MainSubstationPowerSystem.create("Гп-2", (byte) 0x63))
+                            storage.insert(MainSubstationPowerSystem
+                                    .create("Гп-1", SerialElementAddresses.MAIN_SUBSTATION_1)),
+                            storage.insert(MainSubstationPowerSystem
+                                    .create("Гп-2", SerialElementAddresses.MAIN_SUBSTATION_2))
                     )
                     .toStream()
                     .toArray(MainSubstationPowerSystem[]::new);
 
             elements = Flux.merge(
                             Flux.merge(
-                                    storage.insert(EnergyDistributor.create("Мп-1", (byte) 0x64)),
-                                    storage.insert(EnergyDistributor.create("Мп-2", (byte) 0x65))
+                                    storage.insert(EnergyDistributor
+                                            .create("Мп-1", SerialElementAddresses.MINI_SUBSTATION_1)),
+                                    storage.insert(EnergyDistributor
+                                            .create("Мп-2", SerialElementAddresses.MINI_SUBSTATION_2))
                             ),
                             Flux.merge(
-                                    storage.insert(Generation.create("Дг-1", (byte) 0x03)),
-                                    storage.insert(Generation.create("Дг-2", (byte) 0x04)),
-                                    storage.insert(Generation.create("Дг-3", (byte) 0x05)),
-                                    storage.insert(Generation.create("Дг-4", (byte) 0x06)),
-                                    storage.insert(Generation.create("Дг-5", (byte) 0x07))
+                                    storage.insert(Generation
+                                            .create("Дг-1", SerialElementAddresses.DIESEL_GENERATOR_1)),
+                                    storage.insert(Generation
+                                            .create("Дг-2", SerialElementAddresses.DIESEL_GENERATOR_2)),
+                                    storage.insert(Generation
+                                            .create("Дг-3", SerialElementAddresses.DIESEL_GENERATOR_3)),
+                                    storage.insert(Generation
+                                            .create("Дг-4", SerialElementAddresses.DIESEL_GENERATOR_4)),
+                                    storage.insert(Generation
+                                            .create("Дг-5", SerialElementAddresses.DIESEL_GENERATOR_5))
                             ),
                             Flux.merge(
-                                    storage.insert(GreenGeneration.create("Сг-1", (byte) 0x16, SupportedGenerations.SOLAR)),
-                                    storage.insert(GreenGeneration.create("Сг-2", (byte) 0x17, SupportedGenerations.SOLAR)),
-                                    storage.insert(GreenGeneration.create("Сг-3", (byte) 0x18, SupportedGenerations.SOLAR)),
-                                    storage.insert(GreenGeneration.create("Сг-4", (byte) 0x19, SupportedGenerations.SOLAR)),
-                                    storage.insert(GreenGeneration.create("Сг-5", (byte) 0x1A, SupportedGenerations.SOLAR))
+                                    storage.insert(GreenGeneration
+                                            .create("Сг-1", SerialElementAddresses.SOLAR_BATTERY_1, SupportedGenerations.SOLAR)),
+                                    storage.insert(GreenGeneration
+                                            .create("Сг-2", SerialElementAddresses.SOLAR_BATTERY_2, SupportedGenerations.SOLAR)),
+                                    storage.insert(GreenGeneration
+                                            .create("Сг-3", SerialElementAddresses.SOLAR_BATTERY_3, SupportedGenerations.SOLAR)),
+                                    storage.insert(GreenGeneration
+                                            .create("Сг-4", SerialElementAddresses.SOLAR_BATTERY_4, SupportedGenerations.SOLAR)),
+                                    storage.insert(GreenGeneration
+                                            .create("Сг-5", SerialElementAddresses.SOLAR_BATTERY_5, SupportedGenerations.SOLAR))
                             ),
                             Flux.merge(
-                                    storage.insert(GreenGeneration.create("Вг-1", (byte) 0x1B, SupportedGenerations.WIND)),
-                                    storage.insert(GreenGeneration.create("Вг-2", (byte) 0x1C, SupportedGenerations.WIND)),
-                                    storage.insert(GreenGeneration.create("Вг-3", (byte) 0x1D, SupportedGenerations.WIND))
+                                    storage.insert(GreenGeneration
+                                            .create("Вг-1", SerialElementAddresses.WIND_GENERATOR_1, SupportedGenerations.WIND)),
+                                    storage.insert(GreenGeneration
+                                            .create("Вг-2", SerialElementAddresses.WIND_GENERATOR_2, SupportedGenerations.WIND)),
+                                    storage.insert(GreenGeneration
+                                            .create("Вг-3", SerialElementAddresses.WIND_GENERATOR_3, SupportedGenerations.WIND))
                             ),
                             Flux.merge(
-                                    storage.insert(EnergyStorage.create("ЭХакб-1", (byte) 0x08)),
-                                    storage.insert(EnergyStorage.create("ЭХакб-2", (byte) 0x09)),
-                                    storage.insert(EnergyStorage.create("ЭХакб-3", (byte) 0x0A)),
-                                    storage.insert(EnergyStorage.create("ЭХакб-4", (byte) 0x0B)),
-                                    storage.insert(EnergyStorage.create("ЭХакб-5", (byte) 0x0C))
+                                    storage.insert(EnergyStorage
+                                            .create("ЭХакб-1", SerialElementAddresses.BATTERY_1)),
+                                    storage.insert(EnergyStorage
+                                            .create("ЭХакб-2", SerialElementAddresses.BATTERY_2)),
+                                    storage.insert(EnergyStorage
+                                            .create("ЭХакб-3", SerialElementAddresses.BATTERY_3)),
+                                    storage.insert(EnergyStorage
+                                            .create("ЭХакб-4", SerialElementAddresses.BATTERY_4)),
+                                    storage.insert(EnergyStorage
+                                            .create("ЭХакб-5", SerialElementAddresses.BATTERY_5))
                             ),
                             Flux.merge(
-                                    storage.insert(Consumer.create("ЖМ-1", (byte) 0x0D, SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-2", (byte) 0x0E, SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-3", (byte) 0x0F, SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-4", (byte) 0x10, SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-5", (byte) 0x11, SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-6", (byte) 0x12, SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-7", (byte) 0x13, SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-8", (byte) 0x14, SupportedConsumers.DISTRICT)),
-                                    storage.insert(Consumer.create("ЖМ-9", (byte) 0x15, SupportedConsumers.DISTRICT))
+                                    storage.insert(Consumer
+                                            .create("ЖМ-1", SerialElementAddresses.DISTRICT_1, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer
+                                            .create("ЖМ-2", SerialElementAddresses.DISTRICT_2, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer
+                                            .create("ЖМ-3", SerialElementAddresses.DISTRICT_3, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer
+                                            .create("ЖМ-4", SerialElementAddresses.DISTRICT_4, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer
+                                            .create("ЖМ-5", SerialElementAddresses.DISTRICT_5, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer
+                                            .create("ЖМ-6", SerialElementAddresses.DISTRICT_6, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer
+                                            .create("ЖМ-7", SerialElementAddresses.DISTRICT_7, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer
+                                            .create("ЖМ-8", SerialElementAddresses.DISTRICT_8, SupportedConsumers.DISTRICT)),
+                                    storage.insert(Consumer
+                                            .create("ЖМ-9", SerialElementAddresses.DISTRICT_9, SupportedConsumers.DISTRICT))
                             ),
                             Flux.merge(
-                                    storage.insert(Consumer.create("П-1", (byte) 0x66, SupportedConsumers.INDUSTRY)),
-                                    storage.insert(Consumer.create("П-2", (byte) 0x67, SupportedConsumers.INDUSTRY)),
-                                    storage.insert(Consumer.create("П-3", (byte) 0x68, SupportedConsumers.INDUSTRY))
+                                    storage.insert(Consumer
+                                            .create("П-1", SerialElementAddresses.FACTORY_1, SupportedConsumers.INDUSTRY)),
+                                    storage.insert(Consumer
+                                            .create("П-2", SerialElementAddresses.FACTORY_2, SupportedConsumers.INDUSTRY)),
+                                    storage.insert(Consumer
+                                            .create("П-3", SerialElementAddresses.FACTORY_3, SupportedConsumers.INDUSTRY))
                             ),
                             Flux.merge(
-                                    storage.insert(Consumer.create("С-1", (byte) 0x69, SupportedConsumers.HOSPITAL)),
-                                    storage.insert(Consumer.create("С-2", (byte) 0x6A, SupportedConsumers.HOSPITAL)),
-                                    storage.insert(Consumer.create("С-3", (byte) 0x6B, SupportedConsumers.HOSPITAL))
+                                    storage.insert(Consumer
+                                            .create("С-1", SerialElementAddresses.HOSPITAL_1, SupportedConsumers.HOSPITAL)),
+                                    storage.insert(Consumer
+                                            .create("С-2", SerialElementAddresses.HOSPITAL_2, SupportedConsumers.HOSPITAL)),
+                                    storage.insert(Consumer
+                                            .create("С-3", SerialElementAddresses.HOSPITAL_3, SupportedConsumers.HOSPITAL))
                             )
                     )
                     .toStream()
