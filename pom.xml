@@ -26,6 +26,12 @@
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 
+		<!-- reactive websocket ? -->
+		<!--dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-integration</artifactId>
+		</dependency-->
+
 		<dependency>
 			<groupId>dev.miku</groupId>
 			<artifactId>r2dbc-mysql</artifactId>
@@ -78,12 +84,6 @@
 			<groupId>io.github.java-native</groupId>
 			<artifactId>jssc</artifactId>
 			<version>2.9.4</version>
-		</dependency>
-
-		<dependency>
-			<groupId>javax.websocket</groupId>
-			<artifactId>javax.websocket-api</artifactId>
-			<!--version>1.1</version-->
 		</dependency>
 
 	</dependencies>

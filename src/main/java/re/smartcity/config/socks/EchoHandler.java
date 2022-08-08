@@ -1,4 +1,4 @@
-package re.smartcity.config;
+package re.smartcity.config.socks;
 
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
