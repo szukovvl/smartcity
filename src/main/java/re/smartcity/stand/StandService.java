@@ -16,6 +16,8 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static re.smartcity.common.utils.Helpers.byteArrayCopy;
+
 @Service
 public class StandService {
 
@@ -53,47 +55,69 @@ public class StandService {
     }
 
     private void translatePacket(Byte[] packet) {
-        /*
-    public final static byte INTERNAL_BUFFER_OVERFLOW = 0x07; // сообщение о переполнении внутренних буферов элемента стенда
-         */
         if (packet.length < 2) {
             logger.warn(Messages.ER_12);
+            if (packet.length != 0) {
+                SerialPackageBuilder.printBytes("<--",
+                        byteArrayCopy(packet, 0, packet.length));
+            }
             return;
         }
 
+        SerialPackageBuilder.printBytes("<--", byteArrayCopy(packet, 0, packet.length));
+
         switch (packet[1]) {
             case SerialPackageTypes.DATA_SCHEME_CONNECTION -> {
-                byte[] scheme = new byte[packet.length - 2];
-                System.arraycopy(packet, 2, scheme, 0, scheme.length);
-                SerialPackageBuilder.printBytes(String.format("<-- схема %02X:", packet[0]), scheme);
+                //byte[] scheme = new byte[packet.length - 2];
+                //System.arraycopy(packet, 2, scheme, 0, scheme.length);
+                SerialPackageBuilder.printBytes(String.format("<-- схема %02X:", packet[0]),
+                        byteArrayCopy(packet, 2, packet.length - 2));
             }
             case SerialPackageTypes.DATA_SUPPLY_VOLTAGE -> {
-                byte[] bytes = new byte[packet.length - 2];
-                System.arraycopy(packet, 2, bytes, 0, bytes.length);
-                float voltage = Float.parseFloat(new String(bytes));
+                //byte[] bytes = new byte[packet.length - 2];
+                //System.arraycopy(packet, 2, bytes, 0, bytes.length);
+                float voltage = Float.parseFloat(new String(
+                        byteArrayCopy(packet, 2, packet.length - 2)));
                 System.out.printf("<-- напряжение %02X: %f\n", packet[0], voltage);
                 logger.warn(String.format(Messages.FER_2, packet[0], voltage));
             }
             case SerialPackageTypes.ILLUMINATION_DATA_SOLAR_BATTERY -> {
-                byte[] bytes = new byte[4];
-                System.arraycopy(packet, 2, bytes, 0, bytes.length);
-                int luxury = Integer.parseInt(new String(bytes));
-                System.arraycopy(packet, 6, bytes, 0, bytes.length);
-                int bg = Integer.parseInt(new String(bytes));
-                System.out.printf("<-- СЭС %02X: %d/%d\n", packet[0], luxury, bg);
+                //byte[] bytes = new byte[4];
+                //System.arraycopy(packet, 2, bytes, 0, bytes.length);
+                int luxury = Integer.parseInt(new String(
+                        byteArrayCopy(packet, 2, 4)));
+                //System.arraycopy(packet, 6, bytes, 0, bytes.length);
+
+                Byte[] fval = Arrays.stream(packet).skip(5).filter(b -> b != 0).toArray(Byte[]::new);
+                if (fval.length != 0) {
+                    int bg = Integer.parseInt(new String(
+                            byteArrayCopy(fval, 0, fval.length)));
+                    System.out.printf("<-- СЭС %02X: %d/%d\n", packet[0], luxury, bg);
+                } else {
+                    System.out.printf("<-- СЭС %02X: %d/0\n", packet[0], luxury);
+                }
             }
             case SerialPackageTypes.WIND_FORCE_DATA -> {
-                byte[] bytes = new byte[4];
-                System.arraycopy(packet, 2, bytes, 0, bytes.length);
-                float windSpeed = Float.parseFloat(new String(bytes));
-                System.arraycopy(packet, 6, bytes, 0, bytes.length);
-                float calibration = Float.parseFloat(new String(bytes));
-                System.out.printf("<-- ВГ %02X: %f/%f\n", packet[0], windSpeed, calibration);
+                //byte[] bytes = new byte[4];
+                //System.arraycopy(packet, 2, bytes, 0, bytes.length);
+                float windSpeed = Float.parseFloat(new String(
+                        byteArrayCopy(packet, 2, 4)));
+                //System.arraycopy(packet, 6, bytes, 0, bytes.length);
+
+                Byte[] fval = Arrays.stream(packet).skip(5).filter(b -> b != 0).toArray(Byte[]::new);
+                if (fval.length != 0) {
+                    float calibration = Float.parseFloat(new String(
+                            byteArrayCopy(fval, 0, fval.length)));
+                    System.out.printf("<-- ВГ %02X: %f/%f\n", packet[0], windSpeed, calibration);
+                } else {
+                    System.out.printf("<-- ВГ %02X: %f/0\n", packet[0], windSpeed);
+                }
             }
             case SerialPackageTypes.MODEL_HIGHLIGHT_DATA -> {
-                byte[] bytes = new byte[packet.length - 2];
-                System.arraycopy(packet, 2, bytes, 0, bytes.length);
-                int level = Integer.parseInt(new String(bytes));
+                //byte[] bytes = new byte[packet.length - 2];
+                //System.arraycopy(packet, 2, bytes, 0, bytes.length);
+                int level = Integer.parseInt(new String(
+                        byteArrayCopy(packet, 2, packet.length - 2)));
                 System.out.printf("<-- подсветка %02X: %d\n", packet[0], level);
             }
             case SerialPackageTypes.DATA_CURRENT_CONSUMED -> {
@@ -105,9 +129,10 @@ public class StandService {
                 logger.warn(String.format(Messages.FER_4, packet[0]));
             }
             default -> {
-                byte[] bytes = new byte[packet.length];
-                System.arraycopy(packet, 0, bytes, 0, bytes.length);
-                SerialPackageBuilder.printBytes("<-- неизвестный тип пакета:", bytes);
+                //byte[] bytes = new byte[packet.length];
+                //System.arraycopy(packet, 0, bytes, 0, bytes.length);
+                SerialPackageBuilder.printBytes("<-- неизвестный тип пакета:",
+                        byteArrayCopy(packet, 0, packet.length));
                 logger.warn(String.format(Messages.FER_5, packet[1], packet[0]));
             }
         }
@@ -325,14 +350,15 @@ public class StandService {
                 for (byte b : buffer) {
                     if (startOk) { // ищу завершение пакета
                         if (b != SerialServiceSymbols.PACKAGE_END) {
+                            pack.add(b);
                             if (b == SerialServiceSymbols.PACKAGE_START) {
                                 logger.error("неожиданное начало пакета");
                                 startOk = true;
                                 pack.clear();
                             }
-                            pack.add(b);
                         } else {
-                            Executors.newSingleThreadExecutor().execute(() -> translatePacket(pack.toArray(Byte[]::new)));
+                            //Executors.newSingleThreadExecutor().execute(() -> translatePacket(pack.toArray(Byte[]::new)));
+                            translatePacket(pack.toArray(Byte[]::new));
                             startOk = false;
                             pack.clear();
                         }
