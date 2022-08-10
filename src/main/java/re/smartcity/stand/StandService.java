@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import re.smartcity.common.CommonStorage;
 import re.smartcity.common.data.exchange.StandConfiguration;
 import re.smartcity.common.resources.Messages;
-import re.smartcity.common.utils.Helpers;
 import re.smartcity.wind.WindServiceStatuses;
 import reactor.core.publisher.Mono;
 
