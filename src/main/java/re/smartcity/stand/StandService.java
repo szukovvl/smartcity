@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import re.smartcity.common.CommonStorage;
 import re.smartcity.common.data.exchange.StandConfiguration;
 import re.smartcity.common.resources.Messages;
+import re.smartcity.common.utils.Helpers;
 import re.smartcity.wind.WindServiceStatuses;
 import reactor.core.publisher.Mono;
 
@@ -55,6 +56,7 @@ public class StandService {
     }
 
     private void translatePacket(Byte[] packet) {
+
         if (packet.length < 2) {
             logger.warn(Messages.ER_12);
             return;
@@ -325,9 +327,10 @@ public class StandService {
                                 pack.clear();
                             }
                         } else {
-                            Executors.newSingleThreadExecutor().execute(() -> translatePacket(pack.toArray(Byte[]::new)));
-                            startOk = false;
+                            Byte[] packet = pack.toArray(Byte[]::new);
                             pack.clear();
+                            startOk = false;
+                            Executors.newSingleThreadExecutor().execute(() -> translatePacket(packet));
                         }
                     } else { // ищу начало пакета
                         if (b == SerialServiceSymbols.PACKAGE_START) {
