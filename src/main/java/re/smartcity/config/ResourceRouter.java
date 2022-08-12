@@ -14,6 +14,7 @@ import re.smartcity.sun.SunRouterHandlers;
 import re.smartcity.wind.WindRouterHandlers;
 
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
+import static re.smartcity.common.resources.AppConstant.*;
 
 @Configuration
 public class ResourceRouter {
@@ -22,7 +23,7 @@ public class ResourceRouter {
     @Bean
     public RouterFunction<ServerResponse> windRouterFunction(WindRouterHandlers handler) {
         return route().nest(
-                RequestPredicates.path("/api/1_0/wind"),
+                RequestPredicates.path(API_WIND_SERVICE),
                 builder -> {
                     builder.GET("", handler::getStatus);
                     builder.PUT("/power/{value}", handler::setWindPower);
@@ -42,7 +43,7 @@ public class ResourceRouter {
     @Bean
     public RouterFunction<ServerResponse> sunRouterFunction(SunRouterHandlers handler) {
         return route().nest(
-                RequestPredicates.path("/api/1_0/sun"),
+                RequestPredicates.path(API_SUN_SERVICE),
                 builder -> {
                     builder.GET("", handler::getStatus);
                     builder.PUT("/{value}", handler::setSunPower);
@@ -60,7 +61,7 @@ public class ResourceRouter {
     @Bean
     public RouterFunction<ServerResponse> standRouterFunction(StandRouterHandlers handler) {
         return route().nest(
-                RequestPredicates.path("/api/1_0/stand"),
+                RequestPredicates.path(API_STAND_SERVICE),
                 builder -> {
                     builder.GET("", handler::getStatus);
                     builder.GET("/control", handler::getControl);
@@ -79,7 +80,7 @@ public class ResourceRouter {
     @Bean
     public RouterFunction<ServerResponse> forecastRouterFunction(ForecastRouterHandler handler) {
         return route().nest(
-                RequestPredicates.path("/api/1_0/forecast"),
+                RequestPredicates.path(API_FORECAST_SERVICE),
                 builder -> {
 
                     // прогноз
@@ -103,7 +104,7 @@ public class ResourceRouter {
     @Bean
     public RouterFunction<ServerResponse> infoRouterFunction(InfoRouterHandlers handler) {
         return route().nest(
-                RequestPredicates.path("/api/1_0/common"),
+                RequestPredicates.path(API_COMMON_SERVICE),
                 builder -> {
 
                     // обобщенное состояние
@@ -124,7 +125,7 @@ public class ResourceRouter {
     @Bean
     public RouterFunction<ServerResponse> energoRouterFunction(EnergyRouterHandlers handler) {
         return route().nest(
-                RequestPredicates.path("/api/1_0/energy"),
+                RequestPredicates.path(API_ENERGY_SERVICE),
                 builder -> {
 
                     // работа с объектами

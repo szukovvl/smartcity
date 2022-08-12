@@ -7,12 +7,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import re.smartcity.common.CommonStorage;
 import re.smartcity.common.data.exchange.StandConfiguration;
+import re.smartcity.common.resources.AppConstant;
 import re.smartcity.common.resources.Messages;
+import re.smartcity.common.utils.Helpers;
+import re.smartcity.config.sockets.CommonEventTypes;
+import re.smartcity.config.sockets.CommonSocketHandler;
+import re.smartcity.config.sockets.model.CellDataEvent;
 import re.smartcity.wind.WindServiceStatuses;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,6 +35,9 @@ public class StandService {
     @Autowired
     private CommonStorage storage;
 
+    @Autowired
+    private CommonSocketHandler commonSocketHandler;
+
     private final StandControlData controlData = new StandControlData();
 
     private volatile ExecutorService executorService;
@@ -36,6 +45,9 @@ public class StandService {
     private final SerialCommandQueue serialCommands = new SerialCommandQueue();
 
     private final Object _serialLock = new Object();
+
+    // !!!
+    private boolean isFirst = true;
 
     //region частные методы
     private void toOriginalState(SerialPort serialPort)
@@ -71,26 +83,34 @@ public class StandService {
                 logger.warn(String.format(Messages.FER_2, packet[0], voltage));
             }
             case SerialPackageTypes.ILLUMINATION_DATA_SOLAR_BATTERY -> {
+                int bg = 0;
                 int luxury = Integer.parseInt(new String(
                         byteArrayCopy(packet, 2, 4)));
                 if (Arrays.stream(packet).skip(5).anyMatch(b -> b == 0)) {
                     System.out.printf("<-- СЭС %02X: %d/0\n", packet[0], luxury);
                 } else {
-                    int bg = Integer.parseInt(new String(
+                    bg = Integer.parseInt(new String(
                             byteArrayCopy(packet, 6, 4)));
                     System.out.printf("<-- СЭС %02X: %d/%d\n", packet[0], luxury, bg);
                 }
+                commonSocketHandler.pushEvent(CommonEventTypes.SOLAR_SLICE,
+                        new CellDataEvent(packet[0],
+                                (float) Helpers.percentOf(luxury, AppConstant.MAX_ILLUMINATION_VALUE),
+                                (float) Helpers.percentOf(bg, AppConstant.MAX_ILLUMINATION_VALUE)));
             }
             case SerialPackageTypes.WIND_FORCE_DATA -> {
+                float calibration = 0.0f;
                 float windSpeed = Float.parseFloat(new String(
                         byteArrayCopy(packet, 2, 4)));
                 if (Arrays.stream(packet).skip(5).anyMatch(b -> b == 0)) {
                     System.out.printf("<-- ВГ %02X: %f/0\n", packet[0], windSpeed);
                 } else {
-                    float calibration = Float.parseFloat(new String(
+                    calibration = Float.parseFloat(new String(
                             byteArrayCopy(packet, 6, 4)));
                     System.out.printf("<-- ВГ %02X: %f/%f\n", packet[0], windSpeed, calibration);
                 }
+                commonSocketHandler.pushEvent(CommonEventTypes.WIND_SLICE,
+                        new CellDataEvent(packet[0], windSpeed, calibration));
             }
             case SerialPackageTypes.MODEL_HIGHLIGHT_DATA -> {
                 int level = Integer.parseInt(new String(
@@ -113,6 +133,23 @@ public class StandService {
             executorService.execute(new StandThread());
         } else {
             logger.info("сервис управления стендом уже запущен");
+        }
+
+        // !!!
+        if (isFirst) {
+            Executors.newSingleThreadExecutor().execute(() -> {
+                try {
+                    Random random = new Random();
+                    while (true) {
+                        Thread.sleep(5000);
+                        commonSocketHandler.pushEvent(CommonEventTypes.SOLAR_SLICE,
+                                new CellDataEvent((byte) 0x16, random.nextFloat(100.0f), 0.0f));
+                    }
+                }
+                catch (InterruptedException ex) {
+                    logger.error(ex.getMessage());
+                }
+            });
         }
     }
 
@@ -162,12 +199,12 @@ public class StandService {
             // подготовка
             if (controlData.getPort() == null || "".equals(controlData.getPort())) {
                 // порт не задан
-                // выполняею поиск возможного порта подключения
+                // выполняю поиск возможного порта подключения
                 String[] portNames = SerialPortList.getPortNames();
                 if (portNames.length != 0) {
                     logger.info("Обнаружены доступные порты:");
                     Arrays.stream(portNames).forEach(port -> logger.info("\tпорт: {}", port));
-                    // проверяю имена для линксовых систем
+                    // проверяю имена для линуксовых систем
                     String[] linuxPorts = Arrays.stream(portNames).filter(e -> e.contains("USB")).toArray(String[]::new);
                     if (linuxPorts.length == 1) {
                         controlData.setPort(linuxPorts[0]);

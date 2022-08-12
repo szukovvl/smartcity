@@ -13,4 +13,8 @@ public final class Helpers {
         }
         return res;
     }
+
+    public static double percentOf(int value, int maxvalue) {
+        return (float) value * 100.0 / (float) maxvalue;
+    }
 }
