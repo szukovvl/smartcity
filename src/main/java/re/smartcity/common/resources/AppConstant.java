@@ -17,7 +17,7 @@ public final class AppConstant {
     public final static String API_ENERGY_SERVICE = API_BASE_URL + "/energy";
 
     // Websocket общая информация
-    public final static String SOCKET_TOPICS_URL = "/api/ws/1_0/topics";
+    public final static String SOCKET_TOPICS_URL = "/wsapi/1_0/topics";
     public final static String SOCKET_COMMON_SERVICE = SOCKET_TOPICS_URL + "/common";
 
     //

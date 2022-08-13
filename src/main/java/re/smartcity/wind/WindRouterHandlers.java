@@ -17,6 +17,8 @@ import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
 import re.smartcity.common.data.exchange.SimpleWindData;
 import re.smartcity.common.data.exchange.WindConfiguration;
+import re.smartcity.config.sockets.CommonEventTypes;
+import re.smartcity.config.sockets.CommonSocketHandler;
 import reactor.core.publisher.Mono;
 
 import static re.smartcity.common.resources.Messages.FER_0;

@@ -137,13 +137,17 @@ public class StandService {
 
         // !!!
         if (isFirst) {
+            isFirst = false;
             Executors.newSingleThreadExecutor().execute(() -> {
                 try {
                     Random random = new Random();
                     while (true) {
-                        Thread.sleep(5000);
+                        Thread.sleep(2500);
                         commonSocketHandler.pushEvent(CommonEventTypes.SOLAR_SLICE,
                                 new CellDataEvent((byte) 0x16, random.nextFloat(100.0f), 0.0f));
+                        Thread.sleep(2500);
+                        commonSocketHandler.pushEvent(CommonEventTypes.WIND_SLICE,
+                                new CellDataEvent((byte) 0x1B, random.nextFloat(100.0f), 0.0f));
                     }
                 }
                 catch (InterruptedException ex) {

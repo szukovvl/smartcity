@@ -13,6 +13,8 @@ import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
 import re.smartcity.common.data.exchange.SimpleSunData;
 import re.smartcity.common.data.exchange.SunConfiguration;
+import re.smartcity.config.sockets.CommonEventTypes;
+import re.smartcity.config.sockets.CommonSocketHandler;
 import re.smartcity.stand.SerialCommand;
 import re.smartcity.stand.SerialElementAddresses;
 import re.smartcity.stand.SerialPackageTypes;
@@ -41,6 +43,7 @@ public class SunRouterHandlers {
     private CommonStorage commonStorage;
 
     private Mono<ServerResponse> internalSaveCfg() {
+
         return commonStorage.putData(SunConfiguration.key,
                 new SimpleSunData(sunStatusData.getPower()),
                 SunConfiguration.class)
