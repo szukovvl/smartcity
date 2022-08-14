@@ -19,8 +19,20 @@ import re.smartcity.common.data.exchange.SimpleWindData;
 import re.smartcity.common.data.exchange.WindConfiguration;
 import re.smartcity.common.utils.Helpers;
 import re.smartcity.common.utils.Interpolation;
+import re.smartcity.energynet.IComponentIdentification;
+import re.smartcity.energynet.SupportedGenerations;
+import re.smartcity.energynet.SupportedTypes;
+import re.smartcity.energynet.component.GreenGeneration;
+import re.smartcity.modeling.ModelingData;
+import re.smartcity.stand.SerialCommand;
+import re.smartcity.stand.SerialPackageTypes;
+import re.smartcity.stand.StandService;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.concurrent.Executors;
+
+import static re.smartcity.common.resources.AppConstant.CALIBRATION_DELAY_LINE;
 import static re.smartcity.common.resources.Messages.FER_0;
 
 @Component
@@ -42,6 +54,33 @@ public class WindRouterHandlers {
 
     @Autowired
     private ForecastRouterHandler forecastHandler;
+
+    @Autowired
+    private StandService standService;
+
+    @Autowired
+    private ModelingData modelingData;
+
+    private void internalWindOperation() {
+
+        if (windStatusData.getUrl() == null || windStatusData.getUrl().equals("")) {
+            windStatusData.setErrorMsg("Адрес сетевого ресурса устройста управления вентилятором не задан.");
+            return;
+        }
+
+        windClient
+                .get()
+                .uri(UriComponentsBuilder
+                        .fromHttpUrl(windStatusData.getUrl())
+                        .path("Fan")
+                        .queryParam("params", windStatusData.getPower())
+                        .build()
+                        .toUri())
+                .exchangeToMono(clientResponse -> {
+                    return Mono.empty();
+                })
+                .subscribe();
+    }
 
     private void internalSetPower() {
 
@@ -203,7 +242,7 @@ public class WindRouterHandlers {
                 .bodyValue(windStatusData);
     }
 
-    public Mono<ServerResponse> windReconnect(ServerRequest ingnoredRq) {
+    public Mono<ServerResponse> windReconnect(ServerRequest ignoredRq) {
         internalSetPower();
 
         return ServerResponse
@@ -265,5 +304,104 @@ public class WindRouterHandlers {
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(Interpolation.interpolate(windStatusData.getForecast().getData(), 5.0));
+    }
+
+    public Mono<ServerResponse> calibrateAll(ServerRequest ignoredRq) {
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            boolean save_ison = windStatusData.isOn();
+            int save_power = windStatusData.getPower();
+
+            // 1. включить вентилятор на полную мощность
+            windStatusData.setPower(80);
+            windStatusData.setOn(true);
+            internalWindOperation();
+            try {
+                Thread.sleep(CALIBRATION_DELAY_LINE);
+            }
+            catch (InterruptedException ex) {
+                return;
+            }
+
+            // 2. команда калибровки в широком вещании
+            standService.pushSerialCommand(new SerialCommand(SerialPackageTypes.CALIBRATION_WIND_GENERATOR));
+            try {
+                Thread.sleep(CALIBRATION_DELAY_LINE);
+            }
+            catch (InterruptedException ex) {
+                return;
+            }
+
+            // 3. Вернуть обратно вентилятор
+            windStatusData.setPower(save_power);
+            windStatusData.setOn(save_ison);
+            internalWindOperation();
+        });
+
+        return ServerResponse
+                .ok()
+                .header("Content-Language", "ru")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(windStatusData);
+    }
+
+    public Mono<ServerResponse> calibrate(ServerRequest rq) {
+
+        byte v;
+        try {
+            v = Byte.parseByte(rq.pathVariable("addr"));
+            IComponentIdentification item = Arrays.stream(modelingData.getAllobjects())
+                    .filter(e -> e.getDevaddr() == v)
+                    .findFirst()
+                    .get();
+            if (item.getComponentType() != SupportedTypes.GREEGENERATOR ||
+                    ((GreenGeneration) item).getData().getGeneration_type() != SupportedGenerations.WIND)
+            {
+                throw new IllegalArgumentException("неверный тип элемента");
+            }
+        }
+        catch (IllegalArgumentException e) {
+            return ServerResponse
+                    .status(HttpStatus.NOT_IMPLEMENTED)
+                    .header("Content-Language", "ru")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(Mono.just("калибровка: неверный неверный адрес элемента"), String.class);
+        }
+
+        Executors.newSingleThreadExecutor().execute(() -> {
+            boolean save_ison = windStatusData.isOn();
+            int save_power = windStatusData.getPower();
+
+            // 1. включить вентилятор на полную мощность
+            windStatusData.setPower(80);
+            windStatusData.setOn(true);
+            internalWindOperation();
+            try {
+                Thread.sleep(CALIBRATION_DELAY_LINE);
+            }
+            catch (InterruptedException ex) {
+                return;
+            }
+
+            // 2. команда калибровки элемента
+            standService.pushSerialCommand(new SerialCommand(v, SerialPackageTypes.CALIBRATION_WIND_GENERATOR));
+            try {
+                Thread.sleep(CALIBRATION_DELAY_LINE);
+            }
+            catch (InterruptedException ex) {
+                return;
+            }
+
+            // 3. Вернуть обратно вентилятор
+            windStatusData.setOn(save_ison);
+            windStatusData.setPower(save_power);
+            internalWindOperation();
+        });
+
+        return ServerResponse
+                .ok()
+                .header("Content-Language", "ru")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(windStatusData);
     }
 }

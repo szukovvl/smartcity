@@ -39,6 +39,8 @@ public class ResourceRouter {
 
                     // разное
                     builder.GET("/interpolate", handler::interpolate);
+                    builder.POST("/calibrate", handler::calibrateAll);
+                    builder.PUT("/calibrate/{addr}", handler::calibrate);
                 }
         ).build();
     }
@@ -61,6 +63,8 @@ public class ResourceRouter {
 
                     // разное
                     builder.GET("/interpolate", handler::interpolate);
+                    builder.POST("/calibrate", handler::calibrateAll);
+                    builder.PUT("/calibrate/{addr}", handler::calibrate);
                 }
         ).build();
     }
