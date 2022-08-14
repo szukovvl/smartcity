@@ -13,9 +13,9 @@ public class WindStatusData {
     volatile private String url = "";
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
-    private Forecast forecast; // прогноз
+    volatile private Forecast forecast; // прогноз
 
-    private boolean useforecast; // задействовать прогноз
+    volatile private boolean useforecast; // задействовать прогноз
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     volatile private String errorMsg;
