@@ -13,13 +13,12 @@ import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
 import re.smartcity.common.data.exchange.SimpleSunData;
 import re.smartcity.common.data.exchange.SunConfiguration;
-import re.smartcity.config.sockets.CommonEventTypes;
-import re.smartcity.config.sockets.CommonSocketHandler;
+import re.smartcity.common.utils.Helpers;
+import re.smartcity.common.utils.Interpolation;
 import re.smartcity.stand.SerialCommand;
 import re.smartcity.stand.SerialElementAddresses;
 import re.smartcity.stand.SerialPackageTypes;
 import re.smartcity.stand.StandService;
-import re.smartcity.wind.*;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -45,7 +44,10 @@ public class SunRouterHandlers {
     private Mono<ServerResponse> internalSaveCfg() {
 
         return commonStorage.putData(SunConfiguration.key,
-                new SimpleSunData(sunStatusData.getPower()),
+                new SimpleSunData(
+                        sunStatusData.getPower(),
+                        sunStatusData.getForecast(),
+                        sunStatusData.isUseforecast()),
                 SunConfiguration.class)
                 .flatMap(count -> ServerResponse
                         .ok()
@@ -84,7 +86,11 @@ public class SunRouterHandlers {
         standService.pushSerialCommand(new SerialCommand(SerialElementAddresses.SUN_SIMULATOR,
                 SerialPackageTypes.SET_BRIGHTNESS_SUN_SIMULATOR, 0));
 
-        return internalSaveCfg();
+        return ServerResponse
+                .ok()
+                .header("Content-Language", "ru")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(sunStatusData);
     }
 
     public Mono<ServerResponse> sunOn(ServerRequest ignoredRq) {
@@ -93,7 +99,11 @@ public class SunRouterHandlers {
         standService.pushSerialCommand(new SerialCommand(SerialElementAddresses.SUN_SIMULATOR,
                 SerialPackageTypes.SET_BRIGHTNESS_SUN_SIMULATOR, sunStatusData.getPower()));
 
-        return internalSaveCfg();
+        return ServerResponse
+                .ok()
+                .header("Content-Language", "ru")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(sunStatusData);
     }
 
     public Mono<ServerResponse> getStatus(ServerRequest ignoredRq) {
@@ -101,7 +111,7 @@ public class SunRouterHandlers {
                 .ok()
                 .header("Content-Language", "ru")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Mono.just(sunStatusData), WindStatusData.class);
+                .bodyValue(sunStatusData);
     }
 
     // работа с прогнозом
@@ -115,5 +125,38 @@ public class SunRouterHandlers {
 
     public Mono<ServerResponse> forecastCreate(ServerRequest rq) {
         return forecastHandler.forecastCreate(rq, ForecastTypes.SUN);
+    }
+
+    public Mono<ServerResponse> forecastUpdate(ServerRequest rq) {
+
+        return rq.bodyToMono(SimpleSunData.class)
+                .flatMap(body -> {
+                    try {
+                        SimpleSunData.validate(body);
+                        if (body.getForecast() != null) {
+                            body.getForecast().setData(Helpers.checkForecastBounds(body.getForecast().getData()));
+                        }
+                    }
+                    catch (Exception ex) {
+                        ServerResponse
+                                .status(HttpStatus.NOT_IMPLEMENTED)
+                                .header("Content-Language", "ru")
+                                .contentType(MediaType.TEXT_PLAIN)
+                                .body(Mono.just(ex.getMessage()), String.class);
+                    }
+                    sunStatusData.setForecast(body.getForecast());
+                    sunStatusData.setUseforecast(body.isUseforecast());
+
+                    return internalSaveCfg();
+                });
+    }
+
+    public Mono<ServerResponse> interpolate(ServerRequest ignoredRq) {
+
+        return ServerResponse
+                .ok()
+                .header("Content-Language", "ru")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Interpolation.interpolate(sunStatusData.getForecast().getData(), 100.0));
     }
 }

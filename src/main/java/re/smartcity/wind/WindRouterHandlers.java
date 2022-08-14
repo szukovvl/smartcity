@@ -17,8 +17,8 @@ import re.smartcity.common.data.Forecast;
 import re.smartcity.common.data.ForecastTypes;
 import re.smartcity.common.data.exchange.SimpleWindData;
 import re.smartcity.common.data.exchange.WindConfiguration;
-import re.smartcity.config.sockets.CommonEventTypes;
-import re.smartcity.config.sockets.CommonSocketHandler;
+import re.smartcity.common.utils.Helpers;
+import re.smartcity.common.utils.Interpolation;
 import reactor.core.publisher.Mono;
 
 import static re.smartcity.common.resources.Messages.FER_0;
@@ -62,7 +62,11 @@ public class WindRouterHandlers {
                     if (response.statusCode() == HttpStatus.OK) {
 
                         commonStorage.putData(WindConfiguration.key,
-                                        new SimpleWindData(windStatusData.getPower(), windStatusData.getUrl()),
+                                        new SimpleWindData(
+                                                windStatusData.getPower(),
+                                                windStatusData.getUrl(),
+                                                windStatusData.getForecast(),
+                                                windStatusData.isUseforecast()),
                                         WindConfiguration.class)
                                 .map(res -> {
                                     if (res == 0) {
@@ -102,6 +106,26 @@ public class WindRouterHandlers {
                     return Mono.empty();
                 })
                 .subscribe();
+    }
+
+    private Mono<ServerResponse> internalSaveCfg() {
+
+        return commonStorage.putData(WindConfiguration.key,
+                        new SimpleWindData(
+                                windStatusData.getPower(),
+                                windStatusData.getUrl(),
+                                windStatusData.getForecast(),
+                                windStatusData.isUseforecast()),
+                        WindConfiguration.class)
+                .flatMap(count -> ServerResponse
+                        .ok()
+                        .header("Content-Language", "ru")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(windStatusData))
+                .onErrorResume(t -> ServerResponse
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .bodyValue(t.getMessage()));
     }
 
     public void internalSetOff() {
@@ -207,6 +231,39 @@ public class WindRouterHandlers {
     }
 
     public Mono<ServerResponse> forecastCreate(ServerRequest rq) {
-        return forecastHandler.forecastCreate(rq, ForecastTypes.SUN);
+        return forecastHandler.forecastCreate(rq, ForecastTypes.WIND);
+    }
+
+    public Mono<ServerResponse> forecastUpdate(ServerRequest rq) {
+
+        return rq.bodyToMono(SimpleWindData.class)
+                .flatMap(body -> {
+                    try {
+                        SimpleWindData.validate(body);
+                        if (body.getForecast() != null) {
+                            body.getForecast().setData(Helpers.checkForecastBounds(body.getForecast().getData()));
+                        }
+                    }
+                    catch (Exception ex) {
+                        ServerResponse
+                                .status(HttpStatus.NOT_IMPLEMENTED)
+                                .header("Content-Language", "ru")
+                                .contentType(MediaType.TEXT_PLAIN)
+                                .body(Mono.just(ex.getMessage()), String.class);
+                    }
+                    windStatusData.setForecast(body.getForecast());
+                    windStatusData.setUseforecast(body.isUseforecast());
+
+                    return internalSaveCfg();
+                });
+    }
+
+    public Mono<ServerResponse> interpolate(ServerRequest ignoredRq) {
+
+        return ServerResponse
+                .ok()
+                .header("Content-Language", "ru")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Interpolation.interpolate(windStatusData.getForecast().getData(), 5.0));
     }
 }

@@ -11,9 +11,9 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import re.smartcity.common.ForecastRouterHandler;
 import re.smartcity.common.ForecastStorage;
 import re.smartcity.common.data.Forecast;
-import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.ForecastTypes;
 import re.smartcity.common.resources.Messages;
+import re.smartcity.common.utils.Helpers;
 import re.smartcity.common.utils.Interpolation;
 import re.smartcity.energynet.component.*;
 import re.smartcity.energynet.component.data.*;
@@ -25,9 +25,6 @@ import reactor.core.publisher.Mono;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
-
-import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MAX_VALUE;
-import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MIN_VALUE;
 
 @Component
 public class EnergyRouterHandlers {
@@ -45,25 +42,6 @@ public class EnergyRouterHandlers {
 
     @Autowired
     private ForecastRouterHandler forecastHandler;
-
-    private ForecastPoint[] checkForecastBounds(ForecastPoint[] items) {
-        if (items == null || items.length == 0) {
-            return items;
-        }
-        var s = Arrays.stream(items)
-                .sorted()
-                .distinct();
-        items = s.toArray(ForecastPoint[]::new);
-
-        Arrays.stream(items).forEachOrdered(e ->
-        {
-            double val = e.getValue();
-            if (val < FORECAST_POINT_MIN_VALUE) e.setValue(FORECAST_POINT_MIN_VALUE);
-            if (val > FORECAST_POINT_MAX_VALUE) e.setValue(FORECAST_POINT_MAX_VALUE);
-        });
-
-        return items;
-    }
 
     private Class<?> getObjectScpecification(SupportedTypes st) throws IllegalArgumentException {
         return switch (st) {
@@ -151,7 +129,7 @@ public class EnergyRouterHandlers {
                                 SmallGenerationSpecification sgs = (SmallGenerationSpecification) rqobj;
                                 SmallGenerationSpecification.validate(sgs);
                                 if (sgs.getForecast() != null) {
-                                    sgs.getForecast().setData(checkForecastBounds(sgs.getForecast().getData()));
+                                    sgs.getForecast().setData(Helpers.checkForecastBounds(sgs.getForecast().getData()));
                                 }
                                 GenerationSpecification lobj = ((Generation) memobj).getData();
                                 SmallGenerationSpecification.AssignTo(sgs, lobj);
@@ -184,7 +162,7 @@ public class EnergyRouterHandlers {
                                 SmallConsumerSpecification scs = (SmallConsumerSpecification) rqobj;
                                 SmallConsumerSpecification.validate(scs);
                                 if (scs.getForecast() != null) {
-                                    scs.getForecast().setData(checkForecastBounds(scs.getForecast().getData()));
+                                    scs.getForecast().setData(Helpers.checkForecastBounds(scs.getForecast().getData()));
                                 }
                                 ConsumerSpecification lobj = ((Consumer) memobj).getData();
                                 SmallConsumerSpecification.AssignTo(scs, lobj);

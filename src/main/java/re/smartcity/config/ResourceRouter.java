@@ -35,6 +35,10 @@ public class ResourceRouter {
                     // прогноз
                     builder.GET("/forecast/all", handler::forecastAll);
                     builder.POST("/forecast", handler::forecastCreate);
+                    builder.PUT("/forecast", handler::forecastUpdate);
+
+                    // разное
+                    builder.GET("/interpolate", handler::interpolate);
                 }
         ).build();
     }
@@ -46,18 +50,22 @@ public class ResourceRouter {
                 RequestPredicates.path(API_SUN_SERVICE),
                 builder -> {
                     builder.GET("", handler::getStatus);
-                    builder.PUT("/{value}", handler::setSunPower);
+                    builder.PUT("/power/{value}", handler::setSunPower);
                     builder.POST("/off", handler::sunOff);
                     builder.POST("/on", handler::sunOn);
 
                     // прогноз
                     builder.GET("/forecast/all", handler::forecastAll);
                     builder.POST("/forecast", handler::forecastCreate);
+                    builder.PUT("/forecast", handler::forecastUpdate);
+
+                    // разное
+                    builder.GET("/interpolate", handler::interpolate);
                 }
         ).build();
     }
 
-    // стэнд
+    // стенд
     @Bean
     public RouterFunction<ServerResponse> standRouterFunction(StandRouterHandlers handler) {
         return route().nest(
