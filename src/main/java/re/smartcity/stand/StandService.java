@@ -47,7 +47,7 @@ public class StandService {
     private final Object _serialLock = new Object();
 
     // !!!
-    private boolean isFirst = true;
+    //private boolean isFirst = true;
 
     //region частные методы
     private void toOriginalState(SerialPort serialPort)
@@ -136,7 +136,7 @@ public class StandService {
         }
 
         // !!!
-        if (isFirst) {
+        /*if (isFirst) {
             isFirst = false;
             Executors.newSingleThreadExecutor().execute(() -> {
                 try {
@@ -154,7 +154,7 @@ public class StandService {
                     logger.error(ex.getMessage());
                 }
             });
-        }
+        }*/
     }
 
     public void stop() {
