@@ -71,7 +71,7 @@ public class SmartCity {
     }
     //endregion
 
-    //region инфраструктура стэнда
+    //region инфраструктура стенда
     @Bean
     public StandStatusData standStatusData() { return new StandStatusData(); }
     //endregion
