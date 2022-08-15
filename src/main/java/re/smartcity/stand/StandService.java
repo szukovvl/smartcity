@@ -22,6 +22,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static re.smartcity.common.resources.AppConstant.MAX_ILLUMINATION_VALUE;
 import static re.smartcity.common.utils.Helpers.byteArrayCopy;
 
 @Service
@@ -92,11 +93,15 @@ public class StandService {
                     bg = Integer.parseInt(new String(
                             byteArrayCopy(packet, 6, 4)));
                     System.out.printf("<-- СЭС %02X: %d/%d\n", packet[0], luxury, bg);
+                    if (bg > MAX_ILLUMINATION_VALUE) bg = MAX_ILLUMINATION_VALUE;
                 }
                 commonSocketHandler.pushEvent(CommonEventTypes.SOLAR_SLICE,
-                        new CellDataEvent(packet[0],
-                                (float) Helpers.percentOf(luxury, AppConstant.MAX_ILLUMINATION_VALUE),
-                                (float) Helpers.percentOf(bg, AppConstant.MAX_ILLUMINATION_VALUE)));
+                        new CellDataEvent(
+                                packet[0],
+                                luxury,
+                                bg,
+                                luxury - bg,
+                                Helpers.normalizeAsPercentage(luxury - bg, MAX_ILLUMINATION_VALUE - bg)));
             }
             case SerialPackageTypes.WIND_FORCE_DATA -> {
                 float calibration = 0.0f;
@@ -110,7 +115,12 @@ public class StandService {
                     System.out.printf("<-- ВГ %02X: %f/%f\n", packet[0], windSpeed, calibration);
                 }
                 commonSocketHandler.pushEvent(CommonEventTypes.WIND_SLICE,
-                        new CellDataEvent(packet[0], windSpeed, calibration));
+                        new CellDataEvent(
+                                packet[0],
+                                windSpeed,
+                                calibration,
+                                Helpers.noramlizeValue(windSpeed, calibration),
+                                Helpers.normalizeAsPercentage(windSpeed, calibration)));
             }
             case SerialPackageTypes.MODEL_HIGHLIGHT_DATA -> {
                 int level = Integer.parseInt(new String(
@@ -143,11 +153,23 @@ public class StandService {
                     Random random = new Random();
                     while (true) {
                         Thread.sleep(2500);
+                        float v = random.nextFloat((float) MAX_ILLUMINATION_VALUE);
                         commonSocketHandler.pushEvent(CommonEventTypes.SOLAR_SLICE,
-                                new CellDataEvent((byte) 0x16, random.nextFloat(100.0f), 0.0f));
+                                new CellDataEvent(
+                                        (byte) 0x16,
+                                        v,
+                                        0.0f,
+                                        v,
+                                        Helpers.normalizeAsPercentage(v, MAX_ILLUMINATION_VALUE)));
                         Thread.sleep(2500);
+                        v = random.nextFloat(7.0f);
                         commonSocketHandler.pushEvent(CommonEventTypes.WIND_SLICE,
-                                new CellDataEvent((byte) 0x1B, random.nextFloat(100.0f), 0.0f));
+                                new CellDataEvent(
+                                        (byte) 0x1B,
+                                        v,
+                                        6.0f,
+                                        Helpers.noramlizeValue(v, 6.0f),
+                                        Helpers.normalizeAsPercentage(v, 6.0f)));
                     }
                 }
                 catch (InterruptedException ex) {

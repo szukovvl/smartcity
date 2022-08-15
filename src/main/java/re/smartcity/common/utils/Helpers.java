@@ -4,8 +4,8 @@ import re.smartcity.common.data.ForecastPoint;
 
 import java.util.Arrays;
 
-import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MAX_VALUE;
-import static re.smartcity.common.resources.AppConstant.FORECAST_POINT_MIN_VALUE;
+import static re.smartcity.common.resources.AppConstant.*;
+import static re.smartcity.common.resources.AppConstant.MAX_ILLUMINATION_VALUE;
 
 public final class Helpers {
 
@@ -19,10 +19,6 @@ public final class Helpers {
             res[i] = src[i + from_index];
         }
         return res;
-    }
-
-    public static double percentOf(int value, int maxvalue) {
-        return (float) value * 100.0 / (float) maxvalue;
     }
 
     public static ForecastPoint[] checkForecastBounds(ForecastPoint[] items) {
@@ -42,5 +38,17 @@ public final class Helpers {
         });
 
         return items;
+    }
+
+    public static float normalizeAsPercentage(float val, float maxVal) {
+        if (val < 0.0f) return 0.0f;
+        if (val > maxVal) return 100.0f;
+        return (val / maxVal) * 100.0f;
+    }
+
+    public static float noramlizeValue(float val, float maxVal) {
+        if (val < 0.0f) return 0.0f;
+        if (val > maxVal) return maxVal;
+        return val;
     }
 }
