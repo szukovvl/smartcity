@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.concurrent.Executors;
 
 import static re.smartcity.common.resources.AppConstant.CALIBRATION_DELAY_LINE;
+import static re.smartcity.common.resources.AppConstant.CALIBRATION_WIND_DELAY_LINE;
 import static re.smartcity.common.resources.Messages.FER_0;
 
 @Component
@@ -73,7 +74,7 @@ public class WindRouterHandlers {
                 .uri(UriComponentsBuilder
                         .fromHttpUrl(windStatusData.getUrl())
                         .path("Fan")
-                        .queryParam("params", windStatusData.getPower())
+                        .queryParam("params", windStatusData.isOn() ? windStatusData.getPower() : 0)
                         .build()
                         .toUri())
                 .exchangeToMono(clientResponse -> {
@@ -317,7 +318,7 @@ public class WindRouterHandlers {
             windStatusData.setOn(true);
             internalWindOperation();
             try {
-                Thread.sleep(CALIBRATION_DELAY_LINE);
+                Thread.sleep(CALIBRATION_WIND_DELAY_LINE);
             }
             catch (InterruptedException ex) {
                 return;
@@ -377,7 +378,7 @@ public class WindRouterHandlers {
             windStatusData.setOn(true);
             internalWindOperation();
             try {
-                Thread.sleep(CALIBRATION_DELAY_LINE);
+                Thread.sleep(CALIBRATION_WIND_DELAY_LINE);
             }
             catch (InterruptedException ex) {
                 return;

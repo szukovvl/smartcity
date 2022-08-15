@@ -23,5 +23,6 @@ public final class AppConstant {
     //
     public final static int MAX_ILLUMINATION_VALUE = 1000;
 
-    public final static int CALIBRATION_DELAY_LINE = 2500;
+    public final static int CALIBRATION_DELAY_LINE = 5000;
+    public final static int CALIBRATION_WIND_DELAY_LINE = 20000;
 }
