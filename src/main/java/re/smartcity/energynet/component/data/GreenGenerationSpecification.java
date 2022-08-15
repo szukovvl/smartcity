@@ -23,7 +23,6 @@ public class GreenGenerationSpecification implements IComponentManagement {
     private volatile double highload = 0.8; // значение в процента от генерируемой мощности, высокая нагрузка
     private volatile double criticalload = 0.95; // значение в процентах от генерируемой мощности, критическая нагрузка
     private volatile int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
-    private volatile double tariff = 0.0; // тариф
     private volatile double carbon = 700.0; // г/кВт*ч
     private volatile GenerationUsageModes mode = GenerationUsageModes.ALWAYS; // режим использования
 
@@ -74,14 +73,6 @@ public class GreenGenerationSpecification implements IComponentManagement {
 
     public void setBlackouttime(int blackouttime) {
         this.blackouttime = blackouttime;
-    }
-
-    public double getTariff() {
-        return tariff;
-    }
-
-    public void setTariff(double tariff) {
-        this.tariff = tariff;
     }
 
     public double getCarbon() {

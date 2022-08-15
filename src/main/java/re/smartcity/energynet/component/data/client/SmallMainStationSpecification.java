@@ -12,16 +12,11 @@ public final class SmallMainStationSpecification {
     private volatile SmallSubnetSpecification[] inputs; // подсети ввода энергии только генерация
     private volatile SmallSubnetSpecification[] outputs; // подсети потребителей только потребление
     private volatile double external_energy = 0; // внешний стабильный источник энергии
-    private volatile double tariff = 0.0; // тариф на внешний источник энергии (ВИЭ)
     private volatile double carbon = 684.75; // г/кВт*ч только для внешней энергии
 
     public static void validate(SmallMainStationSpecification data) {
         if (data.getExternal_energy() < 0.0) {
             throw new IllegalArgumentException(Messages.ER_1);
-        }
-
-        if (data.getTariff() < 0.0) {
-            throw new IllegalArgumentException(Messages.ER_7);
         }
 
         for (int i = 0; i < data.getInputs().length; i++) {
@@ -34,7 +29,6 @@ public final class SmallMainStationSpecification {
 
     public static void AssignTo(SmallMainStationSpecification src, MainSubstationSpecification dest) {
         dest.setExternal_energy(src.getExternal_energy());
-        dest.setTariff(src.getTariff());
         dest.setCarbon(src.getCarbon());
 
         for (int i = 0; i < src.getInputs().length; i++) {

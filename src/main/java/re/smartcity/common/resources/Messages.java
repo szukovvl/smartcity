@@ -8,7 +8,7 @@ public final class Messages {
     public final static String ER_4 = "Значение выброса CO2 не может быть отрицательным.";
     public final static String ER_5 = "Параметр задается положительным числом.";
     public final static String ER_6 = "Время в секундах задается положительным числом.";
-    public final static String ER_7 = "Тариф задается положительным числом.";
+    //public final static String ER_7 = "Тариф задается положительным числом.";
     public final static String ER_8 = "Не поддерживаемый тип объекта.";
     public final static String ER_9 = "Сетевой адрес устройства не может быть ноль.";
     public final static String ER_10 = "Порт подключения блока управления не задан.";

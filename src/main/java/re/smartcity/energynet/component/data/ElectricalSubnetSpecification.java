@@ -28,7 +28,6 @@ public class ElectricalSubnetSpecification implements IComponentManagement {
     private volatile double highload = 0.8; // значение в процента от мощности, высокая нагрузка (80%)
     private volatile double criticalload = 0.95; // значение в процентах от мощности, критическая нагрузка (95)
     private volatile int blackouttime = 300; // время в секундах, прежде чем произойдет отключение
-    private volatile double tariff = 0.0; // (? котловой) (во время работы - задают администратор)
 
     //region IComponentManagement
     @Override
@@ -86,13 +85,6 @@ public class ElectricalSubnetSpecification implements IComponentManagement {
         this.blackouttime = blackouttime;
     }
 
-    public double getTariff() {
-        return tariff;
-    }
-
-    public void setTariff(double tariff) {
-        this.tariff = tariff;
-    }
 
     //region оперативные данные модели
     //region мгновенные значения

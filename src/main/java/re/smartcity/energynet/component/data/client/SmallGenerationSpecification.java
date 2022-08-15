@@ -27,8 +27,6 @@ public final class SmallGenerationSpecification {
 
     private int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
 
-    private double tariff = 0.0; // тариф
-
     private GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
 
     public static void validate(SmallGenerationSpecification data) {
@@ -48,9 +46,6 @@ public final class SmallGenerationSpecification {
         if (data.getBlackouttime() < 0) {
             throw new IllegalArgumentException(Messages.ER_6);
         }
-        if (data.getTariff() < 0.0) {
-            throw new IllegalArgumentException(Messages.ER_7);
-        }
     }
 
     public static void AssignTo(SmallGenerationSpecification src, GenerationSpecification dest) {
@@ -61,7 +56,6 @@ public final class SmallGenerationSpecification {
         dest.setHighload(src.getHighload());
         dest.setCriticalload(src.getCriticalload());
         dest.setBlackouttime(src.getBlackouttime());
-        dest.setTariff(src.getTariff());
         dest.setMode(src.getMode());
     }
 }

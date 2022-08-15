@@ -20,7 +20,6 @@ public class MainSubstationSpecification implements IComponentManagement {
     private volatile ElectricalSubnet[] inputs; // подсети ввода энергии только генерация
     private volatile ElectricalSubnet[] outputs; // подсети потребителей только потребление
     private volatile double external_energy = 0; // внешний стабильный источник энергии
-    private volatile double tariff = 0.0; // тариф на внешний источник энергии (ВИЭ)
     private volatile double carbon = 684.75; // г/кВт*ч только для внешней энергии
 
     //region IComponentManagement
@@ -54,14 +53,6 @@ public class MainSubstationSpecification implements IComponentManagement {
 
     public void setExternal_energy(double external_energy) {
         this.external_energy = external_energy;
-    }
-
-    public double getTariff() {
-        return tariff;
-    }
-
-    public void setTariff(double tariff) {
-        this.tariff = tariff;
     }
 
     public double getCarbon() {

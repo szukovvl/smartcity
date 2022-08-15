@@ -20,8 +20,6 @@ public final class SmallStorageSpecification {
 
     private int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
 
-    private double tariff = 0.0; // тариф
-
     private double performance = 0.88; // показатель эффективности системы хранения
 
     private double peckertexponent = 1.1; // экспонента Пекерта
@@ -53,9 +51,6 @@ public final class SmallStorageSpecification {
         if (data.getBlackouttime() < 0) {
             throw new IllegalArgumentException(Messages.ER_6);
         }
-        if (data.getTariff() < 0.0) {
-            throw new IllegalArgumentException(Messages.ER_7);
-        }
     }
 
     public static void AssignTo(SmallStorageSpecification src, EnergyStorageSpecification dest) {
@@ -63,7 +58,6 @@ public final class SmallStorageSpecification {
         dest.setCarbon(src.getCarbon());
         dest.setCriticalload(src.getCriticalload());
         dest.setBlackouttime(src.getBlackouttime());
-        dest.setTariff(src.getTariff());
         dest.setPerformance(src.getPerformance());
         dest.setPeckertexponent(src.getPeckertexponent());
         dest.setOutpower(src.getOutpower());

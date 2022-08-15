@@ -14,7 +14,6 @@ public class SmallGreenGenerationSpecification {
     private double highload = 0.8; // значение в процента от генерируемой мощности, высокая нагрузка
     private double criticalload = 0.95; // значение в процентах от генерируемой мощности, критическая нагрузка
     private int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
-    private double tariff = 0.0; // тариф
     private double carbon = 700.0; // г/кВт*ч
     private GenerationUsageModes mode = GenerationUsageModes.ALWAYS; // режим использования
 
@@ -29,9 +28,6 @@ public class SmallGreenGenerationSpecification {
         if (data.getBlackouttime() < 0) {
             throw new IllegalArgumentException(Messages.ER_6);
         }
-        if (data.getTariff() < 0.0) {
-            throw new IllegalArgumentException(Messages.ER_7);
-        }
     }
 
     public static void AssignTo(SmallGreenGenerationSpecification src, GreenGenerationSpecification dest) {
@@ -40,7 +36,6 @@ public class SmallGreenGenerationSpecification {
         dest.setHighload(src.getHighload());
         dest.setCriticalload(src.getCriticalload());
         dest.setBlackouttime(src.getBlackouttime());
-        dest.setTariff(src.getTariff());
         dest.setMode(src.getMode());
     }
 }

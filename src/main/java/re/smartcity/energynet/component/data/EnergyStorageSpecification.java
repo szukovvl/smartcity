@@ -28,7 +28,6 @@ public class EnergyStorageSpecification implements IComponentManagement {
     private volatile double undercharging = 0.7; // недозарядка, когда устройство может быть вновь использовано
     private volatile double criticalload = 0.9; // критическое значение нагрузки на хранилище
     private volatile int blackouttime = 90; // время в секундах, прежде чем произойдет отключение хранилища
-    private volatile double tariff; // тариф
     private volatile double carbon = 798.9; // г/кВт*ч
     private volatile GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
     private volatile EnergyStorage_ChargeBehaviors chargebehavior = EnergyStorage_ChargeBehaviors.LOWTARIFF; // поведение хранилища при восстановлении
@@ -113,14 +112,6 @@ public class EnergyStorageSpecification implements IComponentManagement {
 
     public void setBlackouttime(int blackouttime) {
         this.blackouttime = blackouttime;
-    }
-
-    public double getTariff() {
-        return tariff;
-    }
-
-    public void setTariff(double tariff) {
-        this.tariff = tariff;
     }
 
     public double getCarbon() {

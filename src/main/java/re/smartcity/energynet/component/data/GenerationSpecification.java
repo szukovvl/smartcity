@@ -32,8 +32,6 @@ public class GenerationSpecification implements IComponentManagement {
 
     private int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
 
-    private double tariff = 0.0; // тариф
-
     private double carbon = 930; // г/кВт*ч
 
     private GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
@@ -100,14 +98,6 @@ public class GenerationSpecification implements IComponentManagement {
 
     public void setBlackouttime(int blackouttime) {
         this.blackouttime = blackouttime;
-    }
-
-    public double getTariff() {
-        return tariff;
-    }
-
-    public void setTariff(double tariff) {
-        this.tariff = tariff;
     }
 
     public double getCarbon() {
