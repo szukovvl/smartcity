@@ -43,16 +43,6 @@ public class SocketConfiguration {
         simpleUrlHandlerMapping.setOrder(10);
         return simpleUrlHandlerMapping;
     }
-    /*@Bean
-    public HandlerMapping webSocketMapping(Sinks.Many<CommonServiceEvent<?>> eventPublisher, Flux<CommonServiceEvent<?>> events) {
-        Map<String, Object> map = new HashMap<>();
-        map.put(SOCKET_COMMON_SERVICE, new CommonSocketHandler(eventPublisher, events));
-        SimpleUrlHandlerMapping simpleUrlHandlerMapping = new SimpleUrlHandlerMapping();
-        simpleUrlHandlerMapping.setUrlMap(map);
-
-        simpleUrlHandlerMapping.setOrder(10);
-        return simpleUrlHandlerMapping;
-    }*/
 
     @Bean
     public WebSocketHandlerAdapter handlerAdapter() {
