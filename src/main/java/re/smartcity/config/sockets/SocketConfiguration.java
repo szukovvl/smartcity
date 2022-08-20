@@ -1,42 +1,32 @@
 package re.smartcity.config.sockets;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static re.smartcity.common.resources.AppConstant.SOCKET_COMMON_SERVICE;
+import static re.smartcity.common.resources.AppConstant.SOCKET_GAME_SERVICE;
 
 @Configuration
 public class SocketConfiguration {
 
-    @Bean
-    public Sinks.Many<CommonServiceEvent<?>> eventPublisher() {
+    @Autowired
+    private CommonSocketHandler commonSocketHandler;
 
-        return Sinks
-                .many()
-                .replay()
-                .latest();
-    }
+    @Autowired
+    private GameSocketHandler gameSocketHandler;
 
     @Bean
-    public Flux<CommonServiceEvent<?>> events(Sinks.Many<CommonServiceEvent<?>> eventPublisher) {
-        return eventPublisher
-                .asFlux()
-                .replay(1)
-                .autoConnect();
-    }
-
-    @Bean
-    public HandlerMapping webSocketMapping(CommonSocketHandler handler) {
+    public HandlerMapping webSocketMapping() {
         Map<String, Object> map = new HashMap<>();
-        map.put(SOCKET_COMMON_SERVICE, handler);
+        map.put(SOCKET_COMMON_SERVICE, commonSocketHandler);
+        map.put(SOCKET_GAME_SERVICE, gameSocketHandler);
         SimpleUrlHandlerMapping simpleUrlHandlerMapping = new SimpleUrlHandlerMapping();
         simpleUrlHandlerMapping.setUrlMap(map);
 

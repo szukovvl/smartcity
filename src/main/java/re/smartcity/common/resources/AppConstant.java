@@ -19,7 +19,7 @@ public final class AppConstant {
     // Websocket общая информация
     public final static String SOCKET_TOPICS_URL = "/wsapi/1_0/topics";
     public final static String SOCKET_COMMON_SERVICE = SOCKET_TOPICS_URL + "/common";
-
+    public final static String SOCKET_GAME_SERVICE = SOCKET_TOPICS_URL + "/game-service";
     //
     public final static int MAX_ILLUMINATION_VALUE = 1000;
 

@@ -17,6 +17,9 @@ public class ModelingData {
 
     private volatile IComponentIdentification[] allobjects = new IComponentIdentification[] { };
 
+    private volatile GameStatuses gameStatus = GameStatuses.NONE; // !!!
+
+    //region данные модели
     private TaskData[] tasks;
 
     public TaskData[] getTasks() {
@@ -41,6 +44,13 @@ public class ModelingData {
         }
         this.allobjects = allobjects;
     }
+    //endregion
+
+    //region игровые данные
+    public GameStatuses getGameStatus() {
+        return gameStatus;
+    }
+    //endregion
 
     public void stopAll() {
         TaskData[] items = getTasks();

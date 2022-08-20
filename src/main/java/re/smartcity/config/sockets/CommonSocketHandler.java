@@ -21,9 +21,16 @@ public class CommonSocketHandler implements WebSocketHandler {
 
     private final Logger logger = LoggerFactory.getLogger(CommonSocketHandler.class);
 
-    private final Flux<String> outputEvents;
-    private final ObjectMapper mapper;
-    private final Sinks.Many<CommonServiceEvent<?>> eventPublisher;
+    private final ObjectMapper mapper = new ObjectMapper();
+    private final Sinks.Many<CommonServiceEvent<?>> eventPublisher = Sinks
+            .many()
+            .replay()
+            .latest();
+    private final Flux<CommonServiceEvent<?>> events = eventPublisher
+            .asFlux()
+            .replay(1)
+            .autoConnect();
+    private final Flux<String> outputEvents = Flux.from(events).map(this::toJSON);
 
     @Autowired
     private WindStatusData windStatus;
@@ -34,11 +41,7 @@ public class CommonSocketHandler implements WebSocketHandler {
     @Autowired
     private StandStatusData standStatus;
 
-    public CommonSocketHandler(Sinks.Many<CommonServiceEvent<?>> eventPublisher, Flux<CommonServiceEvent<?>> events) {
-        this.mapper = new ObjectMapper();
-        this.outputEvents = Flux.from(events).map(this::toJSON);
-        this.eventPublisher = eventPublisher;
-    }
+    public CommonSocketHandler() { }
 
     public synchronized <T> void pushEvent(CommonEventTypes type, T data) {
         eventPublisher.tryEmitNext(
