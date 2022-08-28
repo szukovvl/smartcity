@@ -3,6 +3,7 @@ package re.smartcity.modeling;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
+import re.smartcity.modeling.data.GamerData;
 
 import java.util.concurrent.ExecutorService;
 
@@ -11,4 +12,5 @@ import java.util.concurrent.ExecutorService;
 public class TaskData {
     private ExecutorService service;
     private MainSubstationPowerSystem powerSystem;
+    private GamerData gamerData;
 }

@@ -4,7 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
+import re.smartcity.modeling.data.GamerData;
 
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.concurrent.Executors;
 
@@ -17,7 +19,8 @@ public class ModelingData {
 
     private volatile IComponentIdentification[] allobjects = new IComponentIdentification[] { };
 
-    private volatile GameStatuses gameStatus = GameStatuses.NONE; // !!!
+    private volatile GameStatuses gameStatus = GameStatuses.NONE; //
+    private volatile LocalTime gamingDay = LocalTime.of(1, 0);
 
     //region данные модели
     private TaskData[] tasks;
@@ -50,6 +53,18 @@ public class ModelingData {
     public GameStatuses getGameStatus() {
         return gameStatus;
     }
+
+    public void setGameStatus(GameStatuses gameStatus) {
+        this.gameStatus = gameStatus;
+    }
+
+    public LocalTime getGamingDay() {
+        return gamingDay;
+    }
+
+    public void setGamingDay(LocalTime gamingDay) {
+        this.gamingDay = gamingDay;
+    }
     //endregion
 
     public void stopAll() {
@@ -65,7 +80,9 @@ public class ModelingData {
 
     public void putOnMonitoring(MainSubstationPowerSystem[] substations) {
         stopAll();
-        TaskData[] tasks = Arrays.stream(substations).map(e -> new TaskData(Executors.newSingleThreadExecutor(), e))
+        TaskData[] tasks = Arrays
+                .stream(substations)
+                .map(e -> new TaskData(Executors.newSingleThreadExecutor(), e, new GamerData()))
                 .toArray(TaskData[]::new);
         setTasks(tasks);
         for (TaskData task : tasks) {
