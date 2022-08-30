@@ -17,5 +17,5 @@ public final class GameStartScenesEvent {
     @JsonDeserialize(using = LocalTimeDeserializer.class)
     private LocalTime gameday = LocalTime.of(1, 0);
 
-    private GameStartScenesEvent_Data[] data = new GameStartScenesEvent_Data[0];
+    private StartScenesEventData[] data = new StartScenesEventData[0];
 }

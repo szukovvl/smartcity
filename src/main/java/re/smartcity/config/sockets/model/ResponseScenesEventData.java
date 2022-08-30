@@ -7,13 +7,14 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-public final class GameStartScenesEvent_Data {
-    private byte mainstation;
-
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    private byte substation = 0;
+public class ResponseScenesEventData {
+    private int mainstation;
+    private int substation;
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private int[] consumers = null;
+
+    public static ResponseScenesDataBuilder builder(int mainstation) {
+        return new ResponseScenesDataBuilder(mainstation);
+    }
 }

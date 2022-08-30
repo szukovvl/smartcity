@@ -3,11 +3,11 @@ package re.smartcity.modeling;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import re.smartcity.energynet.IComponentIdentification;
+import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
-import re.smartcity.modeling.data.GamerData;
+import re.smartcity.modeling.data.GamerScenesData;
 
 import java.time.LocalTime;
-import java.util.Arrays;
 import java.util.concurrent.Executors;
 
 public class ModelingData {
@@ -78,16 +78,20 @@ public class ModelingData {
         }
     }
 
-    public void putOnMonitoring(MainSubstationPowerSystem[] substations) {
+    public void putOnMonitoring(MainSubstationPowerSystem[] mainstations, EnergyDistributor[] substations) {
         stopAll();
-        TaskData[] tasks = Arrays
-                .stream(substations)
-                .map(e -> new TaskData(Executors.newSingleThreadExecutor(), e, new GamerData()))
-                .toArray(TaskData[]::new);
+        TaskData[] tasks = new TaskData[mainstations.length];
+        for (int i = 0; i < tasks.length; i++) {
+            tasks[i] = new TaskData(Executors.newSingleThreadExecutor(), mainstations[i], new GamerScenesData(substations[i]));
+        }
         setTasks(tasks);
         for (TaskData task : tasks) {
             task.getService().execute(new SubnetMonitor(this, task));
         }
     }
 
+    public void cancelScenes() {
+        setGameStatus(GameStatuses.NONE);
+        // !!!
+    }
 }

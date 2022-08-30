@@ -10,6 +10,7 @@ import re.smartcity.stand.SerialElementAddresses;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.PostConstruct;
+import java.util.Arrays;
 import java.util.concurrent.Executors;
 
 @Configuration
@@ -157,7 +158,9 @@ public class EnergynetConfiguration {
         }
 
         model.setAllobjects(elements);
-        model.putOnMonitoring(mainSubstations);
+        model.putOnMonitoring(mainSubstations, Arrays.stream(elements)
+                .filter(e -> e.getComponentType() == SupportedTypes.DISTRIBUTOR)
+                .toArray(EnergyDistributor[]::new));
     }
 
     @PostConstruct

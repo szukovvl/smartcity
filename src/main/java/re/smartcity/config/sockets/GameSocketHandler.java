@@ -13,11 +13,9 @@ import re.smartcity.config.sockets.model.*;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.energynet.component.Consumer;
-import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.modeling.GameStatuses;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
-import re.smartcity.modeling.data.GamerData;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
@@ -36,7 +34,7 @@ public class GameSocketHandler implements WebSocketHandler {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private volatile WebSocketSession gameAdmin;
-    private final WebSocketSession[] gamers = new WebSocketSession[0];
+    private final WebSocketSession[] gamers = new WebSocketSession[2];
 
     private final Object _locked = new Object();
 
@@ -134,12 +132,17 @@ public class GameSocketHandler implements WebSocketHandler {
                 }
             }
             case STARTGAMESCENES -> {
+                if (gameAdmin != null && !session.getId().equals(gameAdmin.getId())) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
+                            .build());
+                }
+
                 GameStartScenesEvent eventdata = fromJson(session, event.getPayload(), GameStartScenesEvent.class);
                 if (eventdata != null) {
                     IComponentIdentification[] items = modelingData.getAllobjects();
-                    for (GameStartScenesEvent_Data datum : eventdata.getData()) {
-                        IComponentIdentification substation;
-
+                    for (StartScenesEventData datum : eventdata.getData()) {
                         TaskData task = Arrays.stream(modelingData.getTasks())
                                 .filter(e -> e.getPowerSystem().getDevaddr() == datum.getMainstation())
                                 .findFirst()
@@ -152,19 +155,7 @@ public class GameSocketHandler implements WebSocketHandler {
                                     .build());
                             return event;
                         }
-                        substation = Arrays.stream(items)
-                                .filter(e -> e.getComponentType() == SupportedTypes.DISTRIBUTOR
-                                        && e.getDevaddr() == datum.getSubstation())
-                                .findFirst()
-                                .orElse(null);
-                        if (substation == null) {
-                            sendEvent(session, GameServiceEvent
-                                    .type(GameEventTypes.ERROR)
-                                    .data(new GameErrorEvent(event.getType().toString(),
-                                            String.format(Messages.FER_6, datum.getSubstation())))
-                                    .build());
-                            return event;
-                        }
+
                         List<IComponentIdentification> consumers = new ArrayList<>();
                         for (int consumer : datum.getConsumers()) {
                             IComponentIdentification item = Arrays.stream(items)
@@ -181,37 +172,29 @@ public class GameSocketHandler implements WebSocketHandler {
                             }
                             consumers.add(item);
                         }
-                        task.setGamerData(new GamerData(consumers.toArray(Consumer[]::new), (EnergyDistributor) substation));
+                        task.getScenesData().setPredefconsumers(consumers.toArray(Consumer[]::new));
                     }
-                    modelingData.setGamingDay(eventdata.getGameday());
 
+                    modelingData.setGamingDay(eventdata.getGameday());
                     modelingData.setGameStatus(GameStatuses.GAMERS_IDENTIFY);
+
                     sendEventToAll(buildStatusEvent());
                     sendEventToAll(GameServiceEvent
                             .type(GameEventTypes.GAME_SCENE_IDENTIFY)
                             .data(Arrays.stream(modelingData.getTasks())
                                     .map(e -> {
-                                            Consumer[] defitems = e.getGamerData().getDefConsumers();
-                                            return new GameStartScenesEvent_Data(
-                                                    e.getPowerSystem().getDevaddr(),
-                                                    e.getGamerData().getSubstation() != null
-                                                            ? e.getGamerData().getSubstation().getDevaddr() : 0,
-                                                    defitems != null && defitems.length != 0
+                                            Consumer[] defitems = e.getScenesData().getPredefconsumers();
+                                            return ResponseScenesEventData
+                                                    .builder(e.getPowerSystem().getDevaddr())
+                                                    .substation(e.getScenesData().getSubstation().getDevaddr())
+                                                    .consumers(defitems != null && defitems.length != 0
                                                             ? Arrays.stream(defitems)
-                                                                .mapToInt(item -> (int) item.getDevaddr())
-                                                                .toArray()
-                                                            : null);
+                                                            .mapToInt(item -> (int) item.getDevaddr())
+                                                            .toArray()
+                                                            : null)
+                                                    .build();
                                         })
-                                    .map(e -> {
-                                        String json = "";
-                                        try {
-                                            json = mapper.writeValueAsString(e);
-                                        } catch (JsonProcessingException ex) {
-                                            logger.error(ex.getMessage());
-                                        }
-                                        return e;
-                                    })
-                                    .toArray(GameStartScenesEvent_Data[]::new))
+                                    .toArray(ResponseScenesEventData[]::new))
                             .build());
                 } else {
                     sendEvent(session, GameServiceEvent
@@ -220,34 +203,30 @@ public class GameSocketHandler implements WebSocketHandler {
                             .build());
                 }
             }
-            case GAMERSDATA -> {
-                byte key = Byte.parseByte(event.getPayload());
-                TaskData task = Arrays.stream(modelingData.getTasks())
-                        .filter(e -> e.getPowerSystem().getDevaddr() == key)
-                        .findFirst()
-                        .orElse(null);
-                if (task != null) {
-                    Consumer[] defitems = task.getGamerData().getDefConsumers();
-                    sendEvent(session, GameServiceEvent
-                            .type(GameEventTypes.GAMERSDATA)
-                            .data(new GameStartScenesEvent_Data(
-                                    task.getPowerSystem().getDevaddr(),
-                                    task.getGamerData().getSubstation() != null
-                                            ? task.getGamerData().getSubstation().getDevaddr() : 0,
-                                    defitems != null && defitems.length != 0
-                                            ? Arrays.stream(defitems)
-                                                .mapToInt(item -> (int) item.getDevaddr())
-                                                .toArray()
-                                            : null))
-                            .build());
-                } else {
+            case CANCELGAMESCENES -> {
+                if (gameAdmin != null && !session.getId().equals(gameAdmin.getId())) {
                     sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
-                            .data(new GameErrorEvent(event.getType().toString(),
-                                    String.format(Messages.FER_6, key)))
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
                             .build());
                 }
+
+                modelingData.cancelScenes(); // !!!
+
+                sendEventToAll(buildStatusEvent());
             }
+            case SCENESDATA -> sendEvent(session, GameServiceEvent
+                    .type(GameEventTypes.SCENESDATA)
+                    .data(Arrays.stream(modelingData.getTasks())
+                            .map(e -> ResponseScenesEventData
+                                    .builder(e.getPowerSystem().getDevaddr())
+                                    .substation(e.getScenesData().getSubstation().getDevaddr())
+                                    .consumers(Arrays.stream(e.getScenesData().getPredefconsumers())
+                                            .mapToInt(Consumer::getDevaddr)
+                                            .toArray())
+                                    .build())
+                            .toArray(ResponseScenesEventData[]::new))
+                    .build());
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.ERROR)
