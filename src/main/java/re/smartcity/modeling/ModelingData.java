@@ -2,6 +2,9 @@ package re.smartcity.modeling;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import re.smartcity.config.sockets.GameSocketHandler;
+import re.smartcity.config.sockets.GamerSession;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;

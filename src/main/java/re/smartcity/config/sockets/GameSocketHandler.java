@@ -34,7 +34,7 @@ public class GameSocketHandler implements WebSocketHandler {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private volatile WebSocketSession gameAdmin;
-    private final WebSocketSession[] gamers = new WebSocketSession[2];
+    private GamerSession[] gamers = new GamerSession[0];
 
     private final Object _locked = new Object();
 
@@ -57,9 +57,9 @@ public class GameSocketHandler implements WebSocketHandler {
                 this.gameAdmin = null;
             } else {
                 synchronized (_locked) {
-                    for (int i = 0; i < this.gamers.length; i++) {
-                        if (gamers[i] != null && session.getId().equals(gamers[i].getId())) {
-                            gamers[i] = null;
+                    for (GamerSession gamer : this.gamers) {
+                        if (gamer.getSession() != null && session.getId().equals(gamer.getSession().getId())) {
+                            gamer.setSession(null);
                         }
                     }
                 }
@@ -109,26 +109,102 @@ public class GameSocketHandler implements WebSocketHandler {
             case GAMECONTROL -> {
                 if (this.gameAdmin == null || session.getId().equals(this.gameAdmin.getId()))
                 {
+                    if (guests.remove(session.getId()) == null) {
+                        synchronized (_locked) {
+                            for (GamerSession gamer : this.gamers) {
+                                if (gamer.getSession() != null && session.getId().equals(gamer.getSession().getId())) {
+                                    gamer.setSession(null);
+                                }
+                            }
+                        }
+                    }
                     this.gameAdmin = session;
                     sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.GAMECONTROL)
                             .data(new GameAdminLockEvent(true, session.getId()))
                             .build());
-                    if (guests.remove(session.getId()) == null) {
-                        synchronized (_locked) {
-                            for (int i = 0; i < this.gamers.length; i++) {
-                                if (gamers[i] != null && session.getId().equals(gamers[i].getId())) {
-                                    gamers[i] = null;
-                                }
-                            }
-                        }
-                    }
                     sendEventToAll(buildStatusEvent());
                 } else {
                     sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.GAMECONTROL)
                             .data(new GameAdminLockEvent())
                             .build());
+                }
+            }
+            case GAMER_ENTER -> {
+                if (gamers.length == 0) {
+                    synchronized (_locked) {
+                        gamers = Arrays.stream(modelingData.getTasks())
+                                .map(e -> new GamerSession(e.getPowerSystem().getDevaddr()))
+                                .toArray(GamerSession[]::new);
+                    }
+                }
+
+                GamerSession usedsession = Arrays.stream(gamers)
+                        .filter(e -> e.getSession() != null && session.getId().equals(e.getSession().getId()))
+                        .findFirst()
+                        .orElse(null);
+                if (usedsession != null) {
+                    int finalKey = usedsession.getKey();
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.GAMER_ENTER)
+                            .data(new GamerEnterEvent(
+                                    true,
+                                    usedsession.getSession().getId(),
+                                    modelingData.getGameStatus(),
+                                    usedsession.getKey(),
+                                    Arrays.stream(buildScenesData())
+                                            .filter(e -> e.getMainstation() == finalKey)
+                                            .findFirst()
+                                            .orElse(null)
+                            ))
+                            .build());
+                } else {
+                    byte key = 0;
+                    String payload = event.getPayload();
+                    if (payload != null && !payload.isEmpty()) {
+                        try {
+                            key = Byte.parseByte(payload);
+                        } catch (NumberFormatException ignored) { }
+                    }
+                    usedsession = null;
+                    if (key != 0) {
+                        byte finalKey = key;
+                        usedsession = Arrays.stream(gamers)
+                                .filter(e -> e.getSession() == null && e.getKey() == finalKey)
+                                .findFirst()
+                                .orElse(null);
+                    }
+                    if (usedsession == null) {
+                        usedsession = Arrays.stream(gamers)
+                                .filter(e -> e.getSession() == null)
+                                .findFirst()
+                                .orElse(null);
+                    }
+                    if (usedsession != null) {
+                        usedsession.setSession(session);
+                        int finalKey = usedsession.getKey();
+                        sendEvent(session, GameServiceEvent
+                                .type(GameEventTypes.GAMER_ENTER)
+                                .data(new GamerEnterEvent(
+                                        true,
+                                        usedsession.getSession().getId(),
+                                        modelingData.getGameStatus(),
+                                        usedsession.getKey(),
+                                        Arrays.stream(buildScenesData())
+                                                .filter(e -> e.getMainstation() == finalKey)
+                                                .findFirst()
+                                                .orElse(null)
+                                ))
+                                .build());
+                        guests.remove(session.getId());
+                        sendEventToAll(buildStatusEvent());
+                    } else {
+                        sendEvent(session, GameServiceEvent
+                                .type(GameEventTypes.GAMER_ENTER)
+                                .data(new GamerEnterEvent(modelingData.getGameStatus()))
+                                .build());
+                    }
                 }
             }
             case STARTGAMESCENES -> {
@@ -217,15 +293,7 @@ public class GameSocketHandler implements WebSocketHandler {
             }
             case SCENESDATA -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.SCENESDATA)
-                    .data(Arrays.stream(modelingData.getTasks())
-                            .map(e -> ResponseScenesEventData
-                                    .builder(e.getPowerSystem().getDevaddr())
-                                    .substation(e.getScenesData().getSubstation().getDevaddr())
-                                    .consumers(Arrays.stream(e.getScenesData().getPredefconsumers())
-                                            .mapToInt(Consumer::getDevaddr)
-                                            .toArray())
-                                    .build())
-                            .toArray(ResponseScenesEventData[]::new))
+                    .data(buildScenesData())
                     .build());
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
@@ -234,6 +302,18 @@ public class GameSocketHandler implements WebSocketHandler {
                     .build());
         }
         return event;
+    }
+
+    private ResponseScenesEventData[] buildScenesData() {
+        return Arrays.stream(modelingData.getTasks())
+                .map(e -> ResponseScenesEventData
+                        .builder(e.getPowerSystem().getDevaddr())
+                        .substation(e.getScenesData().getSubstation().getDevaddr())
+                        .consumers(Arrays.stream(e.getScenesData().getPredefconsumers())
+                                .mapToInt(Consumer::getDevaddr)
+                                .toArray())
+                        .build())
+                .toArray(ResponseScenesEventData[]::new);
     }
 
     private GameServiceEvent<?> buildStatusEvent() {
@@ -261,8 +341,8 @@ public class GameSocketHandler implements WebSocketHandler {
         }
         synchronized (_locked) {
             Arrays.stream(this.gamers)
-                    .filter(e -> e != null && e.isOpen())
-                    .forEach(e -> sendEvent(e, event));
+                    .filter(e -> e.getSession() != null && e.getSession().isOpen())
+                    .forEach(e -> sendEvent(e.getSession(), event));
         }
         this.guests.values()
                 .stream()
