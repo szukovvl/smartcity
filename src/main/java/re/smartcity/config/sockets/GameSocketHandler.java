@@ -16,6 +16,7 @@ import re.smartcity.energynet.component.Consumer;
 import re.smartcity.modeling.GameStatuses;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
+import re.smartcity.modeling.data.GamerScenesData;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
@@ -34,7 +35,7 @@ public class GameSocketHandler implements WebSocketHandler {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private volatile WebSocketSession gameAdmin;
-    private GamerSession[] gamers = new GamerSession[0];
+    private volatile GamerSession[] gamers = new GamerSession[0];
 
     private final Object _locked = new Object();
 
@@ -53,7 +54,7 @@ public class GameSocketHandler implements WebSocketHandler {
 
     private void onFinally(WebSocketSession session, SignalType sign) {
         if (guests.remove(session.getId()) == null) {
-            if (session.equals(gameAdmin)) {
+            if (gameAdmin != null && session.getId().equals(gameAdmin.getId())) {
                 this.gameAdmin = null;
             } else {
                 synchronized (_locked) {
@@ -132,78 +133,86 @@ public class GameSocketHandler implements WebSocketHandler {
                 }
             }
             case GAMER_ENTER -> {
-                if (gamers.length == 0) {
-                    synchronized (_locked) {
-                        gamers = Arrays.stream(modelingData.getTasks())
-                                .map(e -> new GamerSession(e.getPowerSystem().getDevaddr()))
-                                .toArray(GamerSession[]::new);
-                    }
-                }
-
-                GamerSession usedsession = Arrays.stream(gamers)
-                        .filter(e -> e.getSession() != null && session.getId().equals(e.getSession().getId()))
-                        .findFirst()
-                        .orElse(null);
-                if (usedsession != null) {
-                    int finalKey = usedsession.getKey();
+                if (gameAdmin != null && session.getId().equals(gameAdmin.getId())) {
                     sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.GAMER_ENTER)
-                            .data(new GamerEnterEvent(
-                                    true,
-                                    usedsession.getSession().getId(),
-                                    modelingData.getGameStatus(),
-                                    usedsession.getKey(),
-                                    Arrays.stream(buildScenesData())
-                                            .filter(e -> e.getMainstation() == finalKey)
-                                            .findFirst()
-                                            .orElse(null)
-                            ))
+                            .data(new GamerEnterEvent(modelingData.getGameStatus()))
                             .build());
                 } else {
-                    byte key = 0;
-                    String payload = event.getPayload();
-                    if (payload != null && !payload.isEmpty()) {
-                        try {
-                            key = Byte.parseByte(payload);
-                        } catch (NumberFormatException ignored) { }
-                    }
-                    usedsession = null;
-                    if (key != 0) {
-                        byte finalKey = key;
-                        usedsession = Arrays.stream(gamers)
-                                .filter(e -> e.getSession() == null && e.getKey() == finalKey)
+                    synchronized (_locked) {
+                        if (gamers.length == 0) {
+                            gamers = Arrays.stream(modelingData.getTasks())
+                                    .map(e -> new GamerSession(e.getPowerSystem().getDevaddr()))
+                                    .toArray(GamerSession[]::new);
+                        }
+
+                        GamerSession usedsession = Arrays.stream(gamers)
+                                .filter(e -> e.getSession() != null && session.getId().equals(e.getSession().getId()))
                                 .findFirst()
                                 .orElse(null);
-                    }
-                    if (usedsession == null) {
-                        usedsession = Arrays.stream(gamers)
-                                .filter(e -> e.getSession() == null)
-                                .findFirst()
-                                .orElse(null);
-                    }
-                    if (usedsession != null) {
-                        usedsession.setSession(session);
-                        int finalKey = usedsession.getKey();
-                        sendEvent(session, GameServiceEvent
-                                .type(GameEventTypes.GAMER_ENTER)
-                                .data(new GamerEnterEvent(
-                                        true,
-                                        usedsession.getSession().getId(),
-                                        modelingData.getGameStatus(),
-                                        usedsession.getKey(),
-                                        Arrays.stream(buildScenesData())
-                                                .filter(e -> e.getMainstation() == finalKey)
-                                                .findFirst()
-                                                .orElse(null)
-                                ))
-                                .build());
-                        guests.remove(session.getId());
-                        sendEventToAll(buildStatusEvent());
-                    } else {
-                        sendEvent(session, GameServiceEvent
-                                .type(GameEventTypes.GAMER_ENTER)
-                                .data(new GamerEnterEvent(modelingData.getGameStatus()))
-                                .build());
+                        if (usedsession != null) { // уже является игроком
+                            int finalKey = usedsession.getKey();
+                            sendEvent(session, GameServiceEvent
+                                    .type(GameEventTypes.GAMER_ENTER)
+                                    .data(new GamerEnterEvent(
+                                            true,
+                                            usedsession.getSession().getId(),
+                                            modelingData.getGameStatus(),
+                                            usedsession.getKey(),
+                                            Arrays.stream(buildScenesData())
+                                                    .filter(e -> e.getMainstation() == finalKey)
+                                                    .findFirst()
+                                                    .orElse(null)
+                                    ))
+                                    .build());
+                        } else {
+                            byte key = 0;
+                            String payload = event.getPayload();
+                            if (payload != null && !payload.isEmpty()) {
+                                try {
+                                    key = Byte.parseByte(payload);
+                                } catch (NumberFormatException ignored) {
+                                }
+                            }
+
+                            if (key != 0) { // если есть предпочтения
+                                byte finalKey = key;
+                                usedsession = Arrays.stream(gamers)
+                                        .filter(e -> e.getSession() == null && e.getKey() == finalKey)
+                                        .findFirst()
+                                        .orElse(null);
+                            }
+                            if (usedsession == null) { // ищем свободный ресурс
+                                usedsession = Arrays.stream(gamers)
+                                        .filter(e -> e.getSession() == null)
+                                        .findFirst()
+                                        .orElse(null);
+                            }
+                            if (usedsession != null) { // ресурс выделен
+                                usedsession.setSession(session);
+                                int finalKey = usedsession.getKey();
+                                sendEvent(session, GameServiceEvent
+                                        .type(GameEventTypes.GAMER_ENTER)
+                                        .data(new GamerEnterEvent(
+                                                true,
+                                                usedsession.getSession().getId(),
+                                                modelingData.getGameStatus(),
+                                                usedsession.getKey(),
+                                                Arrays.stream(buildScenesData())
+                                                        .filter(e -> e.getMainstation() == finalKey)
+                                                        .findFirst()
+                                                        .orElse(null)
+                                        ))
+                                        .build());
+                                guests.remove(session.getId());
+                                sendEventToAll(buildStatusEvent());
+                            } else {
+                                sendEvent(session, GameServiceEvent
+                                        .type(GameEventTypes.GAMER_ENTER)
+                                        .data(new GamerEnterEvent(modelingData.getGameStatus()))
+                                        .build());
+                            }
+                        }
                     }
                 }
             }
@@ -295,6 +304,51 @@ public class GameSocketHandler implements WebSocketHandler {
                     .type(GameEventTypes.SCENESDATA)
                     .data(buildScenesData())
                     .build());
+            case SCENE_COMPLETTE_IDENTIFY -> {
+                int gamerKey;
+                synchronized (_locked) {
+                    gamerKey = Arrays.stream(gamers)
+                            .filter(e -> e.getSession() != null && session.getId().equals(e.getSession().getId()))
+                            .map(GamerSession::getKey)
+                            .findFirst()
+                            .orElse(0);
+                }
+                GamerScenesData sceneData = null;
+                if (gamerKey != 0) {
+                    sceneData = Arrays.stream(modelingData.getTasks())
+                            .filter(e -> e.getPowerSystem().getDevaddr() == gamerKey)
+                            .map(TaskData::getScenesData)
+                            .findFirst()
+                            .orElse(null);
+                }
+                if (sceneData != null) {
+                    sceneData.setSceneIdentify(fromJson(session, event.getPayload(), SceneIdentifyData.class));
+                    sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.SCENESDATA)
+                            .data(buildScenesData())
+                            .build());
+                } else {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_7))
+                            .build());
+                }
+            }
+            case GAME_SCENE_NEXT -> {
+                if (gameAdmin != null && !session.getId().equals(gameAdmin.getId())) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
+                            .build());
+                }
+
+                modelingData.setGameStatus(GameStatuses.GAMERS_CHOICE_OES);
+
+                sendEventToAll(buildStatusEvent());
+                /*sendEventToAll(GameServiceEvent
+                        .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
+                        .data());*/
+            }
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.ERROR)
@@ -302,6 +356,18 @@ public class GameSocketHandler implements WebSocketHandler {
                     .build());
         }
         return event;
+    }
+
+    private GameEventTypes getEventByGameStatus(GameStatuses status) {
+        switch (status) {
+            case GAMERS_IDENTIFY -> {
+                return GameEventTypes.GAME_SCENE_IDENTIFY;
+            }
+            case GAMERS_CHOICE_OES -> {
+                return GameEventTypes.GAME_SCENE_CHOICE_OES;
+            }
+        }
+        return GameEventTypes.ERROR;
     }
 
     private ResponseScenesEventData[] buildScenesData() {
@@ -312,6 +378,7 @@ public class GameSocketHandler implements WebSocketHandler {
                         .consumers(Arrays.stream(e.getScenesData().getPredefconsumers())
                                 .mapToInt(Consumer::getDevaddr)
                                 .toArray())
+                        .sceneIdentify(e.getScenesData().getSceneIdentify())
                         .build())
                 .toArray(ResponseScenesEventData[]::new);
     }
@@ -323,7 +390,10 @@ public class GameSocketHandler implements WebSocketHandler {
                     .data(new GameStatusEvent(
                             modelingData.getGameStatus(),
                             this.gameAdmin != null,
-                            Arrays.stream(this.gamers).filter(Objects::nonNull).toArray().length,
+                            Arrays.stream(this.gamers)
+                                    .filter(e -> e.getSession() != null)
+                                    .toArray()
+                                    .length,
                             this.guests.size()))
                     .build();
         }

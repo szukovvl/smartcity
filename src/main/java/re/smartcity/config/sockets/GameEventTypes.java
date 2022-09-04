@@ -5,8 +5,11 @@ public enum GameEventTypes {
     GAMECONTROL, // запрос на захват контроллера игры
     GAMER_ENTER, // запрос на вход игрока
     STARTGAMESCENES, // запрос инициирования игрового сценария
-    CANCELGAMESCENES, // запрос прерывния игрового сценария
+    CANCELGAMESCENES, // запрос прерывания игрового сценария
     GAME_SCENE_IDENTIFY, // смена сцены: игрок, определи себя
+    SCENE_COMPLETTE_IDENTIFY, // игрок завершил сцену приглашения
+    GAME_SCENE_NEXT, // перейти к следующей сцене
+    GAME_SCENE_CHOICE_OES, // выбор объектов энергосистемы
     SCENESDATA, // запрос данных сцен игрока
     ERROR // инициируется только сервисом для конкретного клиента
 }

@@ -21,4 +21,9 @@ public class ResponseScenesDataBuilder {
         data.setConsumers(keys);
         return this;
     }
+
+    public ResponseScenesDataBuilder sceneIdentify(SceneIdentifyData sceneData) {
+        data.setSceneidentify(sceneData);
+        return this;
+    }
 }
