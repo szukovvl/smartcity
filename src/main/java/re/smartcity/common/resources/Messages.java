@@ -16,6 +16,7 @@ public final class Messages {
     public final static String ER_12 = "Неверная длина принятого пакета.";
     public final static String ER_13 = "Отсутствуют необходимые данные сообщения";
     public final static String ER_14 = "Доступно только для администратора";
+    public final static String ER_15 = "Текущая сцена конечная";
 
     public final static String FER_0 = "обновляемый объект {} в хранилище не зафиксирован.";
     public final static String FER_1 = "ошибка при создании объекта конфигурации {}.";

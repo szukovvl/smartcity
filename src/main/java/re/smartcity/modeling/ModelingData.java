@@ -85,7 +85,11 @@ public class ModelingData {
         stopAll();
         TaskData[] tasks = new TaskData[mainstations.length];
         for (int i = 0; i < tasks.length; i++) {
-            tasks[i] = new TaskData(Executors.newSingleThreadExecutor(), mainstations[i], new GamerScenesData(substations[i]));
+            tasks[i] = new TaskData(
+                    Executors.newSingleThreadExecutor(),
+                    mainstations[i],
+                    new GamerScenesData(substations[i]),
+                    new int[0]);
         }
         setTasks(tasks);
         for (TaskData task : tasks) {

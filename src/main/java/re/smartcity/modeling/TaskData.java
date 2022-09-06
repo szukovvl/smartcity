@@ -13,4 +13,5 @@ public class TaskData {
     private ExecutorService service;
     private MainSubstationPowerSystem powerSystem;
     private GamerScenesData scenesData;
+    private int[] choicesScene; // !!! пока а костылях
 }

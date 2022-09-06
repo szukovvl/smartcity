@@ -24,6 +24,7 @@ import reactor.core.publisher.SignalType;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.IntStream;
 
 @Component
 public class GameSocketHandler implements WebSocketHandler {
@@ -36,6 +37,7 @@ public class GameSocketHandler implements WebSocketHandler {
 
     private volatile WebSocketSession gameAdmin;
     private volatile GamerSession[] gamers = new GamerSession[0];
+    private volatile int[] choicesScene; // !!! пока на костылях
 
     private final Object _locked = new Object();
 
@@ -224,6 +226,15 @@ public class GameSocketHandler implements WebSocketHandler {
                             .build());
                 }
 
+                // !!! для костылей
+                synchronized (_locked) {
+                    this.choicesScene = new int[0];
+                    for (TaskData task : modelingData.getTasks()) {
+                        task.setChoicesScene(new int[0]);
+                    }
+                }
+                //
+
                 GameStartScenesEvent eventdata = fromJson(session, event.getPayload(), GameStartScenesEvent.class);
                 if (eventdata != null) {
                     IComponentIdentification[] items = modelingData.getAllobjects();
@@ -342,13 +353,36 @@ public class GameSocketHandler implements WebSocketHandler {
                             .build());
                 }
 
-                modelingData.setGameStatus(GameStatuses.GAMERS_CHOICE_OES);
+                switch (modelingData.getGameStatus()) {
+                    case GAMERS_IDENTIFY -> modelingData.setGameStatus(GameStatuses.GAMERS_CHOICE_OES);
+                    default -> {
+                        sendEvent(session, GameServiceEvent
+                                .type(GameEventTypes.ERROR)
+                                .data(new GameErrorEvent(event.getType().toString(), Messages.ER_15))
+                                .build());
+                        return event;
+                    }
+                }
 
                 sendEventToAll(buildStatusEvent());
-                /*sendEventToAll(GameServiceEvent
-                        .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
-                        .data());*/
+
+                // !!! поковыляли на костылях
+                switch (modelingData.getGameStatus()) {
+                    // GAMERS_IDENTIFY - первая сцена
+                    case GAMERS_CHOICE_OES -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
+                            .data(buildChoiceSceneResponse())
+                            .build());
+                    default ->  sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_15))
+                            .build());
+                }
             }
+            case GAME_SCENE_CHOICE_OES -> sendEventToAll(GameServiceEvent
+                    .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
+                    .data(buildChoiceSceneResponse())
+                    .build());
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.ERROR)
@@ -358,16 +392,36 @@ public class GameSocketHandler implements WebSocketHandler {
         return event;
     }
 
-    private GameEventTypes getEventByGameStatus(GameStatuses status) {
-        switch (status) {
-            case GAMERS_IDENTIFY -> {
-                return GameEventTypes.GAME_SCENE_IDENTIFY;
-            }
-            case GAMERS_CHOICE_OES -> {
-                return GameEventTypes.GAME_SCENE_CHOICE_OES;
-            }
+    private synchronized ResponseChoiceOesData buildChoiceSceneResponse() {
+        int[] seletedItems = new int[0];
+        for (TaskData task : modelingData.getTasks()) {
+            seletedItems = IntStream.concat(
+                            IntStream.of(seletedItems),
+                            IntStream.of(task.getChoicesScene()))
+                    .toArray();
+            seletedItems = IntStream.concat(
+                            IntStream.of(seletedItems),
+                            Arrays.stream(task.getScenesData().getPredefconsumers())
+                                    .mapToInt(Consumer::getDevaddr))
+                    .toArray();
         }
-        return GameEventTypes.ERROR;
+
+        this.choicesScene = Arrays.stream(modelingData.getAllobjects())
+                .filter(e -> e.getComponentType() == SupportedTypes.CONSUMER)
+                .mapToInt(IComponentIdentification::getDevaddr)
+                .filter(e -> Arrays.stream(this.choicesScene)
+                        .filter(v -> v == e)
+                        .findFirst()
+                        .isEmpty())
+                .toArray();
+
+        return new ResponseChoiceOesData(
+                this.choicesScene,
+                Arrays.stream(modelingData.getTasks())
+                        .map(e -> new ChoiceOesData(
+                                e.getPowerSystem().getDevaddr(),
+                                e.getChoicesScene()))
+                        .toArray(ChoiceOesData[]::new));
     }
 
     private ResponseScenesEventData[] buildScenesData() {
