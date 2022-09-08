@@ -13,7 +13,7 @@ public class GamerScenesData {
     private final EnergyDistributor substation;
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
-    private SceneIdentifyData sceneIdentify;
+    private SceneIdentifyData sceneidentify;
 
     public GamerScenesData (EnergyDistributor substation) {
         this.substation = substation;
@@ -32,10 +32,10 @@ public class GamerScenesData {
     }
 
     public SceneIdentifyData getSceneIdentify() {
-        return sceneIdentify;
+        return sceneidentify;
     }
 
     public void setSceneIdentify(SceneIdentifyData sceneIdentify) {
-        this.sceneIdentify = sceneIdentify;
+        this.sceneidentify = sceneIdentify;
     }
 }

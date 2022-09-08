@@ -406,10 +406,11 @@ public class GameSocketHandler implements WebSocketHandler {
                     .toArray();
         }
 
+        int[] finalSeletedItems = seletedItems;
         this.choicesScene = Arrays.stream(modelingData.getAllobjects())
                 .filter(e -> e.getComponentType() == SupportedTypes.CONSUMER)
                 .mapToInt(IComponentIdentification::getDevaddr)
-                .filter(e -> Arrays.stream(this.choicesScene)
+                .filter(e -> Arrays.stream(finalSeletedItems)
                         .filter(v -> v == e)
                         .findFirst()
                         .isEmpty())

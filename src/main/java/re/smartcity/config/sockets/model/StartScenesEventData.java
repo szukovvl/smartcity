@@ -12,4 +12,7 @@ public final class StartScenesEventData {
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private int[] consumers = null;
+
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
+    private SceneIdentifyData sceneidentify;
 }
