@@ -383,6 +383,138 @@ public class GameSocketHandler implements WebSocketHandler {
                     .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
                     .data(buildChoiceSceneResponse())
                     .build());
+            case GAMER_CAPTURE_OES -> {
+                int gamerKey;
+                synchronized (_locked) {
+                    gamerKey = Arrays.stream(gamers)
+                            .filter(e -> e.getSession() != null && session.getId().equals(e.getSession().getId()))
+                            .map(GamerSession::getKey)
+                            .findFirst()
+                            .orElse(0);
+                }
+                TaskData gamerTask = null;
+                if (gamerKey != 0) {
+                    gamerTask = Arrays.stream(modelingData.getTasks())
+                            .filter(e -> e.getPowerSystem().getDevaddr() == gamerKey)
+                            .findFirst()
+                            .orElse(null);
+                }
+                if (gamerTask == null) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_7))
+                            .build());
+                    return event;
+                }
+                int oesKey;
+                try {
+                    oesKey = Integer.parseInt(event.getPayload());
+                }
+                catch (NumberFormatException ex) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(),
+                                    String.format(Messages.FER_7, event.getPayload())))
+                            .build());
+                    return event;
+                }
+
+                if (oesKey == 0) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_16))
+                            .build());
+                    return event;
+                }
+
+                ResponseChoiceOesData response;
+                synchronized (_locked) {
+                    if (Arrays.stream(gamerTask.getChoicesScene())
+                            .filter(e -> e == oesKey)
+                            .findFirst()
+                            .isEmpty()) { // возможно такой объект уже присоединен...
+                        if (Arrays.stream(this.choicesScene)
+                                .filter(e -> e == oesKey)
+                                .findFirst()
+                                .isPresent()) { // объект доступен
+                            this.choicesScene = Arrays.stream(this.choicesScene)
+                                    .filter(e -> e != oesKey)
+                                    .toArray();
+                            int[] newitems = Arrays.copyOf(
+                                    gamerTask.getChoicesScene(),
+                                    gamerTask.getChoicesScene().length + 1);
+                            newitems[newitems.length - 1] = oesKey;
+                            gamerTask.setChoicesScene(newitems);
+                        }
+                    }
+                    response = buildChoiceSceneResponse();
+                }
+                sendEventToAll(GameServiceEvent
+                        .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
+                        .data(response)
+                        .build());
+            }
+            case GAMER_REFUSE_OES -> {
+                int gamerKey;
+                synchronized (_locked) {
+                    gamerKey = Arrays.stream(gamers)
+                            .filter(e -> e.getSession() != null && session.getId().equals(e.getSession().getId()))
+                            .map(GamerSession::getKey)
+                            .findFirst()
+                            .orElse(0);
+                }
+                TaskData gamerTask = null;
+                if (gamerKey != 0) {
+                    gamerTask = Arrays.stream(modelingData.getTasks())
+                            .filter(e -> e.getPowerSystem().getDevaddr() == gamerKey)
+                            .findFirst()
+                            .orElse(null);
+                }
+                if (gamerTask == null) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_7))
+                            .build());
+                    return event;
+                }
+                int oesKey;
+                try {
+                    oesKey = Integer.parseInt(event.getPayload());
+                }
+                catch (NumberFormatException ex) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(),
+                                    String.format(Messages.FER_7, event.getPayload())))
+                            .build());
+                    return event;
+                }
+
+                if (oesKey == 0) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_16))
+                            .build());
+                    return event;
+                }
+
+                ResponseChoiceOesData response;
+                synchronized (_locked) {
+                    if (Arrays.stream(gamerTask.getChoicesScene())
+                            .filter(e -> e == oesKey)
+                            .findFirst()
+                            .isPresent()) { // объект выбран игроком
+                        gamerTask.setChoicesScene(Arrays.stream(gamerTask.getChoicesScene())
+                                .filter(e -> e != oesKey)
+                                .toArray());
+                    }
+                    response = buildChoiceSceneResponse();
+                }
+                sendEventToAll(GameServiceEvent
+                        .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
+                        .data(response)
+                        .build());
+            }
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.ERROR)
@@ -407,6 +539,7 @@ public class GameSocketHandler implements WebSocketHandler {
         }
 
         int[] finalSeletedItems = seletedItems;
+        // доступные объекты
         this.choicesScene = Arrays.stream(modelingData.getAllobjects())
                 .filter(e -> e.getComponentType() == SupportedTypes.CONSUMER)
                 .mapToInt(IComponentIdentification::getDevaddr)

@@ -17,6 +17,7 @@ public final class Messages {
     public final static String ER_13 = "Отсутствуют необходимые данные сообщения";
     public final static String ER_14 = "Доступно только для администратора";
     public final static String ER_15 = "Текущая сцена конечная";
+    public final static String ER_16 = "Объект энергосистемы не задан";
 
     public final static String FER_0 = "обновляемый объект {} в хранилище не зафиксирован.";
     public final static String FER_1 = "ошибка при создании объекта конфигурации {}.";
@@ -25,4 +26,5 @@ public final class Messages {
     public final static String FER_4 = "Переполнение буфера для элемента %02X.";
     public final static String FER_5 = "Неизвестный тип пакета %02X элемента %02X.";
     public final static String FER_6 = "Объект %02X не найден";
+    public final static String FER_7 = "Неверный формат адреса объекта: %s";
 }
