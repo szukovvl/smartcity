@@ -16,6 +16,7 @@ import re.smartcity.energynet.component.Consumer;
 import re.smartcity.modeling.GameStatuses;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
+import re.smartcity.modeling.data.AuctionSettings;
 import re.smartcity.modeling.data.GamerScenesData;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -38,6 +39,10 @@ public class GameSocketHandler implements WebSocketHandler {
     private volatile WebSocketSession gameAdmin;
     private volatile GamerSession[] gamers = new GamerSession[0];
     private volatile int[] choicesScene; // !!! пока на костылях
+    private volatile int[] auctionLots;
+    private volatile int[] unsoldLots;
+    private volatile int currentLot;
+    private volatile AuctionSettings auctionSettings = new AuctionSettings();
 
     private final Object _locked = new Object();
 
@@ -229,8 +234,12 @@ public class GameSocketHandler implements WebSocketHandler {
                 // !!! для костылей
                 synchronized (_locked) {
                     this.choicesScene = new int[0];
+                    this.currentLot = 0;
+                    this.auctionLots = new int[0];
+                    this.unsoldLots = new int[0];
                     for (TaskData task : modelingData.getTasks()) {
                         task.setChoicesScene(new int[0]);
+                        task.setAuctionScene(new int[0]);
                     }
                 }
                 //
@@ -355,6 +364,7 @@ public class GameSocketHandler implements WebSocketHandler {
 
                 switch (modelingData.getGameStatus()) {
                     case GAMERS_IDENTIFY -> modelingData.setGameStatus(GameStatuses.GAMERS_CHOICE_OES);
+                    case GAMERS_CHOICE_OES -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_PREPARE);
                     default -> {
                         sendEvent(session, GameServiceEvent
                                 .type(GameEventTypes.ERROR)
@@ -373,6 +383,10 @@ public class GameSocketHandler implements WebSocketHandler {
                             .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
                             .data(buildChoiceSceneResponse())
                             .build());
+                    case GAMERS_AUCTION_PREPARE -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_AUCTION_PREPARE)
+                            .data(buildAuctionSceneResponse())
+                            .build());
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
                             .data(new GameErrorEvent(event.getType().toString(), Messages.ER_15))
@@ -383,6 +397,10 @@ public class GameSocketHandler implements WebSocketHandler {
                     .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
                     .data(buildChoiceSceneResponse())
                     .build());
+            case GAME_SCENE_AUCTION_PREPARE -> sendEventToAll(GameServiceEvent
+                .type(GameEventTypes.GAME_SCENE_AUCTION_PREPARE)
+                .data(buildAuctionSceneResponse())
+                .build());
             case GAMER_CAPTURE_OES -> {
                 int gamerKey;
                 synchronized (_locked) {
@@ -556,6 +574,55 @@ public class GameSocketHandler implements WebSocketHandler {
                                 e.getPowerSystem().getDevaddr(),
                                 e.getChoicesScene()))
                         .toArray(ChoiceOesData[]::new));
+    }
+
+    private synchronized ResponseAuctionData buildAuctionSceneResponse() {
+        int[] busyLots = new int[0];
+        // собираем по игрокам
+        for (TaskData task : modelingData.getTasks()) {
+            busyLots = IntStream.concat(
+                            IntStream.of(busyLots),
+                            IntStream.of(task.getAuctionScene()))
+                    .toArray();
+        }
+
+        // включаю отказников
+        busyLots = IntStream.concat(
+                        IntStream.of(busyLots),
+                        IntStream.of(this.unsoldLots))
+                .toArray();
+
+        // выбираю только доступные
+        int[] finalBusyLots = busyLots;
+        this.auctionLots = Arrays.stream(modelingData.getAllobjects())
+                .filter(e -> e.getComponentType() == SupportedTypes.GENERATOR ||
+                        e.getComponentType() == SupportedTypes.GREEGENERATOR ||
+                        e.getComponentType() == SupportedTypes.STORAGE)
+                .mapToInt(IComponentIdentification::getDevaddr)
+                .filter(e -> Arrays.stream(finalBusyLots)
+                        .filter(v -> v == e)
+                        .findFirst()
+                        .isEmpty())
+                .toArray();
+
+        // проверяю выставленный лот
+        if (Arrays.stream(this.auctionLots)
+                .filter(e -> e == this.currentLot)
+                .findFirst()
+                .isEmpty()) {
+            this.currentLot = 0;
+        }
+
+        // собираю ответ
+        return new ResponseAuctionData(
+                this.auctionSettings,
+                Arrays.stream(modelingData.getTasks())
+                        .map(e -> new AuctionGamerData(e.getPowerSystem().getDevaddr(), e.getAuctionScene()))
+                        .toArray(AuctionGamerData[]::new),
+                this.auctionLots,
+                this.unsoldLots,
+                this.currentLot
+        );
     }
 
     private ResponseScenesEventData[] buildScenesData() {
