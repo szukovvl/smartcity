@@ -13,6 +13,9 @@ public enum GameEventTypes {
     GAMER_CAPTURE_OES, // запрос игрока на захват объекта
     GAMER_REFUSE_OES, // отказаться от выбранного объекта,
     GAME_SCENE_AUCTION_PREPARE, // аукцион - подготовка
+    GAME_SCENE_AUCTION_SETTINGS, // настройка параметров (только от клиента)
+    GAME_SCENE_AUCTION, // данные аукциона
+    GAME_SCENE_AUCTION_SALE, // аукцион - торговля
     SCENESDATA, // запрос данных сцен игрока
     ERROR // инициируется только сервисом для конкретного клиента
 }

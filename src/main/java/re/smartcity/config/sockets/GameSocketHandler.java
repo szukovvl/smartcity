@@ -229,6 +229,7 @@ public class GameSocketHandler implements WebSocketHandler {
                             .type(GameEventTypes.ERROR)
                             .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
                             .build());
+                    return event;
                 }
 
                 // !!! для костылей
@@ -314,6 +315,7 @@ public class GameSocketHandler implements WebSocketHandler {
                             .type(GameEventTypes.ERROR)
                             .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
                             .build());
+                    return event;
                 }
 
                 modelingData.cancelScenes(); // !!!
@@ -360,11 +362,13 @@ public class GameSocketHandler implements WebSocketHandler {
                             .type(GameEventTypes.ERROR)
                             .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
                             .build());
+                    return event;
                 }
 
                 switch (modelingData.getGameStatus()) {
                     case GAMERS_IDENTIFY -> modelingData.setGameStatus(GameStatuses.GAMERS_CHOICE_OES);
                     case GAMERS_CHOICE_OES -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_PREPARE);
+                    case GAMERS_AUCTION_PREPARE -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_SALE);
                     default -> {
                         sendEvent(session, GameServiceEvent
                                 .type(GameEventTypes.ERROR)
@@ -387,20 +391,20 @@ public class GameSocketHandler implements WebSocketHandler {
                             .type(GameEventTypes.GAME_SCENE_AUCTION_PREPARE)
                             .data(buildAuctionSceneResponse())
                             .build());
+                    case GAMERS_AUCTION_SALE -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_AUCTION_SALE)
+                            .data(buildAuctionSceneResponse())
+                            .build());
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
                             .data(new GameErrorEvent(event.getType().toString(), Messages.ER_15))
                             .build());
                 }
             }
-            case GAME_SCENE_CHOICE_OES -> sendEventToAll(GameServiceEvent
+            case GAME_SCENE_CHOICE_OES -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
                     .data(buildChoiceSceneResponse())
                     .build());
-            case GAME_SCENE_AUCTION_PREPARE -> sendEventToAll(GameServiceEvent
-                .type(GameEventTypes.GAME_SCENE_AUCTION_PREPARE)
-                .data(buildAuctionSceneResponse())
-                .build());
             case GAMER_CAPTURE_OES -> {
                 int gamerKey;
                 synchronized (_locked) {
@@ -533,6 +537,28 @@ public class GameSocketHandler implements WebSocketHandler {
                         .data(response)
                         .build());
             }
+            case GAME_SCENE_AUCTION -> sendEvent(session, GameServiceEvent
+                    .type(GameEventTypes.GAME_SCENE_AUCTION)
+                    .data(buildAuctionSceneResponse())
+                    .build());
+            case GAME_SCENE_AUCTION_SETTINGS -> {
+                if (gameAdmin != null && !session.getId().equals(gameAdmin.getId())) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
+                            .build());
+                    return event;
+                }
+
+                AuctionSettings params = fromJson(session, event.getPayload(), AuctionSettings.class);
+                if (params != null) {
+                    this.auctionSettings = params;
+                    sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_AUCTION)
+                            .data(buildAuctionSceneResponse())
+                            .build());
+                }
+            }
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.ERROR)
@@ -621,7 +647,8 @@ public class GameSocketHandler implements WebSocketHandler {
                         .toArray(AuctionGamerData[]::new),
                 this.auctionLots,
                 this.unsoldLots,
-                this.currentLot
+                this.currentLot,
+                modelingData.getGameStatus()
         );
     }
 
