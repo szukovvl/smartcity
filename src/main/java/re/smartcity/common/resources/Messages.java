@@ -18,6 +18,8 @@ public final class Messages {
     public final static String ER_14 = "Доступно только для администратора";
     public final static String ER_15 = "Текущая сцена конечная";
     public final static String ER_16 = "Объект энергосистемы не задан";
+    public final static String ER_17 = "Необходимо отменить торги для текущего лота";
+    public final static String ER_18 = "Нет доступных лотов аукциона";
 
     public final static String FER_0 = "обновляемый объект {} в хранилище не зафиксирован.";
     public final static String FER_1 = "ошибка при создании объекта конфигурации {}.";

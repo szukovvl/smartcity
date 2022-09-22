@@ -1,5 +1,6 @@
 package re.smartcity.config.sockets.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import re.smartcity.modeling.GameStatuses;
 import re.smartcity.modeling.data.AuctionSettings;
 
@@ -16,5 +17,7 @@ public record ResponseAuctionData(
         AuctionGamerData[] gamer,
         int[] lots,
         int[] unsolds,
-        int current,
+
+        @JsonInclude(JsonInclude.Include.NON_ABSENT)
+        PurchasedLot current,
         GameStatuses status) { }

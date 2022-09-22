@@ -16,6 +16,10 @@ public enum GameEventTypes {
     GAME_SCENE_AUCTION_SETTINGS, // настройка параметров (только от клиента)
     GAME_SCENE_AUCTION, // данные аукциона
     GAME_SCENE_AUCTION_SALE, // аукцион - торговля
+    GAME_SCENE_AUCTION_PUT_LOT, // выставить лот на торги
+    GAME_SCENE_AUCTION_CANCEL_LOT, // отменить текущий лот
+    GAME_SCENE_AUCTION_BAY_LOT, // игрок забирает лот
+    GAME_SCENE_AUCTION_TIME_LOT, // текущее время лота (остаток)
     SCENESDATA, // запрос данных сцен игрока
     ERROR // инициируется только сервисом для конкретного клиента
 }

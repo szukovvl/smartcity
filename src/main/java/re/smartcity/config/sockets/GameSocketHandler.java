@@ -25,6 +25,9 @@ import reactor.core.publisher.SignalType;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 @Component
@@ -41,8 +44,10 @@ public class GameSocketHandler implements WebSocketHandler {
     private volatile int[] choicesScene; // !!! пока на костылях
     private volatile int[] auctionLots;
     private volatile int[] unsoldLots;
-    private volatile int currentLot;
+    private volatile PurchasedLot currentLot;
+    private volatile int bidder;
     private volatile AuctionSettings auctionSettings = new AuctionSettings();
+    private ExecutorService auctionProcessing = null;
 
     private final Object _locked = new Object();
 
@@ -235,12 +240,12 @@ public class GameSocketHandler implements WebSocketHandler {
                 // !!! для костылей
                 synchronized (_locked) {
                     this.choicesScene = new int[0];
-                    this.currentLot = 0;
+                    this.currentLot = null;
                     this.auctionLots = new int[0];
                     this.unsoldLots = new int[0];
                     for (TaskData task : modelingData.getTasks()) {
                         task.setChoicesScene(new int[0]);
-                        task.setAuctionScene(new int[0]);
+                        task.setAuctionScene(new PurchasedLot[0]);
                     }
                 }
                 //
@@ -559,6 +564,122 @@ public class GameSocketHandler implements WebSocketHandler {
                             .build());
                 }
             }
+            case GAME_SCENE_AUCTION_PUT_LOT -> {
+                if (gameAdmin != null && !session.getId().equals(gameAdmin.getId())) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
+                            .build());
+                    return event;
+                }
+
+                synchronized (_locked) {
+                    if (this.auctionProcessing != null) {
+                        sendEvent(session, GameServiceEvent
+                                .type(GameEventTypes.ERROR)
+                                .data(new GameErrorEvent(event.getType().toString(), Messages.ER_17))
+                                .build());
+                        return event;
+                    }
+
+                    if (this.auctionLots.length == 0) {
+                        sendEvent(session, GameServiceEvent
+                                .type(GameEventTypes.ERROR)
+                                .data(new GameErrorEvent(event.getType().toString(), Messages.ER_18))
+                                .build());
+                        return event;
+                    }
+
+                    this.bidder = 0;
+                    this.currentLot = new PurchasedLot(
+                            this.auctionLots[(new Random()).nextInt(this.auctionLots.length)],
+                            this.auctionSettings.getStartingcost());
+                    sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_AUCTION)
+                            .data(buildAuctionSceneResponse())
+                            .build());
+                    this.auctionProcessing = Executors.newSingleThreadExecutor();
+                    this.auctionProcessing.execute(new LotExecutor());
+                }
+            }
+            case GAME_SCENE_AUCTION_CANCEL_LOT -> {
+                if (gameAdmin != null && !session.getId().equals(gameAdmin.getId())) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
+                            .build());
+                    return event;
+                }
+
+                ExecutorService process = null;
+                synchronized (_locked) {
+                    this.currentLot = null;
+                    process = this.auctionProcessing;
+                }
+                if (process != null) {
+                    process.shutdownNow();
+                    try {
+                        process.awaitTermination(1, TimeUnit.MILLISECONDS);
+                    }
+                    catch (InterruptedException ignored) { }
+                    sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_AUCTION)
+                            .data(buildAuctionSceneResponse())
+                            .build());
+                }
+            }
+            case GAME_SCENE_AUCTION_BAY_LOT -> {
+                int gamerKey;
+                synchronized (_locked) {
+                    gamerKey = Arrays.stream(gamers)
+                            .filter(e -> e.getSession() != null && session.getId().equals(e.getSession().getId()))
+                            .map(GamerSession::getKey)
+                            .findFirst()
+                            .orElse(0);
+                }
+
+                TaskData gamerTask = null;
+                if (gamerKey != 0) {
+                    gamerTask = Arrays.stream(modelingData.getTasks())
+                            .filter(e -> e.getPowerSystem().getDevaddr() == gamerKey)
+                            .findFirst()
+                            .orElse(null);
+                }
+                if (gamerTask == null) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_7))
+                            .build());
+                    return event;
+                }
+
+                ExecutorService process = null;
+                synchronized (_locked) {
+                    process = this.auctionProcessing;
+                }
+                if (process != null) {
+                    process.shutdownNow();
+                    try {
+                        process.awaitTermination(1, TimeUnit.MILLISECONDS);
+                    }
+                    catch (InterruptedException ignored) { }
+                    synchronized (_locked) {
+                        PurchasedLot[] gamerLots = gamerTask.getAuctionScene();
+                        gamerLots = Arrays.copyOf(gamerLots, gamerLots.length + 1);
+                        gamerLots[gamerLots.length - 1] = this.currentLot;
+                        gamerTask.setAuctionScene(gamerLots);
+                        this.currentLot = new PurchasedLot(
+                                this.currentLot.key(),
+                                this.currentLot.price() + this.auctionSettings.getStartingcost() * 0.1);
+                        sendEventToAll(GameServiceEvent
+                                .type(GameEventTypes.GAME_SCENE_AUCTION)
+                                .data(buildAuctionSceneResponse())
+                                .build());
+                        this.auctionProcessing = Executors.newSingleThreadExecutor();
+                        this.auctionProcessing.execute(new LotExecutor());
+                    }
+                }
+            }
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.ERROR)
@@ -608,7 +729,7 @@ public class GameSocketHandler implements WebSocketHandler {
         for (TaskData task : modelingData.getTasks()) {
             busyLots = IntStream.concat(
                             IntStream.of(busyLots),
-                            IntStream.of(task.getAuctionScene()))
+                            Arrays.stream(task.getAuctionScene()).mapToInt(PurchasedLot::key))
                     .toArray();
         }
 
@@ -632,11 +753,13 @@ public class GameSocketHandler implements WebSocketHandler {
                 .toArray();
 
         // проверяю выставленный лот
-        if (Arrays.stream(this.auctionLots)
-                .filter(e -> e == this.currentLot)
-                .findFirst()
-                .isEmpty()) {
-            this.currentLot = 0;
+        if (this.currentLot != null) {
+            if (Arrays.stream(this.auctionLots)
+                    .filter(e -> e == this.currentLot.key())
+                    .findFirst()
+                    .isEmpty()) {
+                this.currentLot = null;
+            }
         }
 
         // собираю ответ
@@ -713,5 +836,64 @@ public class GameSocketHandler implements WebSocketHandler {
                 .doOnError(this::onError)
                 .doFinally(e -> onFinally(session, e))
                 .then();
+    }
+
+    private class LotExecutor implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                try {
+                    int ticks = auctionSettings.getLotwaiting();
+                    sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_AUCTION_TIME_LOT)
+                            .data(ticks)
+                            .build());
+                    while (!auctionProcessing.isShutdown() && ticks > 0) {
+                        Thread.sleep(1000L); // отсвет по секунде
+                        ticks--;
+                        sendEventToAll(GameServiceEvent
+                                .type(GameEventTypes.GAME_SCENE_AUCTION_TIME_LOT)
+                                .data(ticks)
+                                .build());
+                    }
+                }
+                catch (InterruptedException ex) {
+                    return;
+                }
+                synchronized (_locked) {
+                    // действия с текущим лотом
+                    if (currentLot != null) {
+                        if (bidder != 0) { // лот отошел игроку
+                            TaskData data = Arrays.stream(modelingData.getTasks())
+                                    .filter(e -> e.getPowerSystem().getDevaddr() == bidder)
+                                    .findFirst()
+                                    .orElse(null);
+                            if (data != null) {
+                                PurchasedLot[] gamerLots = data.getAuctionScene();
+                                gamerLots = Arrays.copyOf(gamerLots, gamerLots.length + 1);
+                                gamerLots[gamerLots.length - 1] = currentLot;
+                                data.setAuctionScene(gamerLots);
+                            }
+                        } else { // лот отказан
+                            unsoldLots = Arrays.copyOf(
+                                    unsoldLots,
+                                    unsoldLots.length + 1);
+                            unsoldLots[unsoldLots.length - 1] = currentLot.key();
+                        }
+                        currentLot = null;
+                    }
+                }
+            }
+            finally {
+                synchronized (_locked) {
+                    auctionProcessing = null;
+                }
+                sendEventToAll(GameServiceEvent
+                        .type(GameEventTypes.GAME_SCENE_AUCTION)
+                        .data(buildAuctionSceneResponse())
+                        .build());
+            }
+        }
     }
 }
