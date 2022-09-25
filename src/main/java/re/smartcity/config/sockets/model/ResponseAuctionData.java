@@ -17,6 +17,7 @@ public record ResponseAuctionData(
         AuctionGamerData[] gamer,
         int[] lots,
         int[] unsolds,
+        int buyer,
 
         @JsonInclude(JsonInclude.Include.NON_ABSENT)
         PurchasedLot current,

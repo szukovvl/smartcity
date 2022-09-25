@@ -45,7 +45,8 @@ public class GameSocketHandler implements WebSocketHandler {
     private volatile int[] auctionLots;
     private volatile int[] unsoldLots;
     private volatile PurchasedLot currentLot;
-    private volatile int bidder;
+    private volatile int buyer;
+    private volatile double buyPrice;
     private volatile AuctionSettings auctionSettings = new AuctionSettings();
     private ExecutorService auctionProcessing = null;
 
@@ -374,6 +375,7 @@ public class GameSocketHandler implements WebSocketHandler {
                     case GAMERS_IDENTIFY -> modelingData.setGameStatus(GameStatuses.GAMERS_CHOICE_OES);
                     case GAMERS_CHOICE_OES -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_PREPARE);
                     case GAMERS_AUCTION_PREPARE -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_SALE);
+                    case GAMERS_AUCTION_SALE -> modelingData.setGameStatus(GameStatuses.GAMERS_SCHEME);
                     default -> {
                         sendEvent(session, GameServiceEvent
                                 .type(GameEventTypes.ERROR)
@@ -399,6 +401,10 @@ public class GameSocketHandler implements WebSocketHandler {
                     case GAMERS_AUCTION_SALE -> sendEventToAll(GameServiceEvent
                             .type(GameEventTypes.GAME_SCENE_AUCTION_SALE)
                             .data(buildAuctionSceneResponse())
+                            .build());
+                    case GAMERS_SCHEME -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_SCHEME)
+                            .data(buildSchemeResponse())
                             .build());
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
@@ -590,7 +596,8 @@ public class GameSocketHandler implements WebSocketHandler {
                         return event;
                     }
 
-                    this.bidder = 0;
+                    this.buyer = 0;
+                    this.buyPrice = 0.0;
                     this.currentLot = new PurchasedLot(
                             this.auctionLots[(new Random()).nextInt(this.auctionLots.length)],
                             this.auctionSettings.getStartingcost());
@@ -599,7 +606,7 @@ public class GameSocketHandler implements WebSocketHandler {
                             .data(buildAuctionSceneResponse())
                             .build());
                     this.auctionProcessing = Executors.newSingleThreadExecutor();
-                    this.auctionProcessing.execute(new LotExecutor());
+                    this.auctionProcessing.execute(new LotExecutor(this.auctionProcessing));
                 }
             }
             case GAME_SCENE_AUCTION_CANCEL_LOT -> {
@@ -611,7 +618,7 @@ public class GameSocketHandler implements WebSocketHandler {
                     return event;
                 }
 
-                ExecutorService process = null;
+                ExecutorService process;
                 synchronized (_locked) {
                     this.currentLot = null;
                     process = this.auctionProcessing;
@@ -622,11 +629,11 @@ public class GameSocketHandler implements WebSocketHandler {
                         process.awaitTermination(1, TimeUnit.MILLISECONDS);
                     }
                     catch (InterruptedException ignored) { }
-                    sendEventToAll(GameServiceEvent
-                            .type(GameEventTypes.GAME_SCENE_AUCTION)
-                            .data(buildAuctionSceneResponse())
-                            .build());
                 }
+                sendEventToAll(GameServiceEvent
+                        .type(GameEventTypes.GAME_SCENE_AUCTION)
+                        .data(buildAuctionSceneResponse())
+                        .build());
             }
             case GAME_SCENE_AUCTION_BAY_LOT -> {
                 int gamerKey;
@@ -636,6 +643,12 @@ public class GameSocketHandler implements WebSocketHandler {
                             .map(GamerSession::getKey)
                             .findFirst()
                             .orElse(0);
+                }
+
+                synchronized (_locked) {
+                    if (gamerKey != 0 && this.buyer == gamerKey) {
+                        return event;
+                    }
                 }
 
                 TaskData gamerTask = null;
@@ -653,7 +666,7 @@ public class GameSocketHandler implements WebSocketHandler {
                     return event;
                 }
 
-                ExecutorService process = null;
+                ExecutorService process;
                 synchronized (_locked) {
                     process = this.auctionProcessing;
                 }
@@ -664,20 +677,32 @@ public class GameSocketHandler implements WebSocketHandler {
                     }
                     catch (InterruptedException ignored) { }
                     synchronized (_locked) {
-                        PurchasedLot[] gamerLots = gamerTask.getAuctionScene();
-                        gamerLots = Arrays.copyOf(gamerLots, gamerLots.length + 1);
-                        gamerLots[gamerLots.length - 1] = this.currentLot;
-                        gamerTask.setAuctionScene(gamerLots);
-                        this.currentLot = new PurchasedLot(
-                                this.currentLot.key(),
-                                this.currentLot.price() + this.auctionSettings.getStartingcost() * 0.1);
+                        if (this.currentLot != null) {
+                            this.buyer = gamerKey;
+                            this.buyPrice = this.currentLot.price();
+                            this.currentLot = new PurchasedLot(
+                                    this.currentLot.key(),
+                                    this.currentLot.price() + this.auctionSettings.getStartingcost() * 0.1);
+                            this.auctionProcessing = Executors.newSingleThreadExecutor();
+                            process = this.auctionProcessing;
+                        }
+                    }
+                    Executors.newSingleThreadExecutor().execute(() -> { // !!! очередной костыль
                         sendEventToAll(GameServiceEvent
                                 .type(GameEventTypes.GAME_SCENE_AUCTION)
                                 .data(buildAuctionSceneResponse())
                                 .build());
-                        this.auctionProcessing = Executors.newSingleThreadExecutor();
-                        this.auctionProcessing.execute(new LotExecutor());
+                    });
+                    synchronized (_locked) {
+                        if (process == this.auctionProcessing) {
+                            process.execute(new LotExecutor(process));
+                        }
                     }
+                } else {
+                    sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_AUCTION)
+                            .data(buildAuctionSceneResponse())
+                            .build());
                 }
             }
             case ERROR -> { }
@@ -770,9 +795,28 @@ public class GameSocketHandler implements WebSocketHandler {
                         .toArray(AuctionGamerData[]::new),
                 this.auctionLots,
                 this.unsoldLots,
+                this.buyer,
                 this.currentLot,
                 modelingData.getGameStatus()
         );
+    }
+
+    private synchronized ResponseSchemeData[] buildSchemeResponse() {
+        List<ResponseSchemeData> data = new ArrayList<>();
+        for (TaskData task : modelingData.getTasks()) {
+            ResponseSchemeDataBuilder builder = ResponseSchemeData.build(task.getPowerSystem().getDevaddr());
+
+            builder
+                    .substation(task.getScenesData().getSubstation().getDevaddr())
+                            .consumers(Arrays.stream(task.getScenesData().getPredefconsumers())
+                                    .mapToInt(Consumer::getDevaddr)
+                                    .toArray())
+                                    .tcconsumers(task.getChoicesScene());
+
+            data.add(builder.build());
+        }
+
+        return data.toArray(ResponseSchemeData[]::new);
     }
 
     private ResponseScenesEventData[] buildScenesData() {
@@ -840,6 +884,12 @@ public class GameSocketHandler implements WebSocketHandler {
 
     private class LotExecutor implements Runnable {
 
+        private final ExecutorService executor;
+
+        private LotExecutor(ExecutorService executor) {
+            this.executor = executor;
+        }
+
         @Override
         public void run() {
             try {
@@ -849,30 +899,33 @@ public class GameSocketHandler implements WebSocketHandler {
                             .type(GameEventTypes.GAME_SCENE_AUCTION_TIME_LOT)
                             .data(ticks)
                             .build());
-                    while (!auctionProcessing.isShutdown() && ticks > 0) {
-                        Thread.sleep(1000L); // отсвет по секунде
+                    while (!this.executor.isShutdown() && !this.executor.isTerminated() && ticks > 0) {
+                        Thread.sleep(1000L); // ответ по секунде
                         ticks--;
                         sendEventToAll(GameServiceEvent
                                 .type(GameEventTypes.GAME_SCENE_AUCTION_TIME_LOT)
                                 .data(ticks)
                                 .build());
                     }
+                    if (this.executor.isShutdown() || this.executor.isTerminated()) {
+                        return;
+                    }
                 }
                 catch (InterruptedException ex) {
                     return;
                 }
                 synchronized (_locked) {
-                    // действия с текущим лотом
+                    // действия с текущим лотом не выполнялись - лот отказан, а может куплен?
                     if (currentLot != null) {
-                        if (bidder != 0) { // лот отошел игроку
+                        if (buyer != 0) { // лот отошел игроку
                             TaskData data = Arrays.stream(modelingData.getTasks())
-                                    .filter(e -> e.getPowerSystem().getDevaddr() == bidder)
+                                    .filter(e -> e.getPowerSystem().getDevaddr() == buyer)
                                     .findFirst()
                                     .orElse(null);
                             if (data != null) {
                                 PurchasedLot[] gamerLots = data.getAuctionScene();
                                 gamerLots = Arrays.copyOf(gamerLots, gamerLots.length + 1);
-                                gamerLots[gamerLots.length - 1] = currentLot;
+                                gamerLots[gamerLots.length - 1] = new PurchasedLot(currentLot.key(), buyPrice);
                                 data.setAuctionScene(gamerLots);
                             }
                         } else { // лот отказан
@@ -882,12 +935,15 @@ public class GameSocketHandler implements WebSocketHandler {
                             unsoldLots[unsoldLots.length - 1] = currentLot.key();
                         }
                         currentLot = null;
+                        buyer = 0;
                     }
                 }
             }
             finally {
                 synchronized (_locked) {
-                    auctionProcessing = null;
+                    if (this.executor == auctionProcessing) {
+                        auctionProcessing = null;
+                    }
                 }
                 sendEventToAll(GameServiceEvent
                         .type(GameEventTypes.GAME_SCENE_AUCTION)
