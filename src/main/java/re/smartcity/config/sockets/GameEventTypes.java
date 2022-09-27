@@ -9,6 +9,7 @@ public enum GameEventTypes {
     GAME_SCENE_IDENTIFY, // смена сцены: игрок, определи себя
     SCENE_COMPLETTE_IDENTIFY, // игрок завершил сцену приглашения
     GAME_SCENE_NEXT, // перейти к следующей сцене
+    GAME_SCENE_PREV, // перейти к предыдущей сцене
     GAME_SCENE_CHOICE_OES, // выбор объектов энергосистемы
     GAMER_CAPTURE_OES, // запрос игрока на захват объекта
     GAMER_REFUSE_OES, // отказаться от выбранного объекта,

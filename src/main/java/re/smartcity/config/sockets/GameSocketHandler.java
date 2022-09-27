@@ -293,20 +293,7 @@ public class GameSocketHandler implements WebSocketHandler {
                     sendEventToAll(buildStatusEvent());
                     sendEventToAll(GameServiceEvent
                             .type(GameEventTypes.GAME_SCENE_IDENTIFY)
-                            .data(Arrays.stream(modelingData.getTasks())
-                                    .map(e -> {
-                                            Consumer[] defitems = e.getScenesData().getPredefconsumers();
-                                            return ResponseScenesEventData
-                                                    .builder(e.getPowerSystem().getDevaddr())
-                                                    .substation(e.getScenesData().getSubstation().getDevaddr())
-                                                    .consumers(defitems != null && defitems.length != 0
-                                                            ? Arrays.stream(defitems)
-                                                            .mapToInt(item -> (int) item.getDevaddr())
-                                                            .toArray()
-                                                            : null)
-                                                    .build();
-                                        })
-                                    .toArray(ResponseScenesEventData[]::new))
+                            .data(buildIdentySceneResponse())
                             .build());
                 } else {
                     sendEvent(session, GameServiceEvent
@@ -371,6 +358,14 @@ public class GameSocketHandler implements WebSocketHandler {
                     return event;
                 }
 
+                if (this.auctionProcessing != null) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_17))
+                            .build());
+                    return event;
+                }
+
                 switch (modelingData.getGameStatus()) {
                     case GAMERS_IDENTIFY -> modelingData.setGameStatus(GameStatuses.GAMERS_CHOICE_OES);
                     case GAMERS_CHOICE_OES -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_PREPARE);
@@ -390,6 +385,66 @@ public class GameSocketHandler implements WebSocketHandler {
                 // !!! поковыляли на костылях
                 switch (modelingData.getGameStatus()) {
                     // GAMERS_IDENTIFY - первая сцена
+                    case GAMERS_CHOICE_OES -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
+                            .data(buildChoiceSceneResponse())
+                            .build());
+                    case GAMERS_AUCTION_PREPARE -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_AUCTION_PREPARE)
+                            .data(buildAuctionSceneResponse())
+                            .build());
+                    case GAMERS_AUCTION_SALE -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_AUCTION_SALE)
+                            .data(buildAuctionSceneResponse())
+                            .build());
+                    case GAMERS_SCHEME -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_SCHEME)
+                            .data(buildSchemeResponse())
+                            .build());
+                    default ->  sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_15))
+                            .build());
+                }
+            }
+            case GAME_SCENE_PREV -> {
+                if (gameAdmin != null && !session.getId().equals(gameAdmin.getId())) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
+                            .build());
+                    return event;
+                }
+
+                if (this.auctionProcessing != null) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_17))
+                            .build());
+                    return event;
+                }
+
+                switch (modelingData.getGameStatus()) {
+                    case GAMERS_CHOICE_OES -> modelingData.setGameStatus(GameStatuses.GAMERS_IDENTIFY);
+                    case GAMERS_AUCTION_PREPARE -> modelingData.setGameStatus(GameStatuses.GAMERS_CHOICE_OES);
+                    case GAMERS_AUCTION_SALE -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_PREPARE);
+                    default -> {
+                        sendEvent(session, GameServiceEvent
+                                .type(GameEventTypes.ERROR)
+                                .data(new GameErrorEvent(event.getType().toString(), Messages.ER_15))
+                                .build());
+                        return event;
+                    }
+                }
+
+                sendEventToAll(buildStatusEvent());
+
+                // !!! поковыляли на костылях
+                switch (modelingData.getGameStatus()) {
+                    case GAMERS_IDENTIFY -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_SCENE_IDENTIFY)
+                            .data(buildIdentySceneResponse())
+                            .build());
                     case GAMERS_CHOICE_OES -> sendEventToAll(GameServiceEvent
                             .type(GameEventTypes.GAME_SCENE_CHOICE_OES)
                             .data(buildChoiceSceneResponse())
@@ -712,6 +767,23 @@ public class GameSocketHandler implements WebSocketHandler {
                     .build());
         }
         return event;
+    }
+
+    private synchronized ResponseScenesEventData[] buildIdentySceneResponse() {
+        return Arrays.stream(modelingData.getTasks())
+                .map(e -> {
+                    Consumer[] defitems = e.getScenesData().getPredefconsumers();
+                    return ResponseScenesEventData
+                            .builder(e.getPowerSystem().getDevaddr())
+                            .substation(e.getScenesData().getSubstation().getDevaddr())
+                            .consumers(defitems != null && defitems.length != 0
+                                    ? Arrays.stream(defitems)
+                                    .mapToInt(item -> (int) item.getDevaddr())
+                                    .toArray()
+                                    : null)
+                            .build();
+                })
+                .toArray(ResponseScenesEventData[]::new);
     }
 
     private synchronized ResponseChoiceOesData buildChoiceSceneResponse() {
