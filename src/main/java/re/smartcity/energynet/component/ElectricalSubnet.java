@@ -15,14 +15,16 @@ public class ElectricalSubnet implements IComponentIdentification {
     private String identy; // уникальный идентификатор
 
     @JsonProperty(value = "devaddr", access = JsonProperty.Access.READ_ONLY)
-    private final byte devaddr = 0; // для данного типа не используется
+    private final byte devaddr; // етевой уникальный адрес устройства
 
     @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
     private final SupportedTypes componentType = SupportedTypes.LINE; // тип компонента
 
     private volatile ElectricalSubnetSpecification data;
 
-    public ElectricalSubnet() { }
+    public ElectricalSubnet(byte devaddr) {
+        this.devaddr = devaddr;
+    }
 
     //region IComponentIdentification
     @Override
@@ -54,11 +56,11 @@ public class ElectricalSubnet implements IComponentIdentification {
         this.data = data;
     }
 
-    public static ElectricalSubnet create(String identy) {
+    public static ElectricalSubnet create(String identy, byte devaddr) {
         if (identy == null || identy.trim().isEmpty()) {
             throw new IllegalArgumentException(Messages.ER_0);
         }
-        ElectricalSubnet res = new ElectricalSubnet();
+        ElectricalSubnet res = new ElectricalSubnet(devaddr);
         res.identy = identy;
         res.setData(ElectricalSubnetSpecification.createDefault());
         return res;
