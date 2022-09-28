@@ -1,6 +1,5 @@
 package re.smartcity.energynet.component;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.*;
@@ -14,17 +13,14 @@ public class ElectricalSubnet implements IComponentIdentification {
 
     private String identy; // уникальный идентификатор
 
-    @JsonProperty(value = "devaddr", access = JsonProperty.Access.READ_ONLY)
-    private final byte devaddr; // етевой уникальный адрес устройства
+    private byte devaddr; // сетевой уникальный адрес устройства
 
     @JsonProperty(value = "componentType", access = JsonProperty.Access.READ_ONLY)
     private final SupportedTypes componentType = SupportedTypes.LINE; // тип компонента
 
     private volatile ElectricalSubnetSpecification data;
 
-    public ElectricalSubnet(byte devaddr) {
-        this.devaddr = devaddr;
-    }
+    public ElectricalSubnet() { }
 
     //region IComponentIdentification
     @Override
@@ -60,7 +56,8 @@ public class ElectricalSubnet implements IComponentIdentification {
         if (identy == null || identy.trim().isEmpty()) {
             throw new IllegalArgumentException(Messages.ER_0);
         }
-        ElectricalSubnet res = new ElectricalSubnet(devaddr);
+        ElectricalSubnet res = new ElectricalSubnet();
+        res.devaddr = devaddr;
         res.identy = identy;
         res.setData(ElectricalSubnetSpecification.createDefault());
         return res;

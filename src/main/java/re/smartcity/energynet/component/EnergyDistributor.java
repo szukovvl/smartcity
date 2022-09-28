@@ -53,7 +53,7 @@ public class EnergyDistributor implements IComponentIdentification {
         this.data = data;
     }
 
-    public static EnergyDistributor create(String identy, byte devaddr) {
+    public static EnergyDistributor create(String identy, byte devaddr, byte inputline, byte[] lines) {
         if (identy == null || identy.trim().isEmpty()) {
             throw new IllegalArgumentException(Messages.ER_0);
         }
@@ -63,7 +63,7 @@ public class EnergyDistributor implements IComponentIdentification {
         EnergyDistributor res = new EnergyDistributor();
         res.identy = identy;
         res.devaddr = devaddr;
-        res.setData(EnergyDistributorSpecification.createDefault(identy));
+        res.setData(EnergyDistributorSpecification.createDefault(identy, inputline, lines));
         return res;
     }
 }

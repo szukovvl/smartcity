@@ -143,18 +143,15 @@ public class ConsumerSpecification implements IComponentManagement {
     //endregion
     //endregion
 
-    public static ConsumerSpecification createDefault(SupportedConsumers consumer) {
+    public static ConsumerSpecification createDefault(SupportedConsumers consumer, byte[] inputs) {
         ConsumerSpecification res = new ConsumerSpecification();
         res.setConsumertype(consumer);
-        switch (consumer) {
-            case HOSPITAL:
-            case INDUSTRY:
-                res.setInputs(new ElectricalSubnet[2]);
-                break;
-            case DISTRICT:
-                res.setInputs(new ElectricalSubnet[1]);
-                break;
+        ElectricalSubnet[] lines = new ElectricalSubnet[inputs.length];
+        for (int i = 0; i < lines.length; i++) {
+            lines[i] = ElectricalSubnet.create("#" + (i + 1), inputs[i]);
         }
+        res.setInputs(lines);
+
         return res;
     }
 }

@@ -42,9 +42,33 @@ public class EnergynetConfiguration {
 
             mainSubstations = Flux.merge(
                             storage.insert(MainSubstationPowerSystem
-                                    .create("Гп-1", SerialElementAddresses.MAIN_SUBSTATION_1)),
+                                    .create("Гп-1",
+                                            SerialElementAddresses.MAIN_SUBSTATION_1,
+                                            SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_1,
+                                            new byte[] {
+                                                    SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_2,
+                                                    SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_3,
+                                                    SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_4
+                                            },
+                                            new byte[] {
+                                                    SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_5,
+                                                    SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_6,
+                                                    SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_7
+                                            })),
                             storage.insert(MainSubstationPowerSystem
-                                    .create("Гп-2", SerialElementAddresses.MAIN_SUBSTATION_2))
+                                    .create("Гп-2",
+                                            SerialElementAddresses.MAIN_SUBSTATION_2,
+                                            SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_1,
+                                            new byte[] {
+                                                    SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_2,
+                                                    SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_3,
+                                                    SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_4
+                                            },
+                                            new byte[] {
+                                                    SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_5,
+                                                    SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_6,
+                                                    SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_7
+                                            }))
                     )
                     .toStream()
                     .toArray(MainSubstationPowerSystem[]::new);
@@ -52,9 +76,21 @@ public class EnergynetConfiguration {
             elements = Flux.merge(
                             Flux.merge(
                                     storage.insert(EnergyDistributor
-                                            .create("Мп-1", SerialElementAddresses.MINI_SUBSTATION_1)),
+                                            .create("Мп-1",
+                                                    SerialElementAddresses.MINI_SUBSTATION_1,
+                                                    SerialElementAddresses.MINI_SUBSTATION_1_CONNECTOR_1,
+                                                    new byte[] {
+                                                            SerialElementAddresses.MINI_SUBSTATION_1_CONNECTOR_2,
+                                                            SerialElementAddresses.MINI_SUBSTATION_1_CONNECTOR_3
+                                                    })),
                                     storage.insert(EnergyDistributor
-                                            .create("Мп-2", SerialElementAddresses.MINI_SUBSTATION_2))
+                                            .create("Мп-2",
+                                                    SerialElementAddresses.MINI_SUBSTATION_2,
+                                                    SerialElementAddresses.MINI_SUBSTATION_2_CONNECTOR_1,
+                                                    new byte[] {
+                                                            SerialElementAddresses.MINI_SUBSTATION_2_CONNECTOR_2,
+                                                            SerialElementAddresses.MINI_SUBSTATION_2_CONNECTOR_3
+                                                    }))
                             ),
                             Flux.merge(
                                     storage.insert(Generation
@@ -102,39 +138,120 @@ public class EnergynetConfiguration {
                             ),
                             Flux.merge(
                                     storage.insert(Consumer
-                                            .create("ЖМ-1", SerialElementAddresses.DISTRICT_1, SupportedConsumers.DISTRICT)),
+                                            .create("ЖМ-1",
+                                                    SerialElementAddresses.DISTRICT_1,
+                                                    new byte[] {
+                                                            SerialElementAddresses.DISTRICT_1
+                                                    },
+                                                    SupportedConsumers.DISTRICT)),
                                     storage.insert(Consumer
-                                            .create("ЖМ-2", SerialElementAddresses.DISTRICT_2, SupportedConsumers.DISTRICT)),
+                                            .create("ЖМ-2",
+                                                    SerialElementAddresses.DISTRICT_2,
+                                                    new byte[] {
+                                                            SerialElementAddresses.DISTRICT_2
+                                                    },
+                                                    SupportedConsumers.DISTRICT)),
                                     storage.insert(Consumer
-                                            .create("ЖМ-3", SerialElementAddresses.DISTRICT_3, SupportedConsumers.DISTRICT)),
+                                            .create("ЖМ-3",
+                                                    SerialElementAddresses.DISTRICT_3,
+                                                    new byte[] {
+                                                            SerialElementAddresses.DISTRICT_3
+                                                    },
+                                                    SupportedConsumers.DISTRICT)),
                                     storage.insert(Consumer
-                                            .create("ЖМ-4", SerialElementAddresses.DISTRICT_4, SupportedConsumers.DISTRICT)),
+                                            .create("ЖМ-4",
+                                                    SerialElementAddresses.DISTRICT_4,
+                                                    new byte[] {
+                                                            SerialElementAddresses.DISTRICT_4
+                                                    },
+                                                    SupportedConsumers.DISTRICT)),
                                     storage.insert(Consumer
-                                            .create("ЖМ-5", SerialElementAddresses.DISTRICT_5, SupportedConsumers.DISTRICT)),
+                                            .create("ЖМ-5",
+                                                    SerialElementAddresses.DISTRICT_5,
+                                                    new byte[] {
+                                                            SerialElementAddresses.DISTRICT_5
+                                                    },
+                                                    SupportedConsumers.DISTRICT)),
                                     storage.insert(Consumer
-                                            .create("ЖМ-6", SerialElementAddresses.DISTRICT_6, SupportedConsumers.DISTRICT)),
+                                            .create("ЖМ-6",
+                                                    SerialElementAddresses.DISTRICT_6,
+                                                    new byte[] {
+                                                            SerialElementAddresses.DISTRICT_6
+                                                    },
+                                                    SupportedConsumers.DISTRICT)),
                                     storage.insert(Consumer
-                                            .create("ЖМ-7", SerialElementAddresses.DISTRICT_7, SupportedConsumers.DISTRICT)),
+                                            .create("ЖМ-7",
+                                                    SerialElementAddresses.DISTRICT_7,
+                                                    new byte[] {
+                                                            SerialElementAddresses.DISTRICT_7
+                                                    },
+                                                    SupportedConsumers.DISTRICT)),
                                     storage.insert(Consumer
-                                            .create("ЖМ-8", SerialElementAddresses.DISTRICT_8, SupportedConsumers.DISTRICT)),
+                                            .create("ЖМ-8",
+                                                    SerialElementAddresses.DISTRICT_8,
+                                                    new byte[] {
+                                                            SerialElementAddresses.DISTRICT_8
+                                                    },
+                                                    SupportedConsumers.DISTRICT)),
                                     storage.insert(Consumer
-                                            .create("ЖМ-9", SerialElementAddresses.DISTRICT_9, SupportedConsumers.DISTRICT))
+                                            .create("ЖМ-9",
+                                                    SerialElementAddresses.DISTRICT_9,
+                                                    new byte[] {
+                                                            SerialElementAddresses.DISTRICT_9
+                                                    },
+                                                    SupportedConsumers.DISTRICT))
                             ),
                             Flux.merge(
                                     storage.insert(Consumer
-                                            .create("П-1", SerialElementAddresses.FACTORY_1, SupportedConsumers.INDUSTRY)),
+                                            .create("П-1",
+                                                    SerialElementAddresses.FACTORY_1,
+                                                    new byte[] {
+                                                            SerialElementAddresses.FACTORY_1_CONNECTOR_1,
+                                                            SerialElementAddresses.FACTORY_1_CONNECTOR_2
+                                                    },
+                                                    SupportedConsumers.INDUSTRY)),
                                     storage.insert(Consumer
-                                            .create("П-2", SerialElementAddresses.FACTORY_2, SupportedConsumers.INDUSTRY)),
+                                            .create("П-2",
+                                                    SerialElementAddresses.FACTORY_2,
+                                                    new byte[] {
+                                                            SerialElementAddresses.FACTORY_2_CONNECTOR_1,
+                                                            SerialElementAddresses.FACTORY_2_CONNECTOR_2
+                                                    },
+                                                    SupportedConsumers.INDUSTRY)),
                                     storage.insert(Consumer
-                                            .create("П-3", SerialElementAddresses.FACTORY_3, SupportedConsumers.INDUSTRY))
+                                            .create("П-3",
+                                                    SerialElementAddresses.FACTORY_3,
+                                                    new byte[] {
+                                                            SerialElementAddresses.FACTORY_3_CONNECTOR_1,
+                                                            SerialElementAddresses.FACTORY_3_CONNECTOR_2
+                                                    },
+                                                    SupportedConsumers.INDUSTRY))
                             ),
                             Flux.merge(
                                     storage.insert(Consumer
-                                            .create("С-1", SerialElementAddresses.HOSPITAL_1, SupportedConsumers.HOSPITAL)),
+                                            .create("С-1",
+                                                    SerialElementAddresses.HOSPITAL_1,
+                                                    new byte[] {
+                                                            SerialElementAddresses.HOSPITAL_1_CONNECTOR_1,
+                                                            SerialElementAddresses.HOSPITAL_1_CONNECTOR_2
+                                                    },
+                                                    SupportedConsumers.HOSPITAL)),
                                     storage.insert(Consumer
-                                            .create("С-2", SerialElementAddresses.HOSPITAL_2, SupportedConsumers.HOSPITAL)),
+                                            .create("С-2",
+                                                    SerialElementAddresses.HOSPITAL_2,
+                                                    new byte[] {
+                                                            SerialElementAddresses.HOSPITAL_2_CONNECTOR_1,
+                                                            SerialElementAddresses.HOSPITAL_2_CONNECTOR_2
+                                                    },
+                                                    SupportedConsumers.HOSPITAL)),
                                     storage.insert(Consumer
-                                            .create("С-3", SerialElementAddresses.HOSPITAL_3, SupportedConsumers.HOSPITAL))
+                                            .create("С-3",
+                                                    SerialElementAddresses.HOSPITAL_3,
+                                                    new byte[] {
+                                                            SerialElementAddresses.HOSPITAL_3_CONNECTOR_1,
+                                                            SerialElementAddresses.HOSPITAL_3_CONNECTOR_2
+                                                    },
+                                                    SupportedConsumers.HOSPITAL))
                             )
                     )
                     .toStream()

@@ -17,6 +17,7 @@ public class MainSubstationSpecification implements IComponentManagement {
 
     public MainSubstationSpecification() { }
 
+    private volatile ElectricalSubnet controlline; // линия управления
     private volatile ElectricalSubnet[] inputs; // подсети ввода энергии только генерация
     private volatile ElectricalSubnet[] outputs; // подсети потребителей только потребление
     private volatile double external_energy = 0; // внешний стабильный источник энергии
@@ -31,6 +32,14 @@ public class MainSubstationSpecification implements IComponentManagement {
     //endregion
 
     //region характеристики
+    public ElectricalSubnet getControlline() {
+        return controlline;
+    }
+
+    public void setControlline(ElectricalSubnet controlline) {
+        this.controlline = controlline;
+    }
+
     public ElectricalSubnet[] getInputs() {
         return inputs;
     }
@@ -86,18 +95,23 @@ public class MainSubstationSpecification implements IComponentManagement {
     //endregion
     //endregion
 
-    public static MainSubstationSpecification createDefault(String pref) {
+    public static MainSubstationSpecification createDefault(String pref, byte controladdress, byte[] inputs, byte[] outputs) {
         MainSubstationSpecification res = new MainSubstationSpecification();
-        res.setInputs(new ElectricalSubnet[] {
-                ElectricalSubnet.create(pref + "-Лг-1"),
-                ElectricalSubnet.create(pref + "-Лг-2"),
-                ElectricalSubnet.create(pref + "-Лг-3")
-        });
-        res.setOutputs(new ElectricalSubnet[] {
-                ElectricalSubnet.create(pref + "-Лп-1"),
-                ElectricalSubnet.create(pref + "-Лп-2"),
-                ElectricalSubnet.create(pref + "-Лп-3")
-        });
+
+        res.setControlline(ElectricalSubnet.create(pref + "-У", controladdress));
+
+        ElectricalSubnet[] lines = new ElectricalSubnet[inputs.length];
+        for (int i = 0; i < inputs.length; i++) {
+            lines[i] = ElectricalSubnet.create(pref + "-Лг-" + (i + 1), inputs[i]);
+        }
+        res.setInputs(lines);
+
+        lines = new ElectricalSubnet[outputs.length];
+        for (int i = 0; i < outputs.length; i++) {
+            lines[i] = ElectricalSubnet.create(pref + "-Лп-" + (i + 1), outputs[i]);
+        }
+        res.setOutputs(lines);
+
         return res;
     }
 }

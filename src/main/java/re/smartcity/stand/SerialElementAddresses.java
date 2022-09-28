@@ -38,56 +38,56 @@ public final class SerialElementAddresses {
     public final static byte CONTROL_BLOCK_CONNECTOR_4 = 0x21;
 
     public final static byte MAIN_SUBSTATION_1 = 0x62; // главная подстанция #1
-    public final static byte MAIN_SUBSTATION_1_CONNECTOR_1 = 0x22;
-    public final static byte MAIN_SUBSTATION_1_CONNECTOR_2 = 0x23;
-    public final static byte MAIN_SUBSTATION_1_CONNECTOR_3 = 0x24;
-    public final static byte MAIN_SUBSTATION_1_CONNECTOR_4 = 0x25;
-    public final static byte MAIN_SUBSTATION_1_CONNECTOR_5 = 0x26;
-    public final static byte MAIN_SUBSTATION_1_CONNECTOR_6 = 0x27;
-    public final static byte MAIN_SUBSTATION_1_CONNECTOR_7 = 0x28;
+    public final static byte MAIN_SUBSTATION_1_CONNECTOR_1 = 0x22; // блок управления
+    public final static byte MAIN_SUBSTATION_1_CONNECTOR_2 = 0x23; // вход №1
+    public final static byte MAIN_SUBSTATION_1_CONNECTOR_3 = 0x24; // вход №2
+    public final static byte MAIN_SUBSTATION_1_CONNECTOR_4 = 0x25; // вход №3
+    public final static byte MAIN_SUBSTATION_1_CONNECTOR_5 = 0x26; // выход №1
+    public final static byte MAIN_SUBSTATION_1_CONNECTOR_6 = 0x27; // выход №2
+    public final static byte MAIN_SUBSTATION_1_CONNECTOR_7 = 0x28; // выход №3
 
     public final static byte MAIN_SUBSTATION_2 = 0x63; // главная подстанция #2
-    public final static byte MAIN_SUBSTATION_2_CONNECTOR_1 = 0x29;
-    public final static byte MAIN_SUBSTATION_2_CONNECTOR_2 = 0x2A;
-    public final static byte MAIN_SUBSTATION_2_CONNECTOR_3 = 0x2B;
-    public final static byte MAIN_SUBSTATION_2_CONNECTOR_4 = 0x2C;
-    public final static byte MAIN_SUBSTATION_2_CONNECTOR_5 = 0x2D;
-    public final static byte MAIN_SUBSTATION_2_CONNECTOR_6 = 0x2E;
-    public final static byte MAIN_SUBSTATION_2_CONNECTOR_7 = 0x2F;
+    public final static byte MAIN_SUBSTATION_2_CONNECTOR_1 = 0x29; // блок управления
+    public final static byte MAIN_SUBSTATION_2_CONNECTOR_2 = 0x2A; // вход №1
+    public final static byte MAIN_SUBSTATION_2_CONNECTOR_3 = 0x2B; // вход №2
+    public final static byte MAIN_SUBSTATION_2_CONNECTOR_4 = 0x2C; // вход №3
+    public final static byte MAIN_SUBSTATION_2_CONNECTOR_5 = 0x2D; // выход №1
+    public final static byte MAIN_SUBSTATION_2_CONNECTOR_6 = 0x2E; // выход №2
+    public final static byte MAIN_SUBSTATION_2_CONNECTOR_7 = 0x2F; // выход №3
 
     public final static byte MINI_SUBSTATION_1 = 0x64; // миниподстанция #1
-    public final static byte MINI_SUBSTATION_1_CONNECTOR_1 = 0x30;
-    public final static byte MINI_SUBSTATION_1_CONNECTOR_2 = 0x31;
-    public final static byte MINI_SUBSTATION_1_CONNECTOR_3 = 0x32;
+    public final static byte MINI_SUBSTATION_1_CONNECTOR_1 = 0x30; // вход подключения
+    public final static byte MINI_SUBSTATION_1_CONNECTOR_2 = 0x31; // выход №1
+    public final static byte MINI_SUBSTATION_1_CONNECTOR_3 = 0x32; // выход №2
 
     public final static byte MINI_SUBSTATION_2 = 0x65; // миниподстанция #2
-    public final static byte MINI_SUBSTATION_2_CONNECTOR_1 = 0x33;
-    public final static byte MINI_SUBSTATION_2_CONNECTOR_2 = 0x34;
-    public final static byte MINI_SUBSTATION_2_CONNECTOR_3 = 0x35;
+    public final static byte MINI_SUBSTATION_2_CONNECTOR_1 = 0x33; // вход подключения
+    public final static byte MINI_SUBSTATION_2_CONNECTOR_2 = 0x34; // выход №1
+    public final static byte MINI_SUBSTATION_2_CONNECTOR_3 = 0x35; // выход №2
 
     public final static byte FACTORY_1 = 0x66; // завод #1
-    public final static byte FACTORY_1_CONNECTOR_1 = 0x36;
-    public final static byte FACTORY_1_CONNECTOR_2 = 0x37;
+    public final static byte FACTORY_1_CONNECTOR_1 = 0x36; // вход №1
+    public final static byte FACTORY_1_CONNECTOR_2 = 0x37; // вход №2
 
     public final static byte FACTORY_2 = 0x67; // завод #2
-    public final static byte FACTORY_2_CONNECTOR_1 = 0x38;
-    public final static byte FACTORY_2_CONNECTOR_2 = 0x39;
+    public final static byte FACTORY_2_CONNECTOR_1 = 0x38; // вход №1
+    public final static byte FACTORY_2_CONNECTOR_2 = 0x39; // вход №2
 
     public final static byte FACTORY_3 = 0x68; // завод #3
-    public final static byte FACTORY_3_CONNECTOR_1 = 0x3A;
-    public final static byte FACTORY_3_CONNECTOR_2 = 0x3B;
+    public final static byte FACTORY_3_CONNECTOR_1 = 0x3A; // вход №1
+    public final static byte FACTORY_3_CONNECTOR_2 = 0x3B; // вход №2
 
     public final static byte HOSPITAL_1 = 0x69; // больница #1
-    public final static byte HOSPITAL_1_CONNECTOR_1 = 0x3C;
-    public final static byte HOSPITAL_1_CONNECTOR_2 = 0x3D;
+    public final static byte HOSPITAL_1_CONNECTOR_1 = 0x3C; // вход №1
+    public final static byte HOSPITAL_1_CONNECTOR_2 = 0x3D; // вход №2
 
     public final static byte HOSPITAL_2 = 0x6A; // больница #2
-    public final static byte HOSPITAL_2_CONNECTOR_1 = 0x3E;
-    public final static byte HOSPITAL_2_CONNECTOR_2 = 0x3F;
+    public final static byte HOSPITAL_2_CONNECTOR_1 = 0x3E; // вход №1
+    public final static byte HOSPITAL_2_CONNECTOR_2 = 0x3F; // вход №2
 
     public final static byte HOSPITAL_3 = 0x6B; // больница #3
-    public final static byte HOSPITAL_3_CONNECTOR_1 = 0x40;
-    public final static byte HOSPITAL_3_CONNECTOR_2 = 0x41;
+    public final static byte HOSPITAL_3_CONNECTOR_1 = 0x40; // вход №1
+    public final static byte HOSPITAL_3_CONNECTOR_2 = 0x41; // вход №2
 
     public final static byte BROADCAST_ADDRESS = 0x55; // широковещательный адрес
 

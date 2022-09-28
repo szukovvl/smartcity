@@ -50,7 +50,7 @@ public class Consumer implements IComponentIdentification, IConsumer {
         this.data = data;
     }
 
-    public static Consumer create(String identy, byte devaddr, SupportedConsumers consumer) {
+    public static Consumer create(String identy, byte devaddr, byte[] inputs, SupportedConsumers consumer) {
         if (identy == null || identy.trim().isEmpty()) {
             throw new IllegalArgumentException(Messages.ER_0);
         }
@@ -60,7 +60,7 @@ public class Consumer implements IComponentIdentification, IConsumer {
         Consumer res = new Consumer();
         res.identy = identy;
         res.devaddr = devaddr;
-        res.setData(ConsumerSpecification.createDefault(consumer));
+        res.setData(ConsumerSpecification.createDefault(consumer, inputs));
         return res;
     }
 }
