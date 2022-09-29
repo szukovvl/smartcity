@@ -7,9 +7,15 @@ import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
 import re.smartcity.modeling.data.GamerScenesData;
+import re.smartcity.modeling.data.StandBinaryPackage;
+import re.smartcity.stand.SerialPackageBuilder;
 
 import java.time.LocalTime;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
+
+import static re.smartcity.common.utils.Helpers.byteArrayCopy;
+import static re.smartcity.stand.SerialElementAddresses.CONTROL_BLOCK;
 
 public class ModelingData {
 
@@ -22,6 +28,9 @@ public class ModelingData {
 
     private volatile GameStatuses gameStatus = GameStatuses.NONE; //
     private volatile LocalTime gamingDay = LocalTime.of(1, 0);
+
+    private final ConcurrentLinkedQueue<StandBinaryPackage> standSchemes = new ConcurrentLinkedQueue<>();
+    private final Object _syncSchemeData = new Object();
 
     //region данные модели
     private TaskData[] tasks;
@@ -94,10 +103,27 @@ public class ModelingData {
         for (TaskData task : tasks) {
             task.getService().execute(new SubnetMonitor(this, task));
         }
+
+        // !!!
+        Executors.newSingleThreadExecutor().execute(new oesSchemeMonitor(_syncSchemeData));
     }
 
     public void cancelScenes() {
         setGameStatus(GameStatuses.NONE);
         // !!!
+    }
+
+    public void standSchemeChanged(byte devaddr, Byte[] data) {
+        SerialPackageBuilder.printBytes(
+                String.format("<-- схема %02X:", devaddr),
+                byteArrayCopy(data)
+        );
+
+        if (devaddr != CONTROL_BLOCK) {
+            standSchemes.offer(new StandBinaryPackage(devaddr, data));
+            synchronized (_syncSchemeData) {
+                _syncSchemeData.notifyAll();
+            }
+        }
     }
 }

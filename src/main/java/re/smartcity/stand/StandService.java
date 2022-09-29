@@ -7,23 +7,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import re.smartcity.common.CommonStorage;
 import re.smartcity.common.data.exchange.StandConfiguration;
-import re.smartcity.common.resources.AppConstant;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.common.utils.Helpers;
 import re.smartcity.config.sockets.CommonEventTypes;
 import re.smartcity.config.sockets.CommonSocketHandler;
 import re.smartcity.config.sockets.model.CellDataEvent;
+import re.smartcity.modeling.ModelingData;
 import re.smartcity.wind.WindServiceStatuses;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Random;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static re.smartcity.common.resources.AppConstant.MAX_ILLUMINATION_VALUE;
 import static re.smartcity.common.utils.Helpers.byteArrayCopy;
+import static re.smartcity.stand.SerialServiceSymbols.SEQUENCE_SEPARATOR;
 
 @Service
 public class StandService {
@@ -39,28 +40,27 @@ public class StandService {
     @Autowired
     private CommonSocketHandler commonSocketHandler;
 
+    @Autowired
+    private ModelingData modelingData;
+
     private final StandControlData controlData = new StandControlData();
 
     private volatile ExecutorService executorService;
 
     private final SerialCommandQueue serialCommands = new SerialCommandQueue();
+    private final Object _synchControllCmd = new Object();
 
     private final Object _serialLock = new Object();
-
-    // !!!
-    //private boolean isFirst = true;
 
     //region частные методы
     private void toOriginalState(SerialPort serialPort)
         throws SerialPortException, InterruptedException {
         // отключение осветителя
-        SerialPackageBuilder.printBytes("-->", SerialPackageBuilder.setBrightnessSunSimulator(0));
         synchronized (_serialLock) {
             serialPort.writeBytes(SerialPackageBuilder.setBrightnessSunSimulator(0));
             Thread.sleep(StandControlData.DELAY_COMMAND_FLOW);
         }
         // отключение подсветки модели
-        SerialPackageBuilder.printBytes("-->", SerialPackageBuilder.setHighlightLevel(0));
         synchronized (_serialLock) {
             serialPort.writeBytes(SerialPackageBuilder.setHighlightLevel(0));
             Thread.sleep(StandControlData.DELAY_COMMAND_FLOW);
@@ -76,8 +76,9 @@ public class StandService {
 
         switch (packet[1]) {
             case SerialPackageTypes.DATA_SCHEME_CONNECTION ->
-                    SerialPackageBuilder.printBytes(String.format("<-- схема %02X:", packet[0]),
-                            byteArrayCopy(packet, 2, packet.length - 2));
+                    modelingData.standSchemeChanged(
+                            packet[0],
+                            Arrays.stream(packet).skip(2).toArray(Byte[]::new));
             case SerialPackageTypes.DATA_SUPPLY_VOLTAGE -> {
                 float voltage = Float.parseFloat(new String(
                         byteArrayCopy(packet, 2, packet.length - 2)));
@@ -87,12 +88,9 @@ public class StandService {
                 int bg = 0;
                 int luxury = Integer.parseInt(new String(
                         byteArrayCopy(packet, 2, 4)));
-                if (Arrays.stream(packet).skip(5).anyMatch(b -> b == 0)) {
-                    System.out.printf("<-- СЭС %02X: %d/0\n", packet[0], luxury);
-                } else {
+                if (Arrays.stream(packet).skip(5).noneMatch(b -> b == 0)) {
                     bg = Integer.parseInt(new String(
                             byteArrayCopy(packet, 6, 4)));
-                    System.out.printf("<-- СЭС %02X: %d/%d\n", packet[0], luxury, bg);
                     if (bg > MAX_ILLUMINATION_VALUE) bg = MAX_ILLUMINATION_VALUE;
                 }
                 commonSocketHandler.pushEvent(CommonEventTypes.SOLAR_SLICE,
@@ -107,12 +105,9 @@ public class StandService {
                 float calibration = 0.0f;
                 float windSpeed = Float.parseFloat(new String(
                         byteArrayCopy(packet, 2, 4)));
-                if (Arrays.stream(packet).skip(5).anyMatch(b -> b == 0)) {
-                    System.out.printf("<-- ВГ %02X: %f/0\n", packet[0], windSpeed);
-                } else {
+                if (Arrays.stream(packet).skip(5).noneMatch(b -> b == 0)) {
                     calibration = Float.parseFloat(new String(
                             byteArrayCopy(packet, 6, 4)));
-                    System.out.printf("<-- ВГ %02X: %f/%f\n", packet[0], windSpeed, calibration);
                 }
                 commonSocketHandler.pushEvent(CommonEventTypes.WIND_SLICE,
                         new CellDataEvent(
@@ -122,11 +117,7 @@ public class StandService {
                                 Helpers.noramlizeValue(windSpeed, calibration),
                                 Helpers.normalizeAsPercentage(windSpeed, calibration)));
             }
-            case SerialPackageTypes.MODEL_HIGHLIGHT_DATA -> {
-                int level = Integer.parseInt(new String(
-                        byteArrayCopy(packet, 2, packet.length - 2)));
-                System.out.printf("<-- подсветка %02X: %d\n", packet[0], level);
-            }
+            case SerialPackageTypes.MODEL_HIGHLIGHT_DATA -> { }
             case SerialPackageTypes.DATA_CURRENT_CONSUMED -> logger.warn(String.format(Messages.FER_3, packet[0]));
             case SerialPackageTypes.INTERNAL_BUFFER_OVERFLOW -> logger.warn(String.format(Messages.FER_4, packet[0]));
             default -> logger.warn(String.format(Messages.FER_5, packet[1], packet[0]));
@@ -139,44 +130,73 @@ public class StandService {
         logger.info("запуск сервиса управления стендом");
         if (executorService == null)
         {
+            // !!!
+            Executors.newSingleThreadExecutor().execute(() -> {
+                List<Byte[]> items = Arrays.asList(
+                        new Byte[] {
+                                0x61,
+                                0x1E, SEQUENCE_SEPARATOR,
+                                0x1F, SEQUENCE_SEPARATOR,
+                                0x20, SEQUENCE_SEPARATOR,
+                                0x21, 0x28
+                        },
+                        new Byte[] {
+                                0x62,
+                                0x22, 0x2F, SEQUENCE_SEPARATOR,
+                                0x23, SEQUENCE_SEPARATOR,
+                                0x24, SEQUENCE_SEPARATOR,
+                                0x25, SEQUENCE_SEPARATOR,
+                                0x26, SEQUENCE_SEPARATOR,
+                                0x27, SEQUENCE_SEPARATOR,
+                                0x21, 0x28
+                        },
+                        new Byte[] {
+                                0x63,
+                                0x29, 0x30, SEQUENCE_SEPARATOR,
+                                0x2A, 0x38, SEQUENCE_SEPARATOR,
+                                0x2B, SEQUENCE_SEPARATOR,
+                                0x2C, SEQUENCE_SEPARATOR,
+                                0x2D, SEQUENCE_SEPARATOR,
+                                0x2E, SEQUENCE_SEPARATOR,
+                                0x22, 0x2F
+                        },
+                        new Byte[] {
+                                0x64,
+                                0x29, 0x30, SEQUENCE_SEPARATOR,
+                                0x31, 0x37, SEQUENCE_SEPARATOR,
+                                0x0D, 0x0E, 0x32
+                        },
+                        new Byte[] {
+                                0x67,
+                                0x2A, 0x38, SEQUENCE_SEPARATOR,
+                                0x04, 0x39
+                        },
+                        new Byte[] {
+                                0x66,
+                                0x03, 0x36, SEQUENCE_SEPARATOR,
+                                0x31, 0x37
+                        }
+                );
+
+                items.forEach(e -> {
+                            modelingData.standSchemeChanged(
+                                    e[0],
+                                    Arrays.stream(e).skip(1).toArray(Byte[]::new)
+                            );
+                            try {
+                                Thread.sleep(1000);
+                            }
+                            catch (InterruptedException ignored) { }
+                        }
+                );
+            });
+            // !!!
+
             executorService = Executors.newSingleThreadExecutor();
             executorService.execute(new StandThread());
         } else {
             logger.info("сервис управления стендом уже запущен");
         }
-
-        // !!!
-        /*if (isFirst) {
-            isFirst = false;
-            Executors.newSingleThreadExecutor().execute(() -> {
-                try {
-                    Random random = new Random();
-                    while (true) {
-                        Thread.sleep(2500);
-                        float v = random.nextFloat((float) MAX_ILLUMINATION_VALUE);
-                        commonSocketHandler.pushEvent(CommonEventTypes.SOLAR_SLICE,
-                                new CellDataEvent(
-                                        (byte) 0x16,
-                                        v,
-                                        0.0f,
-                                        v,
-                                        Helpers.normalizeAsPercentage(v, MAX_ILLUMINATION_VALUE)));
-                        Thread.sleep(2500);
-                        v = random.nextFloat(7.0f);
-                        commonSocketHandler.pushEvent(CommonEventTypes.WIND_SLICE,
-                                new CellDataEvent(
-                                        (byte) 0x1B,
-                                        v,
-                                        6.0f,
-                                        Helpers.noramlizeValue(v, 6.0f),
-                                        Helpers.normalizeAsPercentage(v, 6.0f)));
-                    }
-                }
-                catch (InterruptedException ex) {
-                    logger.error(ex.getMessage());
-                }
-            });
-        }*/
     }
 
     public void stop() {
@@ -213,6 +233,9 @@ public class StandService {
 
     public void pushSerialCommand(SerialCommand command) {
         serialCommands.pushCommand(command);
+        synchronized (_synchControllCmd) {
+            _synchControllCmd.notifyAll();
+        }
     }
     //endregion
 
@@ -315,11 +338,12 @@ public class StandService {
                 pushSerialCommand(new SerialCommand(SerialPackageTypes.REQUEST_SCHEME_CONNECTION_ELEMENTS));
                 while(!executorService.isShutdown() && !executorService.isTerminated()) {
                     if (serialCommands.empty()) {
-                        Thread.sleep(StandControlData.DELAY_WHEN_EMPTY);
+                        synchronized (_synchControllCmd) {
+                            _synchControllCmd.wait();
+                        }
                     } else {
                         SerialCommand cmd = serialCommands.poll();
                         if (cmd != null) {
-                            SerialPackageBuilder.printBytes("-->", SerialPackageBuilder.createPackage(cmd));
                             synchronized (_serialLock) {
                                 serialPort.writeBytes(SerialPackageBuilder.createPackage(cmd));
                                 Thread.sleep(StandControlData.DELAY_COMMAND_FLOW);

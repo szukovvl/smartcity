@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class StandControlData {
 
-    public static int DELAY_WHEN_EMPTY = 100;
     public static int DELAY_COMMAND_FLOW = 5;
 
     volatile private Integer restartingWait = 3000; // ожидание при перезапуске, после останова сервиса
