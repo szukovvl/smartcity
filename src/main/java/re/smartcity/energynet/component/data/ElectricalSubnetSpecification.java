@@ -25,7 +25,7 @@ public class ElectricalSubnetSpecification implements IComponentManagement {
     @JsonProperty(value = "components", access = JsonProperty.Access.READ_ONLY)
     private volatile IComponentIdentification[] components; // компоненты электросети, подключенные к данной подсети
 
-    private volatile double highload = 0.8; // значение в процента от мощности, высокая нагрузка (80%)
+    private volatile double highload = 0.8; // значение в процентах от мощности, высокая нагрузка (80%)
     private volatile double criticalload = 0.95; // значение в процентах от мощности, критическая нагрузка (95)
     private volatile int blackouttime = 300; // время в секундах, прежде чем произойдет отключение
 

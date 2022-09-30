@@ -2,30 +2,107 @@ package re.smartcity.modeling;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import re.smartcity.energynet.IComponentIdentification;
+import re.smartcity.energynet.SupportedConsumers;
+import re.smartcity.energynet.component.Consumer;
+import re.smartcity.modeling.data.StandBinaryPackage;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Queue;
+
+import static re.smartcity.stand.SerialElementAddresses.*;
+import static re.smartcity.stand.SerialServiceSymbols.SEQUENCE_SEPARATOR;
 
 public class oesSchemeMonitor implements Runnable {
 
     private final Logger logger = LoggerFactory.getLogger(oesSchemeMonitor.class);
 
     private final Object _syncThread;
+    private final Queue<StandBinaryPackage> scheme;
+    private final ModelingData modelingData;
 
-    public oesSchemeMonitor(Object syncThread) {
+    public oesSchemeMonitor(ModelingData modelingData, Object syncThread, Queue<StandBinaryPackage> scheme) {
         this._syncThread = syncThread;
+        this.scheme = scheme;
+        this.modelingData = modelingData;
+    }
+
+    private Byte[][] parsePackage(StandBinaryPackage pack) {
+        List<Byte[]> items = new ArrayList<>();
+        List<Byte> tail = new ArrayList<>();
+        for (Byte datum : pack.getData()) {
+            if (datum == SEQUENCE_SEPARATOR) {
+                items.add(tail.toArray(Byte[]::new));
+                tail = new ArrayList<>();
+            } else {
+                tail.add(datum);
+            }
+        }
+        items.add(tail.toArray(Byte[]::new));
+        return items.toArray(Byte[][]::new);
     }
 
     @Override
     public void run() {
+        logger.info("Поток обслуживания схемы модели запущен.");
         int errorCount = 0;
         while (true) {
             try {
-                synchronized (_syncThread) {
-                    _syncThread.wait();
+                StandBinaryPackage pack = scheme.poll();
+                if (pack == null) {
+                    synchronized (_syncThread) {
+                        _syncThread.wait();
+                    }
+                    continue;
                 }
-                logger.info("+++");
+
+                logger.info("+++ {}", pack);
+                switch (pack.getDevaddr()) {
+                    case CONTROL_BLOCK: continue;
+                    case MAIN_SUBSTATION_1:
+                    case MAIN_SUBSTATION_2:
+                        pack.setTask(Arrays.stream(modelingData.getTasks())
+                                .filter(e -> e.getPowerSystem().getDevaddr() == pack.getDevaddr())
+                                .findFirst()
+                                .orElse(null));
+                        pack.setOesbin(parsePackage(pack));
+                        break;
+                    default:
+                        IComponentIdentification cmp = Arrays.stream(modelingData.getAllobjects())
+                                .filter(e -> e.getDevaddr() == pack.getDevaddr())
+                                .findFirst()
+                                .orElse(null);
+                        if (cmp == null) {
+                            logger.warn("неизвестный объект {}", pack.getDevaddr());
+                            continue;
+                        }
+                        switch (cmp.getComponentType()) {
+                            case CONSUMER -> {
+                                if (((Consumer) cmp).getData().getConsumertype() == SupportedConsumers.DISTRICT) {
+                                    continue;
+                                }
+                                pack.setOes(cmp);
+                                pack.setOesbin(parsePackage(pack));
+                            }
+                            case DISTRIBUTOR -> {
+                                pack.setOes(cmp);
+                                pack.setOesbin(parsePackage(pack));
+                            }
+                            default -> {
+                                logger.warn("неизвестный тип объекта {}/{}",
+                                        cmp.getComponentType(), pack.getDevaddr());
+                                continue;
+                            }
+                        }
+                }
+
+                logger.info(">>> {}/{}/{}/{}", pack.getDevaddr(), pack.getTask(), pack.getOes(), pack.getOesbin());
                 errorCount = 0;
             }
             catch (InterruptedException ignored) {
-                return;
+                break;
             }
             catch (Exception ex) {
                 logger.error(ex.getMessage());
@@ -36,5 +113,6 @@ public class oesSchemeMonitor implements Runnable {
                 }
             }
         }
+        logger.warn("Поток обслуживания схемы модели остановлен.");
     }
 }

@@ -13,9 +13,9 @@ import re.smartcity.stand.SerialPackageBuilder;
 import java.time.LocalTime;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static re.smartcity.common.utils.Helpers.byteArrayCopy;
-import static re.smartcity.stand.SerialElementAddresses.CONTROL_BLOCK;
 
 public class ModelingData {
 
@@ -105,7 +105,11 @@ public class ModelingData {
         }
 
         // !!!
-        Executors.newSingleThreadExecutor().execute(new oesSchemeMonitor(_syncSchemeData));
+        Executors.newSingleThreadScheduledExecutor().schedule(
+                new oesSchemeMonitor(this, _syncSchemeData, standSchemes),
+                2,
+                TimeUnit.SECONDS
+        );
     }
 
     public void cancelScenes() {
@@ -118,12 +122,9 @@ public class ModelingData {
                 String.format("<-- схема %02X:", devaddr),
                 byteArrayCopy(data)
         );
-
-        if (devaddr != CONTROL_BLOCK) {
-            standSchemes.offer(new StandBinaryPackage(devaddr, data));
-            synchronized (_syncSchemeData) {
-                _syncSchemeData.notifyAll();
-            }
+        standSchemes.offer(new StandBinaryPackage(devaddr, data));
+        synchronized (_syncSchemeData) {
+            _syncSchemeData.notifyAll();
         }
     }
 }

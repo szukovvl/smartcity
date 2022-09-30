@@ -1,6 +1,5 @@
 package re.smartcity.modeling;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import re.smartcity.config.sockets.model.PurchasedLot;
@@ -16,7 +15,5 @@ public class TaskData {
     private MainSubstationPowerSystem powerSystem;
     private GamerScenesData scenesData;
     private int[] choicesScene; // !!! пока а костылях
-
-    @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private PurchasedLot[] auctionScene;
 }
