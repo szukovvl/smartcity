@@ -78,4 +78,16 @@ public final class SerialPackageBuilder {
         }
         System.out.println();
     }
+
+    public static String bytesAsHexString(Byte[] bytes) {
+        StringBuilder res = new StringBuilder();
+        for (Byte aByte : bytes) {
+            if (aByte == SerialServiceSymbols.SEQUENCE_SEPARATOR) {
+                res.append(" | ");
+            } else {
+                res.append(String.format("%02X ", aByte));
+            }
+        }
+        return res.toString();
+    }
 }

@@ -6,6 +6,7 @@ import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedConsumers;
 import re.smartcity.energynet.component.Consumer;
 import re.smartcity.modeling.data.StandBinaryPackage;
+import re.smartcity.stand.SerialPackageBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,7 +59,8 @@ public class oesSchemeMonitor implements Runnable {
                     continue;
                 }
 
-                logger.info("+++ {}", pack);
+                logger.info(String.format("обработка пакета схемы %02X: %s", pack.getDevaddr(),
+                        SerialPackageBuilder.bytesAsHexString(pack.getData())));
                 switch (pack.getDevaddr()) {
                     case CONTROL_BLOCK: continue;
                     case MAIN_SUBSTATION_1:
@@ -91,14 +93,23 @@ public class oesSchemeMonitor implements Runnable {
                                 pack.setOesbin(parsePackage(pack));
                             }
                             default -> {
-                                logger.warn("неизвестный тип объекта {}/{}",
-                                        cmp.getComponentType(), pack.getDevaddr());
                                 continue;
                             }
                         }
                 }
 
-                logger.info(">>> {}/{}/{}/{}", pack.getDevaddr(), pack.getTask(), pack.getOes(), pack.getOesbin());
+                logger.info(String.format("- устройство %02X:", pack.getDevaddr()));
+                Arrays.stream(pack.getOesbin()).forEach(e -> logger.info("- {}", SerialPackageBuilder.bytesAsHexString(e)));
+
+                /*
+                для дальнейшей обработки используются только главные подстанции, миниподстанции и 2-х входовые потребители;
+                построение основного узла выполняется от главной подстанции;
+                построение дополнительных узлов выполняется от миниподстанции, также выполняется проверка подключения входа;
+                для потребителей выполняется только проверка фактического подключения.
+
+                все остальные объекты игнорируются.
+                 */
+
                 errorCount = 0;
             }
             catch (InterruptedException ignored) {

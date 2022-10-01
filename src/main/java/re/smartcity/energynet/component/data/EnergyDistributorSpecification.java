@@ -9,7 +9,7 @@ public class EnergyDistributorSpecification implements ISpecifications {
 
     public EnergyDistributorSpecification() { }
 
-    private ElectricalSubnet inputline; // !!! входная линия
+    private byte inaddr; // !!! входная линия
 
     private ElectricalSubnet[] outputs; // подсети потребителей
 
@@ -17,12 +17,12 @@ public class EnergyDistributorSpecification implements ISpecifications {
     private IGeneration generation; // собственная генерация
 
     //region характеристики
-    public ElectricalSubnet getInputline() {
-        return inputline;
+    public byte getInaddr() {
+        return inaddr;
     }
 
-    public void setInputline(ElectricalSubnet inputline) {
-        this.inputline = inputline;
+    public void setInaddr(byte inaddr) {
+        this.inaddr = inaddr;
     }
 
     public ElectricalSubnet[] getOutputs() {
@@ -45,7 +45,7 @@ public class EnergyDistributorSpecification implements ISpecifications {
     public static EnergyDistributorSpecification createDefault(String pref, byte inlineaddr, byte[] lines) {
         EnergyDistributorSpecification res = new EnergyDistributorSpecification();
 
-        res.setInputline(ElectricalSubnet.create(pref + "Вх", inlineaddr));
+        res.setInaddr(inlineaddr);
 
         ElectricalSubnet[] sublines = new ElectricalSubnet[lines.length];
         for (int i = 0; i < lines.length; i++) {

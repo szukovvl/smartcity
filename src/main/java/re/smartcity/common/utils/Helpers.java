@@ -5,7 +5,6 @@ import re.smartcity.common.data.ForecastPoint;
 import java.util.Arrays;
 
 import static re.smartcity.common.resources.AppConstant.*;
-import static re.smartcity.common.resources.AppConstant.MAX_ILLUMINATION_VALUE;
 
 public final class Helpers {
 
@@ -48,7 +47,6 @@ public final class Helpers {
 
     public static float noramlizeValue(float val, float maxVal) {
         if (val < 0.0f) return 0.0f;
-        if (val > maxVal) return maxVal;
-        return val;
+        return Math.min(val, maxVal);
     }
 }

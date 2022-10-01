@@ -11,9 +11,6 @@ public class ElectricalSubnetSpecification implements ISpecifications {
     private double energy = 1.0; // максимальная мощность в МВт
     private volatile double lossfactor = 0.9; // потери в сети (устанавливается при первой инициализации)
 
-    @JsonProperty(value = "components", access = JsonProperty.Access.READ_ONLY)
-    private volatile IComponentIdentification[] components; // компоненты электросети, подключенные к данной подсети
-
     private volatile double highload = 0.8; // значение в процентах от мощности, высокая нагрузка (80%)
     private volatile double criticalload = 0.95; // значение в процентах от мощности, критическая нагрузка (95)
     private volatile int blackouttime = 300; // время в секундах, прежде чем произойдет отключение
@@ -32,14 +29,6 @@ public class ElectricalSubnetSpecification implements ISpecifications {
 
     public void setLossfactor(double lossfactor) {
         this.lossfactor = lossfactor;
-    }
-
-    public IComponentIdentification[] getComponents() {
-        return components;
-    }
-
-    public void setComponents(IComponentIdentification[] components) {
-        this.components = components;
     }
 
     public double getHighload() {
@@ -69,7 +58,6 @@ public class ElectricalSubnetSpecification implements ISpecifications {
 
     public static ElectricalSubnetSpecification createDefault() {
         ElectricalSubnetSpecification res = new ElectricalSubnetSpecification();
-        res.setComponents(new IComponentIdentification[] { });
         return res;
     }
 }
