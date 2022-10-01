@@ -44,7 +44,6 @@ public class EnergynetConfiguration {
                             storage.insert(MainSubstationPowerSystem
                                     .create("Гп-1",
                                             SerialElementAddresses.MAIN_SUBSTATION_1,
-                                            SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_1,
                                             new byte[] {
                                                     SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_2,
                                                     SerialElementAddresses.MAIN_SUBSTATION_1_CONNECTOR_3,
@@ -58,7 +57,6 @@ public class EnergynetConfiguration {
                             storage.insert(MainSubstationPowerSystem
                                     .create("Гп-2",
                                             SerialElementAddresses.MAIN_SUBSTATION_2,
-                                            SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_1,
                                             new byte[] {
                                                     SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_2,
                                                     SerialElementAddresses.MAIN_SUBSTATION_2_CONNECTOR_3,

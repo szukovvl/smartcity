@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class MainSubstationStackedValues {
+public class MainSubstationStackedValues { // !!! исключаю из характеристик
     private double electricitymeter; // потребленная электроэнергия с накоплением в кВт*ч.
     private double greenenergy_meter; // потребленная электроэнергия с накоплением, приходящая на зеленную энергетику
     private double loss_power_meter; // потери с накоплением

@@ -1,21 +1,11 @@
 package re.smartcity.energynet.component.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import re.smartcity.energynet.EnergyStorage_ChargeBehaviors;
 import re.smartcity.energynet.EnergyStorage_States;
 import re.smartcity.energynet.GenerationUsageModes;
-import re.smartcity.energynet.IComponentManagement;
+import re.smartcity.energynet.ISpecifications;
 
-public class EnergyStorageSpecification implements IComponentManagement {
-
-    @JsonIgnore
-    private volatile boolean isactive;
-
-    @JsonIgnore
-    private volatile EnergyStorageInstantValues instantValues;
-
-    @JsonIgnore
-    private volatile EnergyStorageStackedValues stackedValues;
+public class EnergyStorageSpecification implements ISpecifications {
 
     public EnergyStorageSpecification() { }
 
@@ -32,14 +22,6 @@ public class EnergyStorageSpecification implements IComponentManagement {
     private volatile GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
     private volatile EnergyStorage_ChargeBehaviors chargebehavior = EnergyStorage_ChargeBehaviors.LOWTARIFF; // поведение хранилища при восстановлении
     private volatile EnergyStorage_States initstate = EnergyStorage_States.CHARGED; // начальное состояние перед началом игрового процесса
-
-    //region IComponentManagement
-    @Override
-    public boolean getIsactive() { return this.isactive; }
-
-    @Override
-    public void setIsactive(boolean isactive) { this.isactive = isactive; }
-    //endregion
 
     //region характеристики
     public double getEnergy() {
@@ -145,28 +127,6 @@ public class EnergyStorageSpecification implements IComponentManagement {
     public void setInitstate(EnergyStorage_States initstate) {
         this.initstate = initstate;
     }
-    //endregion
-
-    //region оперативные данные модели
-    //region мгновенные значения
-    public EnergyStorageInstantValues getInstantValues() {
-        return instantValues;
-    }
-
-    public void setInstantValues(EnergyStorageInstantValues instantValues) {
-        this.instantValues = instantValues;
-    }
-    //endregion
-
-    //region значения с накоплением
-    public EnergyStorageStackedValues getStackedValues() {
-        return stackedValues;
-    }
-
-    public void setStackedValues(EnergyStorageStackedValues stackedValues) {
-        this.stackedValues = stackedValues;
-    }
-    //endregion
     //endregion
 
     public static EnergyStorageSpecification createDefault() {

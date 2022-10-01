@@ -1,21 +1,11 @@
 package re.smartcity.energynet.component.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.energynet.GenerationUsageModes;
-import re.smartcity.energynet.IComponentManagement;
+import re.smartcity.energynet.ISpecifications;
 
-public class GenerationSpecification implements IComponentManagement {
-
-    @JsonIgnore
-    private volatile boolean isactive;
-
-    @JsonIgnore
-    private GenerationInstantValues instantValues;
-
-    @JsonIgnore
-    private GenerationStackedValues stackedValues;
+public class GenerationSpecification implements ISpecifications {
 
     public GenerationSpecification() { }
 
@@ -35,14 +25,6 @@ public class GenerationSpecification implements IComponentManagement {
     private double carbon = 930; // г/кВт*ч
 
     private GenerationUsageModes mode = GenerationUsageModes.RESERVE; // режим использования
-
-    //region IComponentManagement
-    @Override
-    public boolean getIsactive() { return this.isactive; }
-
-    @Override
-    public void setIsactive(boolean isactive) { this.isactive = isactive; }
-    //endregion
 
     //region характеристики
     public Forecast getForecast() {
@@ -115,28 +97,6 @@ public class GenerationSpecification implements IComponentManagement {
     public void setMode(GenerationUsageModes mode) {
         this.mode = mode;
     }
-    //endregion
-
-    //region оперативные данные модели
-    //region мгновенные значения
-    public GenerationInstantValues getInstantValues() {
-        return instantValues;
-    }
-
-    public void setInstantValues(GenerationInstantValues instantValues) {
-        this.instantValues = instantValues;
-    }
-    //endregion
-
-    //region значения с накоплением
-    public GenerationStackedValues getStackedValues() {
-        return stackedValues;
-    }
-
-    public void setStackedValues(GenerationStackedValues stackedValues) {
-        this.stackedValues = stackedValues;
-    }
-    //endregion
     //endregion
 
     public static GenerationSpecification createDefault() {

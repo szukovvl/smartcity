@@ -112,7 +112,7 @@ public class EnergyRouterHandlers {
 
         return rq.bodyToMono(getObjectScpecification(memobj.getComponentType()))
                 .flatMap(rqobj -> {
-                    IComponentManagement retobj;
+                    ISpecifications retobj;
                     Class<?> clazz;
                     try {
                         // обновляем объект в данных модели и фиксируем в базе
@@ -196,7 +196,7 @@ public class EnergyRouterHandlers {
                             .ok()
                             .header("Content-Language", "ru")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .body(Mono.just(retobj), IComponentManagement.class);
+                            .body(Mono.just(retobj), ISpecifications.class);
                 })
                 .onErrorResume(t -> ServerResponse
                         .status(HttpStatus.INTERNAL_SERVER_ERROR)

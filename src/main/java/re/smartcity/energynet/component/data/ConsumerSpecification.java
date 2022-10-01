@@ -1,21 +1,11 @@
 package re.smartcity.energynet.component.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.energynet.*;
 import re.smartcity.energynet.component.ElectricalSubnet;
 
-public class ConsumerSpecification implements IComponentManagement {
-
-    @JsonIgnore
-    private volatile boolean isactive;
-
-    @JsonIgnore
-    private volatile ConsumerInstantValues instantValues;
-
-    @JsonIgnore
-    private volatile ConsumerStackedValues stackedValues;
+public class ConsumerSpecification implements ISpecifications {
 
     public ConsumerSpecification() { }
 
@@ -38,14 +28,6 @@ public class ConsumerSpecification implements IComponentManagement {
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private volatile IGeneration generation; // собственная генерация
-
-    //region IComponentManagement
-    @Override
-    public boolean getIsactive() { return this.isactive; }
-
-    @Override
-    public void setIsactive(boolean isactive) { this.isactive = isactive; }
-    //endregion
 
     //region характеристики
     public Forecast getForecast() {
@@ -119,28 +101,6 @@ public class ConsumerSpecification implements IComponentManagement {
     public void setGeneration(IGeneration generation) {
         this.generation = generation;
     }
-    //endregion
-
-    //region оперативные данные модели
-    //region мгновенные значения
-    public ConsumerInstantValues getInstantValues() {
-        return instantValues;
-    }
-
-    public void setInstantValues(ConsumerInstantValues instantValues) {
-        this.instantValues = instantValues;
-    }
-    //endregion
-
-    //region значения с накоплением
-    public ConsumerStackedValues getStackedValues() {
-        return stackedValues;
-    }
-
-    public void setStackedValues(ConsumerStackedValues stackedValues) {
-        this.stackedValues = stackedValues;
-    }
-    //endregion
     //endregion
 
     public static ConsumerSpecification createDefault(SupportedConsumers consumer, byte[] inputs) {

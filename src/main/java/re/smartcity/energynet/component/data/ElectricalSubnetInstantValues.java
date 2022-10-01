@@ -8,7 +8,7 @@ import java.time.LocalTime;
 
 @Data
 @NoArgsConstructor
-public class ElectricalSubnetInstantValues {
+public class ElectricalSubnetInstantValues { // !!! исключаю из характеристик
     private LocalTime timestamp; // метка времени примененных значений
     private double currentcost; // действующая стоимость
     private double in_power; // мгновенное значения мощности на входе

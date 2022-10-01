@@ -2,7 +2,6 @@ package re.smartcity.modeling;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import re.smartcity.config.sockets.model.PurchasedLot;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
@@ -95,9 +94,7 @@ public class ModelingData {
             tasks[i] = new TaskData(
                     Executors.newSingleThreadExecutor(),
                     mainstations[i],
-                    new GamerScenesData(substations[i]),
-                    new int[0],
-                    new PurchasedLot[0]);
+                    new GamerScenesData(substations[i]));
         }
         setTasks(tasks);
         for (TaskData task : tasks) {
@@ -107,7 +104,7 @@ public class ModelingData {
         // !!!
         Executors.newSingleThreadScheduledExecutor().schedule(
                 new oesSchemeMonitor(this, _syncSchemeData, standSchemes),
-                2,
+                3,
                 TimeUnit.SECONDS
         );
     }

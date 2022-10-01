@@ -9,7 +9,7 @@ import java.time.LocalTime;
 
 @Data
 @NoArgsConstructor
-public class EnergyStorageInstantValues {
+public class EnergyStorageInstantValues { // !!! исключаю из характеристик
     private LocalTime timestamp; // метка времени примененных значений
     private double currentcost; // действующая стоимость
     private double currentpower; // мгновенное значения мощности потребления в МВт

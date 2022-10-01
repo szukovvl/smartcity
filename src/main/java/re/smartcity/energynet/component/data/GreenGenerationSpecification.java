@@ -1,20 +1,10 @@
 package re.smartcity.energynet.component.data;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import re.smartcity.energynet.GenerationUsageModes;
-import re.smartcity.energynet.IComponentManagement;
+import re.smartcity.energynet.ISpecifications;
 import re.smartcity.energynet.SupportedGenerations;
 
-public class GreenGenerationSpecification implements IComponentManagement {
-
-    @JsonIgnore
-    private volatile boolean isactive;
-
-    @JsonIgnore
-    private volatile GenerationInstantValues instantValues;
-
-    @JsonIgnore
-    private volatile GenerationStackedValues stackedValues;
+public class GreenGenerationSpecification implements ISpecifications {
 
     public GreenGenerationSpecification() { }
 
@@ -25,14 +15,6 @@ public class GreenGenerationSpecification implements IComponentManagement {
     private volatile int blackouttime = 300; // время в секундах, прежде чем произойдет отключение генерации
     private volatile double carbon = 700.0; // г/кВт*ч
     private volatile GenerationUsageModes mode = GenerationUsageModes.ALWAYS; // режим использования
-
-    //region IComponentManagement
-    @Override
-    public boolean getIsactive() { return this.isactive; }
-
-    @Override
-    public void setIsactive(boolean isactive) { this.isactive = isactive; }
-    //endregion
 
     //region характеристики
     public double getEnergy() {
@@ -90,28 +72,6 @@ public class GreenGenerationSpecification implements IComponentManagement {
     public void setMode(GenerationUsageModes mode) {
         this.mode = mode;
     }
-    //endregion
-
-    //region оперативные данные модели
-    //region мгновенные значения
-    public GenerationInstantValues getInstantValues() {
-        return instantValues;
-    }
-
-    public void setInstantValues(GenerationInstantValues instantValues) {
-        this.instantValues = instantValues;
-    }
-    //endregion
-
-    //region значения с накоплением
-    public GenerationStackedValues getStackedValues() {
-        return stackedValues;
-    }
-
-    public void setStackedValues(GenerationStackedValues stackedValues) {
-        this.stackedValues = stackedValues;
-    }
-    //endregion
     //endregion
 
     public static GreenGenerationSpecification createDefault(SupportedGenerations generation) {

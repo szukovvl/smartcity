@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class EnergyStorageStackedValues {
+public class EnergyStorageStackedValues { // !!! исключаю из характеристик
     private double electricitymeter; // потребленная электроэнергия с накоплением в кВт*ч.
     private double topay; // стоимость потребленной электроэнергии в руб.
     private double chargepowermeter; // потребленная электроэнергия на зарядку с накоплением в кВт*ч.
