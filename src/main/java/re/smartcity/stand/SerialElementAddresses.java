@@ -91,4 +91,10 @@ public final class SerialElementAddresses {
 
     public final static byte BROADCAST_ADDRESS = 0x55; // широковещательный адрес
 
+    public static boolean isControlBlock(byte v) {
+        return v == SerialElementAddresses.CONTROL_BLOCK_CONNECTOR_1 ||
+                v == SerialElementAddresses.CONTROL_BLOCK_CONNECTOR_2 ||
+                v == SerialElementAddresses.CONTROL_BLOCK_CONNECTOR_3 ||
+                v == SerialElementAddresses.CONTROL_BLOCK_CONNECTOR_4;
+    }
 }

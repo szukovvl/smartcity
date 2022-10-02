@@ -54,7 +54,7 @@ public class MainSubstationPowerSystem implements IComponentIdentification {
         this.data = data;
     }
 
-    public static MainSubstationPowerSystem create(String identy, byte devaddr, byte[] inputs, byte[] outputs) {
+    public static MainSubstationPowerSystem create(String identy, byte devaddr, byte ctrladdr, byte[] inputs, byte[] outputs) {
         if (identy == null || identy.trim().isEmpty()) {
             throw new IllegalArgumentException(Messages.ER_0);
         }
@@ -64,7 +64,7 @@ public class MainSubstationPowerSystem implements IComponentIdentification {
         MainSubstationPowerSystem res = new MainSubstationPowerSystem();
         res.identy = identy;
         res.devaddr = devaddr;
-        res.setData(MainSubstationSpecification.createDefault(identy, inputs, outputs));
+        res.setData(MainSubstationSpecification.createDefault(identy, ctrladdr, inputs, outputs));
         return res;
     }
 }

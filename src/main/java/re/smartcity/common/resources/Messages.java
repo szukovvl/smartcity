@@ -29,4 +29,8 @@ public final class Messages {
     public final static String FER_5 = "Неизвестный тип пакета %02X элемента %02X.";
     public final static String FER_6 = "Объект %02X не найден";
     public final static String FER_7 = "Неверный формат адреса объекта: %s";
+
+    public final static String SER_0 = "Главная подстанция должна подключаться к блоку управления.";
+    public final static String SER_1 = "К входной линии главной подстанции может быть подключено только один объект энергосистемы.";
+    public final static String SER_2 = "К входной линии главной подстанции может быть подключено только генерирующий объект энергосистемы.";
 }

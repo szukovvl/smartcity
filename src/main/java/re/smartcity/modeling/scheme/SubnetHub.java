@@ -2,6 +2,7 @@ package re.smartcity.modeling.scheme;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.ElectricalSubnet;
 
 public class SubnetHub implements IControlHub {
@@ -10,30 +11,33 @@ public class SubnetHub implements IControlHub {
     private final ElectricalSubnet ownline;
 
     private final int devaddr; // адрес устройства
+    private final IComponentIdentification linkedOes;
     private boolean off = false; // объект отключен
+    private String error;
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
-    private IControlHub[] consumers;
+    private IControlHub[] items;
 
-    public SubnetHub(ElectricalSubnet line) {
+    public SubnetHub(ElectricalSubnet line, IComponentIdentification oes) {
         this.ownline = line;
-        this.devaddr = line.getDevaddr();
+        this.devaddr = line != null ? line.getDevaddr() : oes.getDevaddr();
+        this.linkedOes = oes;
     }
 
     public ElectricalSubnet getOwnline() {
         return ownline;
     }
 
-    public IControlHub[] getConsumers() {
-        return consumers;
+    public IControlHub[] getItems() {
+        return this.items;
     }
 
-    public void setConsumers(IControlHub[] consumers) {
-        this.consumers = consumers;
+    public void setItems(IControlHub[] items) {
+        this.items = items;
     }
 
     public boolean hasChilds() {
-        return this.consumers != null && this.consumers.length != 0;
+        return this.items != null && this.items.length != 0;
     }
 
     //region IControlHub
@@ -41,6 +45,9 @@ public class SubnetHub implements IControlHub {
     public int getDevaddr() {
         return devaddr;
     }
+
+    @Override
+    public IComponentIdentification getLinkedOes() { return this.linkedOes; }
 
     @Override
     public boolean isOff() {
@@ -51,6 +58,12 @@ public class SubnetHub implements IControlHub {
     public void setOff(boolean off) {
         this.off = off;
     }
+
+    @Override
+    public String getErrorMsg() { return this.error; }
+
+    @Override
+    public void setErrorMsg(String msg) { this.error = msg; }
     //endregion
 
 }

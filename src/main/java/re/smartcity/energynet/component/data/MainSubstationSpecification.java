@@ -7,12 +7,21 @@ public class MainSubstationSpecification implements ISpecifications {
 
     public MainSubstationSpecification() { }
 
+    private byte ctrladdr; // !!! адрес линии управления
     private volatile ElectricalSubnet[] inputs; // подсети ввода энергии только генерация
     private volatile ElectricalSubnet[] outputs; // подсети потребителей только потребление
     private volatile double external_energy = 0; // внешний стабильный источник энергии
     private volatile double carbon = 684.75; // г/кВт*ч только для внешней энергии
 
     //region характеристики
+    public byte getCtrladdr() {
+        return ctrladdr;
+    }
+
+    public void setCtrladdr(byte ctrladdr) {
+        this.ctrladdr = ctrladdr;
+    }
+
     public ElectricalSubnet[] getInputs() {
         return inputs;
     }
@@ -46,8 +55,9 @@ public class MainSubstationSpecification implements ISpecifications {
     }
     //endregion
 
-    public static MainSubstationSpecification createDefault(String pref, byte[] inputs, byte[] outputs) {
+    public static MainSubstationSpecification createDefault(String pref, byte ctrladdr, byte[] inputs, byte[] outputs) {
         MainSubstationSpecification res = new MainSubstationSpecification();
+        res.ctrladdr = ctrladdr;
 
         ElectricalSubnet[] lines = new ElectricalSubnet[inputs.length];
         for (int i = 0; i < inputs.length; i++) {

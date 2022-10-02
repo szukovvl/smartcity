@@ -1,6 +1,7 @@
 package re.smartcity.common.utils;
 
 import re.smartcity.common.data.ForecastPoint;
+import re.smartcity.energynet.SupportedTypes;
 
 import java.util.Arrays;
 
@@ -49,4 +50,5 @@ public final class Helpers {
         if (val < 0.0f) return 0.0f;
         return Math.min(val, maxVal);
     }
+
 }

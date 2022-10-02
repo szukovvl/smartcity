@@ -1,6 +1,7 @@
 package re.smartcity.modeling.scheme;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.modeling.TaskData;
 
 import java.util.Arrays;
@@ -11,23 +12,28 @@ public final class PowerSystemHub implements IControlHub {
 
     @JsonIgnore
     private final TaskData task;
+
+    @JsonIgnore
+    private final IComponentIdentification linkedOes;
+
     private final int ctrladdr; // линия управления
     private final int devaddr; // адрес устройства
     private boolean off = false; // объект отключен
-
+    private String error;
     private final SubnetHub[] inputs;
     private final SubnetHub[] outputs;
 
     public PowerSystemHub(TaskData task) {
         this.task = task;
+        this.linkedOes = task.getPowerSystem();
         this.ctrladdr = task.getPowerSystem().getDevaddr() == MAIN_SUBSTATION_1
             ? MAIN_SUBSTATION_1_CONNECTOR_1 : MAIN_SUBSTATION_2_CONNECTOR_1;
         this.devaddr = task.getPowerSystem().getDevaddr();
         this.inputs = Arrays.stream(task.getPowerSystem().getData().getInputs())
-                .map(SubnetHub::new)
+                .map(e -> new SubnetHub(e, task.getPowerSystem()))
                 .toArray(SubnetHub[]::new);
         this.outputs = Arrays.stream(task.getPowerSystem().getData().getOutputs())
-                .map(SubnetHub::new)
+                .map(e -> new SubnetHub(e, task.getPowerSystem()))
                 .toArray(SubnetHub[]::new);
     }
 
@@ -54,6 +60,9 @@ public final class PowerSystemHub implements IControlHub {
     }
 
     @Override
+    public IComponentIdentification getLinkedOes() { return this.linkedOes; }
+
+    @Override
     public boolean isOff() {
         return off;
     }
@@ -62,5 +71,11 @@ public final class PowerSystemHub implements IControlHub {
     public void setOff(boolean off) {
         this.off = off;
     }
+
+    @Override
+    public String getErrorMsg() { return this.error; }
+
+    @Override
+    public void setErrorMsg(String msg) { this.error = msg; }
     //endregion
 }
