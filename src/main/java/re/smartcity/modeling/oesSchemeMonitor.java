@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedConsumers;
+import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.energynet.component.Consumer;
 import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.data.ConsumerSpecification;
@@ -12,14 +13,12 @@ import re.smartcity.energynet.component.data.EnergyDistributorSpecification;
 import re.smartcity.modeling.data.StandBinaryPackage;
 import re.smartcity.modeling.scheme.ComponentOesHub;
 import re.smartcity.modeling.scheme.IControlHub;
-import re.smartcity.modeling.scheme.PowerSystemHub;
 import re.smartcity.stand.SerialElementAddresses;
 import re.smartcity.stand.SerialPackageBuilder;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static re.smartcity.stand.SerialElementAddresses.*;
 import static re.smartcity.stand.SerialServiceSymbols.SEQUENCE_SEPARATOR;
@@ -95,6 +94,25 @@ public class oesSchemeMonitor implements Runnable {
                         .orElse(null));
     }
 
+    private boolean isGenerationType(IComponentIdentification oes) {
+        return oes.getComponentType() == SupportedTypes.GENERATOR ||
+                oes.getComponentType() == SupportedTypes.STORAGE ||
+                oes.getComponentType() == SupportedTypes.GREEGENERATOR;
+    }
+
+    private boolean isConsumerType_A(IComponentIdentification oes) {
+        return oes.getComponentType() == SupportedTypes.DISTRIBUTOR ||
+                (oes.getComponentType() == SupportedTypes.CONSUMER &&
+                        ((Consumer) oes).getData().getConsumertype() != SupportedConsumers.DISTRICT);
+    }
+
+    private boolean isMainStationOutputs(byte devaddr) {
+        return Arrays.stream(this.modelingData.getTasks())
+                .anyMatch(e -> Arrays.stream(e.getRoot().getOutputs())
+                        .anyMatch(b -> Arrays.stream(b.getItems())
+                                .anyMatch(a -> a.getDevaddr() == devaddr)));
+    }
+
     private void buildRoot(StandBinaryPackage pack) {
         logger.info("--= {} =--", String.format("%02X", pack.getDevaddr())); // !!!
         // !!! не отслеживаю количество подключений - считаю их неизменными.
@@ -106,13 +124,22 @@ public class oesSchemeMonitor implements Runnable {
                 .forEach(e -> e.setErrorMsg(null));
 
         // 1. проверка подключения к блоку управления
-        if (Arrays.stream(pack.getOesbin())
+        Byte[] block = Arrays.stream(pack.getOesbin())
                 .filter(e -> Arrays.stream(e)
                         .anyMatch(SerialElementAddresses::isControlBlock))
                 .findFirst()
-                .isEmpty()) {
+                .map(b -> Arrays.stream(b)
+                        .filter(a -> !SerialElementAddresses.isControlBlock(a))
+                        .toArray(Byte[]::new))
+                .orElse(null);
+        if (block == null || block.length == 0) {
             pack.getTask().getRoot().setErrorMsg(
                     combineErrorMsg(pack.getTask().getRoot().getErrorMsg(), Messages.SER_0));
+            logger.warn(pack.getTask().getRoot().getErrorMsg()); // !!!
+        } else if (Arrays.stream(block)
+                .noneMatch(b -> b == pack.getTask().getRoot().getCtrladdr())) {
+            pack.getTask().getRoot().setErrorMsg(
+                    combineErrorMsg(pack.getTask().getRoot().getErrorMsg(), Messages.SER_2));
             logger.warn(pack.getTask().getRoot().getErrorMsg()); // !!!
         }
 
@@ -120,9 +147,6 @@ public class oesSchemeMonitor implements Runnable {
         Arrays.stream(pack.getTask().getRoot().getInputs())
                 .forEach(e -> {
                     // получаю только адреса подключенных устройств
-
-                    // !!! ПРОВЕРИТЬ ИМЕННО КУДА ПОДКЛЮЧЕН БУ
-
                     Byte[] items = Arrays.stream(Arrays.stream(pack.getOesbin())
                                     .filter(l -> Arrays.stream(l)
                                             .anyMatch(b -> b == e.getDevaddr()))
@@ -134,9 +158,6 @@ public class oesSchemeMonitor implements Runnable {
                             SerialPackageBuilder.bytesAsHexString(items));
 
                     // ищу ссылки на компоненты по полученным адресам и ранее подключенные устройства
-
-                    // !!! ПРОВЕРИТЬ ДОПУСТИМОСТЬ ПОДКЛЮЧЕННОГО ЭЛЕМЕНТА
-
                     if (items.length != 0) {
                         List<IControlHub> newitems = new ArrayList<>();
                         Arrays.stream(items)
@@ -145,14 +166,22 @@ public class oesSchemeMonitor implements Runnable {
                                                     e.getItems() : new IControlHub[0])
                                             .filter(a -> a.getDevaddr() == b)
                                             .findFirst()
-                                            .orElse(new ComponentOesHub(findOesComponent(b), b)); // ПЕРЕХВАТИТЬ NullPointerException (!?)
-                                    if (hub != null) {
-                                        newitems.add(hub);
-                                    } else {
-                                        logger.warn(Messages.FSER_0, b);
+                                            .orElse(new ComponentOesHub(findOesComponent(b), b));
+                                    newitems.add(hub);
+                                    if (hub.getLinkedOes() == null) {
+                                        e.setErrorMsg(combineErrorMsg(
+                                                e.getErrorMsg(), String.format(Messages.FSER_0, b)));
+                                        logger.warn(e.getErrorMsg()); // !!!
                                     }
                                 });
+                        // на входной линии может быть только одно генерирующее устройство
                         e.setItems(newitems.toArray(IControlHub[]::new));
+                        if (e.getItems().length > 1 || Arrays.stream(e.getItems())
+                                .anyMatch(b -> b.getLinkedOes() == null || !isGenerationType(b.getLinkedOes()))) {
+                            e.setErrorMsg(combineErrorMsg(
+                                    e.getErrorMsg(), Messages.SER_1));
+                            logger.warn(e.getErrorMsg()); // !!!
+                        }
                     } else {
                         // ничего нет
                         e.setItems(null);
@@ -185,13 +214,32 @@ public class oesSchemeMonitor implements Runnable {
                                             .filter(a -> a.getDevaddr() == b)
                                             .findFirst()
                                             .orElse(new ComponentOesHub(findOesComponent(b), b));
-                                    if (hub != null) {
-                                        newitems.add(hub);
-                                    } else {
-                                        logger.warn(Messages.FSER_0, b);
+                                    newitems.add(hub);
+                                    if (hub.getLinkedOes() == null) {
+                                        e.setErrorMsg(combineErrorMsg(
+                                                e.getErrorMsg(), String.format(Messages.FSER_0, b)));
+                                        logger.warn(e.getErrorMsg()); // !!!
                                     }
                                 });
+                        // на выходной линии могут быть только одно потребители
                         e.setItems(newitems.toArray(IControlHub[]::new));
+                        if (Arrays.stream(e.getItems())
+                                .anyMatch(b -> b.getLinkedOes() == null || !isConsumerType_A(b.getLinkedOes()))) {
+                            e.setErrorMsg(combineErrorMsg(
+                                    e.getErrorMsg(), Messages.SER_3));
+                            logger.warn(e.getErrorMsg()); // !!!
+                        }
+                        // один элемент не может быть дважды подключен к одному выходу
+                        if (Arrays.stream(e.getItems())
+                                .map(b -> b.getLinkedOes() != null ? b.getLinkedOes().getDevaddr() : b.getDevaddr())
+                                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                                .values()
+                                .stream()
+                                .anyMatch(a -> a > 1)) {
+                            e.setErrorMsg(combineErrorMsg(
+                                    e.getErrorMsg(), Messages.SER_4));
+                            logger.warn(e.getErrorMsg()); // !!!
+                        }
                     } else {
                         // ничего нет
                         e.setItems(null);
@@ -200,56 +248,34 @@ public class oesSchemeMonitor implements Runnable {
                             String.format("%02X", e.getDevaddr()), e.getItems());
                 });
 
-
-
-        // проверка подключения к блоку управления
-
-        // проверяю входные линии
-
-        // проверя выходные линии
-        /*Arrays.stream(pack.getTask().getRoot().getOutputs())
-                .forEach(e -> {
-                    logger.warn("-- линия: {}/{}", e.getDevaddr(), e);
-                    Byte[] items = Arrays.stream(Arrays.stream(pack.getOesbin())
-                                    .filter(l -> Arrays.stream(l)
-                                            .filter(b -> b == e.getDevaddr())
-                                            .findFirst()
-                                            .isPresent())
-                                    .findFirst()
-                                    .get())
-                            .filter(b -> b != e.getDevaddr())
-                            .toArray(Byte[]::new);
-
-                    // что подключено
-                    for (Byte b : items) {
-                        IComponentIdentification oes = Arrays.stream(this.modelingData.getAllobjects())
-                                .filter(item -> {
-                                    if (item.getDevaddr() == b) {
-                                        return true;
-                                    } else if (item.getComponentType() == SupportedTypes.DISTRIBUTOR) {
-                                        return ((EnergyDistributor) item).getData().getInaddr() == b;
-                                    } else if (item.getComponentType() == SupportedTypes.CONSUMER) {
-                                        return Arrays.stream(((Consumer) item).getData().getInputs())
-                                                .filter(l -> l.getDevaddr() == b)
-                                                .findFirst()
-                                                .isPresent();
-                                    }
-                                    return false;
-                                })
-                                .findFirst()
-                                .orElse(null);
-                        logger.info("-- подключен потребитель: {}", oes);
-                    }
-                });*/
-
         logger.info(":: --= {} =--", String.format("%02X", pack.getDevaddr())); // !!!
+    }
+
+    private void buildDistributor(StandBinaryPackage pack) {
+        // подключается только к главной подстанции
+        // на выходы подключаются только потребители 3-й категории
+
+        if (pack.getOesbin())
+            isMainStationOutputs()
+    }
+
+    private void buildConsumer(StandBinaryPackage pack) {
+        // запитывается только с одной главной подстанции
+        // подключается только к выходам главной подстанции
+        // подключается только к разным выходам
     }
 
     private void checkAndBuild(StandBinaryPackage pack) {
         if (pack.getTask() != null) {
             buildRoot(pack);
+        } else {
+            // это или миниподстанция или потребитель 1, 2-й категорий
+            if (pack.getOes().getComponentType() == SupportedTypes.DISTRIBUTOR) {
+                buildDistributor(pack);
+            } else {
+                buildConsumer(pack);
+            }
         }
-        // !!!
     }
 
     @Override
@@ -309,12 +335,12 @@ public class oesSchemeMonitor implements Runnable {
                 Arrays.stream(pack.getOesbin()).forEach(e -> logger.info("- {}", SerialPackageBuilder.bytesAsHexString(e)));
 
                 /*
-                для дальнейшей обработки используются только главные подстанции, миниподстанции и 2-х входовые потребители;
+                Для дальнейшей обработки используются только главные подстанции, миниподстанции и 2-х входовые потребители;
                 построение основного узла выполняется от главной подстанции;
                 построение дополнительных узлов выполняется от миниподстанции, также выполняется проверка подключения входа;
                 для потребителей выполняется только проверка фактического подключения.
 
-                все остальные объекты игнорируются.
+                Все остальные объекты игнорируются.
                  */
 
                 checkAndBuild(pack);

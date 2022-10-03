@@ -5,15 +5,12 @@ import re.smartcity.energynet.IComponentIdentification;
 
 public class ComponentOesHub implements IControlHub {
 
-    private final IComponentIdentification linkedOes;
+    private final IComponentIdentification linkedOes; // может быть нулем, если подключен неизвестный объект (?)
     private final int devaddr; // адрес устройства
     private boolean off = false; // объект отключен
     private String error;
 
     public ComponentOesHub(IComponentIdentification linkedOes, byte linkaddr) {
-        if (linkedOes == null) {
-            throw new NullPointerException(Messages.SER_1);
-        }
         this.linkedOes = linkedOes;
         this.devaddr = linkaddr;
     }
