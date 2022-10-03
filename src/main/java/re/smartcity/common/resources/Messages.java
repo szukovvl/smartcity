@@ -31,6 +31,7 @@ public final class Messages {
     public final static String FER_7 = "Неверный формат адреса объекта: %s";
 
     public final static String SER_0 = "Главная подстанция должна подключаться к блоку управления.";
-    public final static String SER_1 = "К входной линии главной подстанции может быть подключено только один объект энергосистемы.";
-    public final static String SER_2 = "К входной линии главной подстанции может быть подключено только генерирующий объект энергосистемы.";
+    public final static String SER_1 = "Объект схемы должен быть определен.";
+
+    public final static String FSER_0 = "Неизвестный объект {}";
 }

@@ -1,5 +1,6 @@
 package re.smartcity.modeling.scheme;
 
+import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.IComponentIdentification;
 
 public class ComponentOesHub implements IControlHub {
@@ -9,9 +10,12 @@ public class ComponentOesHub implements IControlHub {
     private boolean off = false; // объект отключен
     private String error;
 
-    public ComponentOesHub(IComponentIdentification generator) {
-        this.linkedOes = generator;
-        this.devaddr = generator.getDevaddr();
+    public ComponentOesHub(IComponentIdentification linkedOes, byte linkaddr) {
+        if (linkedOes == null) {
+            throw new NullPointerException(Messages.SER_1);
+        }
+        this.linkedOes = linkedOes;
+        this.devaddr = linkaddr;
     }
 
     //region IControlHub

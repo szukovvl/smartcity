@@ -10,7 +10,9 @@ import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.data.ConsumerSpecification;
 import re.smartcity.energynet.component.data.EnergyDistributorSpecification;
 import re.smartcity.modeling.data.StandBinaryPackage;
+import re.smartcity.modeling.scheme.ComponentOesHub;
 import re.smartcity.modeling.scheme.IControlHub;
+import re.smartcity.modeling.scheme.PowerSystemHub;
 import re.smartcity.stand.SerialElementAddresses;
 import re.smartcity.stand.SerialPackageBuilder;
 
@@ -118,6 +120,51 @@ public class oesSchemeMonitor implements Runnable {
         Arrays.stream(pack.getTask().getRoot().getInputs())
                 .forEach(e -> {
                     // получаю только адреса подключенных устройств
+
+                    // !!! ПРОВЕРИТЬ ИМЕННО КУДА ПОДКЛЮЧЕН БУ
+
+                    Byte[] items = Arrays.stream(Arrays.stream(pack.getOesbin())
+                                    .filter(l -> Arrays.stream(l)
+                                            .anyMatch(b -> b == e.getDevaddr()))
+                                    .findFirst()
+                                    .get())
+                            .filter(b -> b != e.getDevaddr())
+                            .toArray(Byte[]::new);
+                    logger.info("-- (!) {}: [{}]", String.format("%02X", e.getDevaddr()),
+                            SerialPackageBuilder.bytesAsHexString(items));
+
+                    // ищу ссылки на компоненты по полученным адресам и ранее подключенные устройства
+
+                    // !!! ПРОВЕРИТЬ ДОПУСТИМОСТЬ ПОДКЛЮЧЕННОГО ЭЛЕМЕНТА
+
+                    if (items.length != 0) {
+                        List<IControlHub> newitems = new ArrayList<>();
+                        Arrays.stream(items)
+                                .forEach(b -> { // обхожу по новым
+                                    IControlHub hub = Arrays.stream(e.getItems() != null ?
+                                                    e.getItems() : new IControlHub[0])
+                                            .filter(a -> a.getDevaddr() == b)
+                                            .findFirst()
+                                            .orElse(new ComponentOesHub(findOesComponent(b), b)); // ПЕРЕХВАТИТЬ NullPointerException (!?)
+                                    if (hub != null) {
+                                        newitems.add(hub);
+                                    } else {
+                                        logger.warn(Messages.FSER_0, b);
+                                    }
+                                });
+                        e.setItems(newitems.toArray(IControlHub[]::new));
+                    } else {
+                        // ничего нет
+                        e.setItems(null);
+                    }
+                    logger.info("-- объекты линии {}: {}",
+                            String.format("%02X", e.getDevaddr()), e.getItems());
+                });
+
+        // 3. сборка выходных линий
+        Arrays.stream(pack.getTask().getRoot().getOutputs())
+                .forEach(e -> {
+                    // получаю только адреса подключенных устройств
                     Byte[] items = Arrays.stream(Arrays.stream(pack.getOesbin())
                                     .filter(l -> Arrays.stream(l)
                                             .anyMatch(b -> b == e.getDevaddr()))
@@ -130,43 +177,28 @@ public class oesSchemeMonitor implements Runnable {
 
                     // ищу ссылки на компоненты по полученным адресам и ранее подключенные устройства
                     if (items.length != 0) {
-                        IControlHub[] hubs = e.getItems();
                         List<IControlHub> newitems = new ArrayList<>();
                         Arrays.stream(items)
-                                .forEach(hub -> {
-                                    logger.info("-- задумался ...");
+                                .forEach(b -> { // обхожу по новым
+                                    IControlHub hub = Arrays.stream(e.getItems() != null ?
+                                                    e.getItems() : new IControlHub[0])
+                                            .filter(a -> a.getDevaddr() == b)
+                                            .findFirst()
+                                            .orElse(new ComponentOesHub(findOesComponent(b), b));
+                                    if (hub != null) {
+                                        newitems.add(hub);
+                                    } else {
+                                        logger.warn(Messages.FSER_0, b);
+                                    }
                                 });
+                        e.setItems(newitems.toArray(IControlHub[]::new));
                     } else {
                         // ничего нет
                         e.setItems(null);
                     }
-
-
-
-                    /*if (items.length > 1) {
-                        pack.getTask().getRoot().setErrorMsg(Messages.SER_1);
-                        logger.warn(Messages.SER_1);
-                        return;
-                    }
-                    if (items.length != 0) {
-                        // что подключено
-                        IComponentIdentification oes = Arrays.stream(this.modelingData.getAllobjects())
-                                .filter(item -> item.getDevaddr() == items[0])
-                                .findFirst()
-                                .get();
-                        if (!IGeneration.class.isAssignableFrom(oes.getClass())) {
-                            pack.getTask().getRoot().setErrorMsg(Messages.SER_2);
-                            logger.warn(Messages.SER_2);
-                            return;
-                        }
-                        if (e.getDevaddr() != items[0]) {
-                            // другое устройство
-                            e.setItems(new IControlHub[] { new ComponentOesHub(oes) });
-                            logger.info("-- подключена генерация: {}", oes);
-                        }
-                    }*/
+                    logger.info("-- объекты линии {}: {}",
+                            String.format("%02X", e.getDevaddr()), e.getItems());
                 });
-
 
 
 
