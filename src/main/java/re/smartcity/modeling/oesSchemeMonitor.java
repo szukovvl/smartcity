@@ -113,6 +113,20 @@ public class oesSchemeMonitor implements Runnable {
                                 .anyMatch(a -> a.getDevaddr() == devaddr)));
     }
 
+    private IControlHub findInTree(byte devaddr) {
+        IControlHub res = Arrays.stream(this.modelingData.getTasks())
+                .map(TaskData::getRoot)
+                .filter(e -> e.getDevaddr() == devaddr) // может это главная подстанция?
+                .findFirst()
+                .orElse(/*Arrays.stream(this.modelingData.getTasks())
+                        .map(e -> e.getRoot().getOutputs())
+                        ); // нет, не главная подстанция, обхожу выходы
+                        */
+                null);
+
+        return res;
+    }
+
     private void buildRoot(StandBinaryPackage pack) {
         logger.info("--= {} =--", String.format("%02X", pack.getDevaddr())); // !!!
         // !!! не отслеживаю количество подключений - считаю их неизменными.
@@ -255,8 +269,21 @@ public class oesSchemeMonitor implements Runnable {
         // подключается только к главной подстанции
         // на выходы подключаются только потребители 3-й категории
 
-        if (pack.getOesbin())
-            isMainStationOutputs()
+        // 1. ищу компонент, куда подключено
+        IComponentIdentification oesOwner = Arrays.stream(Arrays.stream(pack.getOesbin())
+                .filter(e -> Arrays.stream(e)
+                        .anyMatch(b -> b == ((EnergyDistributor) pack.getOes()).getData().getInaddr()))
+                .findFirst()
+                .get())
+                .filter(b -> b != ((EnergyDistributor) pack.getOes()).getData().getInaddr())
+                .map(this::findOesComponent)
+                .findFirst()
+                .orElse(null);
+
+        if (oesOwner != null) {
+            // 2. ищу хаб компонента-владельца
+        }
+
     }
 
     private void buildConsumer(StandBinaryPackage pack) {
