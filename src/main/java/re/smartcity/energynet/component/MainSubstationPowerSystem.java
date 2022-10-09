@@ -8,6 +8,8 @@ import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.energynet.component.data.MainSubstationSpecification;
 
+import java.util.Arrays;
+
 @Table("component")
 public class MainSubstationPowerSystem implements IComponentIdentification {
 
@@ -44,6 +46,14 @@ public class MainSubstationPowerSystem implements IComponentIdentification {
 
     @Override
     public SupportedTypes getComponentType() { return this.componentType; }
+
+    @Override
+    public boolean itIsMine(int address) {
+        return this.devaddr == address ||
+                this.data.getCtrladdr() == address ||
+                Arrays.stream(this.data.getInputs()).anyMatch(e -> e.getDevaddr() == address) ||
+                Arrays.stream(this.data.getOutputs()).anyMatch(e -> e.getDevaddr() == address);
+    }
     //endregion
 
     public MainSubstationSpecification getData() {

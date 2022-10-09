@@ -3,7 +3,7 @@ package re.smartcity.modeling;
 import re.smartcity.config.sockets.model.PurchasedLot;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
 import re.smartcity.modeling.data.GamerScenesData;
-import re.smartcity.modeling.scheme.PowerSystemHub;
+import re.smartcity.modeling.scheme.OesRootHub;
 
 import java.util.concurrent.ExecutorService;
 
@@ -14,7 +14,7 @@ public class TaskData {
     private final GamerScenesData scenesData;
     private int[] choicesScene = new int[0]; // !!! пока а костылях
     private PurchasedLot[] auctionScene = new PurchasedLot[0];
-    private final PowerSystemHub root;
+    private OesRootHub root;
 
     public TaskData (
             ExecutorService service,
@@ -24,7 +24,7 @@ public class TaskData {
         this.powerSystem = powerSystem;
         this.service = service;
         this.scenesData = scenesData;
-        this.root = new PowerSystemHub(this);
+        this.root = OesRootHub.create(powerSystem);
     }
 
     public ExecutorService getService() {
@@ -47,8 +47,12 @@ public class TaskData {
         return auctionScene;
     }
 
-    public PowerSystemHub getRoot() {
+    public OesRootHub getRoot() {
         return root;
+    }
+
+    public void setRoot(OesRootHub root) {
+        this.root = root;
     }
 
     public void setAuctionScene(PurchasedLot[] auctionScene) {

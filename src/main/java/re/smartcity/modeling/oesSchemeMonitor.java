@@ -7,18 +7,13 @@ import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedConsumers;
 import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.energynet.component.Consumer;
-import re.smartcity.energynet.component.EnergyDistributor;
-import re.smartcity.energynet.component.data.ConsumerSpecification;
-import re.smartcity.energynet.component.data.EnergyDistributorSpecification;
 import re.smartcity.modeling.data.StandBinaryPackage;
-import re.smartcity.modeling.scheme.ComponentOesHub;
-import re.smartcity.modeling.scheme.IControlHub;
+import re.smartcity.modeling.scheme.IOesHub;
+import re.smartcity.modeling.scheme.OesRootHub;
 import re.smartcity.stand.SerialElementAddresses;
 import re.smartcity.stand.SerialPackageBuilder;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static re.smartcity.stand.SerialElementAddresses.*;
 import static re.smartcity.stand.SerialServiceSymbols.SEQUENCE_SEPARATOR;
@@ -59,7 +54,7 @@ public class oesSchemeMonitor implements Runnable {
         return appendMsg;
     }
 
-    private IComponentIdentification findOesComponent(byte devaddr) {
+    /*private IComponentIdentification findOesComponent(byte devaddr) {
         return Arrays.stream(this.modelingData.getTasks())
                 .map(TaskData::getPowerSystem)
                 .filter(e -> e.getDevaddr() == devaddr ||
@@ -92,9 +87,9 @@ public class oesSchemeMonitor implements Runnable {
                         })
                         .findFirst()
                         .orElse(null));
-    }
+    }*/
 
-    private boolean isGenerationType(IComponentIdentification oes) {
+    /*private boolean isGenerationType(IComponentIdentification oes) {
         return oes.getComponentType() == SupportedTypes.GENERATOR ||
                 oes.getComponentType() == SupportedTypes.STORAGE ||
                 oes.getComponentType() == SupportedTypes.GREEGENERATOR;
@@ -104,167 +99,30 @@ public class oesSchemeMonitor implements Runnable {
         return oes.getComponentType() == SupportedTypes.DISTRIBUTOR ||
                 (oes.getComponentType() == SupportedTypes.CONSUMER &&
                         ((Consumer) oes).getData().getConsumertype() != SupportedConsumers.DISTRICT);
-    }
+    }*/
 
-    private boolean isMainStationOutputs(byte devaddr) {
+    /*private boolean isMainStationOutputs(byte devaddr) {
         return Arrays.stream(this.modelingData.getTasks())
                 .anyMatch(e -> Arrays.stream(e.getRoot().getOutputs())
                         .anyMatch(b -> Arrays.stream(b.getItems())
                                 .anyMatch(a -> a.getDevaddr() == devaddr)));
-    }
+    }*/
 
-    private IControlHub findInTree(byte devaddr) {
+    /*private IControlHub findInTree(byte devaddr) {
         IControlHub res = Arrays.stream(this.modelingData.getTasks())
                 .map(TaskData::getRoot)
                 .filter(e -> e.getDevaddr() == devaddr) // может это главная подстанция?
                 .findFirst()
-                .orElse(/*Arrays.stream(this.modelingData.getTasks())
+                .orElse(/ *Arrays.stream(this.modelingData.getTasks())
                         .map(e -> e.getRoot().getOutputs())
                         ); // нет, не главная подстанция, обхожу выходы
-                        */
+                        * /
                 null);
 
         return res;
-    }
+    }*/
 
-    private void buildRoot(StandBinaryPackage pack) {
-        logger.info("--= {} =--", String.format("%02X", pack.getDevaddr())); // !!!
-        // !!! не отслеживаю количество подключений - считаю их неизменными.
-        // Сброс возможной установленной ошибки.
-        pack.getTask().getRoot().setErrorMsg(null);
-        Arrays.stream(pack.getTask().getRoot().getInputs())
-                .forEach(e -> e.setErrorMsg(null));
-        Arrays.stream(pack.getTask().getRoot().getOutputs())
-                .forEach(e -> e.setErrorMsg(null));
-
-        // 1. проверка подключения к блоку управления
-        Byte[] block = Arrays.stream(pack.getOesbin())
-                .filter(e -> Arrays.stream(e)
-                        .anyMatch(SerialElementAddresses::isControlBlock))
-                .findFirst()
-                .map(b -> Arrays.stream(b)
-                        .filter(a -> !SerialElementAddresses.isControlBlock(a))
-                        .toArray(Byte[]::new))
-                .orElse(null);
-        if (block == null || block.length == 0) {
-            pack.getTask().getRoot().setErrorMsg(
-                    combineErrorMsg(pack.getTask().getRoot().getErrorMsg(), Messages.SER_0));
-            logger.warn(pack.getTask().getRoot().getErrorMsg()); // !!!
-        } else if (Arrays.stream(block)
-                .noneMatch(b -> b == pack.getTask().getRoot().getCtrladdr())) {
-            pack.getTask().getRoot().setErrorMsg(
-                    combineErrorMsg(pack.getTask().getRoot().getErrorMsg(), Messages.SER_2));
-            logger.warn(pack.getTask().getRoot().getErrorMsg()); // !!!
-        }
-
-        // 2. сборка входных линий
-        Arrays.stream(pack.getTask().getRoot().getInputs())
-                .forEach(e -> {
-                    // получаю только адреса подключенных устройств
-                    Byte[] items = Arrays.stream(Arrays.stream(pack.getOesbin())
-                                    .filter(l -> Arrays.stream(l)
-                                            .anyMatch(b -> b == e.getDevaddr()))
-                                    .findFirst()
-                                    .get())
-                            .filter(b -> b != e.getDevaddr())
-                            .toArray(Byte[]::new);
-                    logger.info("-- (!) {}: [{}]", String.format("%02X", e.getDevaddr()),
-                            SerialPackageBuilder.bytesAsHexString(items));
-
-                    // ищу ссылки на компоненты по полученным адресам и ранее подключенные устройства
-                    if (items.length != 0) {
-                        List<IControlHub> newitems = new ArrayList<>();
-                        Arrays.stream(items)
-                                .forEach(b -> { // обхожу по новым
-                                    IControlHub hub = Arrays.stream(e.getItems() != null ?
-                                                    e.getItems() : new IControlHub[0])
-                                            .filter(a -> a.getDevaddr() == b)
-                                            .findFirst()
-                                            .orElse(new ComponentOesHub(findOesComponent(b), b));
-                                    newitems.add(hub);
-                                    if (hub.getLinkedOes() == null) {
-                                        e.setErrorMsg(combineErrorMsg(
-                                                e.getErrorMsg(), String.format(Messages.FSER_0, b)));
-                                        logger.warn(e.getErrorMsg()); // !!!
-                                    }
-                                });
-                        // на входной линии может быть только одно генерирующее устройство
-                        e.setItems(newitems.toArray(IControlHub[]::new));
-                        if (e.getItems().length > 1 || Arrays.stream(e.getItems())
-                                .anyMatch(b -> b.getLinkedOes() == null || !isGenerationType(b.getLinkedOes()))) {
-                            e.setErrorMsg(combineErrorMsg(
-                                    e.getErrorMsg(), Messages.SER_1));
-                            logger.warn(e.getErrorMsg()); // !!!
-                        }
-                    } else {
-                        // ничего нет
-                        e.setItems(null);
-                    }
-                    logger.info("-- объекты линии {}: {}",
-                            String.format("%02X", e.getDevaddr()), e.getItems());
-                });
-
-        // 3. сборка выходных линий
-        Arrays.stream(pack.getTask().getRoot().getOutputs())
-                .forEach(e -> {
-                    // получаю только адреса подключенных устройств
-                    Byte[] items = Arrays.stream(Arrays.stream(pack.getOesbin())
-                                    .filter(l -> Arrays.stream(l)
-                                            .anyMatch(b -> b == e.getDevaddr()))
-                                    .findFirst()
-                                    .get())
-                            .filter(b -> b != e.getDevaddr())
-                            .toArray(Byte[]::new);
-                    logger.info("-- {}: [{}]", String.format("%02X", e.getDevaddr()),
-                            SerialPackageBuilder.bytesAsHexString(items));
-
-                    // ищу ссылки на компоненты по полученным адресам и ранее подключенные устройства
-                    if (items.length != 0) {
-                        List<IControlHub> newitems = new ArrayList<>();
-                        Arrays.stream(items)
-                                .forEach(b -> { // обхожу по новым
-                                    IControlHub hub = Arrays.stream(e.getItems() != null ?
-                                                    e.getItems() : new IControlHub[0])
-                                            .filter(a -> a.getDevaddr() == b)
-                                            .findFirst()
-                                            .orElse(new ComponentOesHub(findOesComponent(b), b));
-                                    newitems.add(hub);
-                                    if (hub.getLinkedOes() == null) {
-                                        e.setErrorMsg(combineErrorMsg(
-                                                e.getErrorMsg(), String.format(Messages.FSER_0, b)));
-                                        logger.warn(e.getErrorMsg()); // !!!
-                                    }
-                                });
-                        // на выходной линии могут быть только одно потребители
-                        e.setItems(newitems.toArray(IControlHub[]::new));
-                        if (Arrays.stream(e.getItems())
-                                .anyMatch(b -> b.getLinkedOes() == null || !isConsumerType_A(b.getLinkedOes()))) {
-                            e.setErrorMsg(combineErrorMsg(
-                                    e.getErrorMsg(), Messages.SER_3));
-                            logger.warn(e.getErrorMsg()); // !!!
-                        }
-                        // один элемент не может быть дважды подключен к одному выходу
-                        if (Arrays.stream(e.getItems())
-                                .map(b -> b.getLinkedOes() != null ? b.getLinkedOes().getDevaddr() : b.getDevaddr())
-                                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
-                                .values()
-                                .stream()
-                                .anyMatch(a -> a > 1)) {
-                            e.setErrorMsg(combineErrorMsg(
-                                    e.getErrorMsg(), Messages.SER_4));
-                            logger.warn(e.getErrorMsg()); // !!!
-                        }
-                    } else {
-                        // ничего нет
-                        e.setItems(null);
-                    }
-                    logger.info("-- объекты линии {}: {}",
-                            String.format("%02X", e.getDevaddr()), e.getItems());
-                });
-
-        logger.info(":: --= {} =--", String.format("%02X", pack.getDevaddr())); // !!!
-    }
-
+    /*
     private void buildDistributor(StandBinaryPackage pack) {
         // подключается только к главной подстанции
         // на выходы подключаются только потребители 3-й категории
@@ -284,23 +142,206 @@ public class oesSchemeMonitor implements Runnable {
             // 2. ищу хаб компонента-владельца
         }
 
-    }
+    }*/
 
-    private void buildConsumer(StandBinaryPackage pack) {
+    /*private void buildConsumer(StandBinaryPackage pack) {
         // запитывается только с одной главной подстанции
         // подключается только к выходам главной подстанции
         // подключается только к разным выходам
+    }*/
+
+    private void rootOesChanged(StandBinaryPackage pack) {
+        logger.info("--= {} =--", String.format("%02X", pack.getDevaddr())); // !!!
+        // !!! не отслеживаю количество подключений - считаю их неизменными.
+        OesRootHub root = OesRootHub.create(pack.getTask().getPowerSystem());
+        List<IOesHub> devices = new ArrayList<>();
+
+        // 1. проверка подключения к блоку управления
+        Byte[] block = Arrays.stream(pack.getOesbin())
+                .filter(e -> Arrays.stream(e)
+                        .anyMatch(SerialElementAddresses::isControlBlock))
+                .findFirst()
+                .map(b -> Arrays.stream(b)
+                        .filter(a -> !SerialElementAddresses.isControlBlock(a))
+                        .toArray(Byte[]::new))
+                .orElse(null);
+        if (block == null || block.length == 0) {
+            pack.getTask().getRoot().setError(
+                    combineErrorMsg(pack.getTask().getRoot().getError(), Messages.SER_0));
+            logger.warn(pack.getTask().getRoot().getError()); // !!!
+        } else if (Arrays.stream(block)
+                .noneMatch(b -> b == pack.getTask().getRoot().getControlPort().getAddress())) {
+            pack.getTask().getRoot().setError(
+                    combineErrorMsg(pack.getTask().getRoot().getError(), Messages.SER_2));
+            logger.warn(pack.getTask().getRoot().getError()); // !!!
+        }
+
+        // 2. сборка входных линий
+        Arrays.stream(pack.getTask().getRoot().getInputs())
+                .forEach(e -> {
+                    // получаю только адреса подключенных устройств
+                    Byte[] items = Arrays.stream(Arrays.stream(pack.getOesbin())
+                                    .filter(l -> Arrays.stream(l)
+                                            .anyMatch(b -> b == e.getAddress()))
+                                    .findFirst()
+                                    .orElse(new Byte[0]))
+                            .filter(b -> b != e.getAddress())
+                            .toArray(Byte[]::new);
+                    logger.info("-- (!) {}: [{}]", String.format("%02X", e.getAddress()),
+                            SerialPackageBuilder.bytesAsHexString(items));
+
+                    // ищу компоненты по полученным адресам и ранее подключенные устройства
+                    if (items.length != 0) {
+                        Arrays.stream(items)
+                                .forEach(b -> { // b - адрес устройства на линии
+                                    IOesHub hub = devices.stream()
+                                            .filter(a -> a.itIsMine(b)) // ищу у себя
+                                            .findFirst()
+                                            .orElse(null);
+                                    if (hub == null) { // устройства нет
+                                        hub = Arrays.stream(
+                                                    pack.getTask().getRoot().getDevices() != null
+                                                            ? pack.getTask().getRoot().getDevices()
+                                                            : new IOesHub[0]
+                                                )
+                                                // возможно уже использовался?
+                                                .filter(a -> a.itIsMine(b))
+                                                .findFirst()
+                                                .orElse(
+                                                        // если нет - ищу сам компонент
+                                                        Arrays.stream(modelingData.getAllobjects())
+                                                                .filter(a -> a.itIsMine(b))
+                                                                .findFirst()
+                                                                .map(OesRootHub::createOther)
+                                                                .orElse(null)
+                                                );
+                                        if (hub != null) {
+                                            // подключить объект
+                                            if (!e.addConection(hub.connectionByAddress(b))) {
+                                                // подключение не добавлено
+                                                e.setError(combineErrorMsg(
+                                                        e.getError(), String.format(Messages.FSER_1, b)));
+                                                logger.warn(e.getError()); // !!!
+                                            }
+                                            devices.add(hub);
+                                        } else {
+                                            // такого объекта нет
+                                            e.setError(combineErrorMsg(
+                                                    e.getError(), String.format(Messages.FSER_0, b)));
+                                            logger.warn(e.getError()); // !!!
+                                        }
+                                    } else {
+                                        // нашел у себя!
+                                        if (!e.addConection(hub.connectionByAddress(b))) {
+                                            // подключение не добавлено
+                                            e.setError(combineErrorMsg(
+                                                    e.getError(), String.format(Messages.FSER_1, b)));
+                                            logger.warn(e.getError()); // !!!
+                                        }
+                                    }
+                                });
+                    } else {
+                        // ничего нет
+                        e.setConnections(null);
+                    }
+
+                    // проверки на допустимость подключений
+
+                    logger.info("-- объекты линии {}: {}",
+                            String.format("%02X", e.getAddress()), e.getConnections());
+                });
+
+        // 3. сборка выходных линий
+        Arrays.stream(pack.getTask().getRoot().getOutputs())
+                .forEach(e -> {
+                    // получаю только адреса подключенных устройств
+                    Byte[] items = Arrays.stream(Arrays.stream(pack.getOesbin())
+                                    .filter(l -> Arrays.stream(l)
+                                            .anyMatch(b -> b == e.getAddress()))
+                                    .findFirst()
+                                    .orElse(new Byte[0]))
+                            .filter(b -> b != e.getAddress())
+                            .toArray(Byte[]::new);
+                    logger.info("-- {}: [{}]", String.format("%02X", e.getAddress()),
+                            SerialPackageBuilder.bytesAsHexString(items));
+
+                    // ищу компоненты по полученным адресам и ранее подключенные устройства
+                    if (items.length != 0) {
+                        Arrays.stream(items)
+                                .forEach(b -> { // b - адрес устройства на линии
+                                    IOesHub hub = devices.stream()
+                                            .filter(a -> a.itIsMine(b)) // ищу у себя
+                                            .findFirst()
+                                            .orElse(null);
+                                    if (hub == null) { // устройства нет
+                                        hub = Arrays.stream(
+                                                        pack.getTask().getRoot().getDevices() != null
+                                                                ? pack.getTask().getRoot().getDevices()
+                                                                : new IOesHub[0]
+                                                )
+                                                // возможно уже использовался?
+                                                .filter(a -> a.itIsMine(b))
+                                                .findFirst()
+                                                .orElse(
+                                                        // если нет - ищу сам компонент
+                                                        Arrays.stream(modelingData.getAllobjects())
+                                                                .filter(a -> a.itIsMine(b))
+                                                                .findFirst()
+                                                                .map(OesRootHub::createOther)
+                                                                .orElse(null)
+                                                );
+                                        if (hub != null) {
+                                            // подключить объект
+                                            if (!e.addConection(hub.connectionByAddress(b))) {
+                                                // подключение не добавлено
+                                                e.setError(combineErrorMsg(
+                                                        e.getError(), String.format(Messages.FSER_1, b)));
+                                                logger.warn(e.getError()); // !!!
+                                            }
+                                            devices.add(hub);
+                                        } else {
+                                            // такого объекта нет
+                                            e.setError(combineErrorMsg(
+                                                    e.getError(), String.format(Messages.FSER_0, b)));
+                                            logger.warn(e.getError()); // !!!
+                                        }
+                                    } else {
+                                        // нашел у себя!
+                                        if (!e.addConection(hub.connectionByAddress(b))) {
+                                            // подключение не добавлено
+                                            e.setError(combineErrorMsg(
+                                                    e.getError(), String.format(Messages.FSER_1, b)));
+                                            logger.warn(e.getError()); // !!!
+                                        }
+                                    }
+                                });
+                    } else {
+                        // ничего нет
+                        e.setConnections(null);
+                    }
+
+                    // проверки на допустимость подключений
+
+                    logger.info("-- объекты линии {}: {}",
+                            String.format("%02X", e.getAddress()), e.getConnections());
+                });
+
+        logger.info(":: --= {} =--", String.format("%02X", pack.getDevaddr())); // !!!
+
+        root.setDevices(devices.size() != 0 ? devices.toArray(IOesHub[]::new) : null);
+        pack.getTask().setRoot(root);
     }
 
     private void checkAndBuild(StandBinaryPackage pack) {
         if (pack.getTask() != null) {
-            buildRoot(pack);
+            rootOesChanged(pack);
+            // buildRoot(pack);
         } else {
             // это или миниподстанция или потребитель 1, 2-й категорий
             if (pack.getOes().getComponentType() == SupportedTypes.DISTRIBUTOR) {
-                buildDistributor(pack);
+                // buildDistributor(pack);
             } else {
-                buildConsumer(pack);
+                // buildConsumer(pack);
             }
         }
     }

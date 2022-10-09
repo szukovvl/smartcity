@@ -26,9 +26,6 @@ public class ConsumerSpecification implements ISpecifications {
 
     private volatile SupportedConsumers consumertype; // категория надежности электроснабжения
 
-    @JsonInclude(JsonInclude.Include.NON_ABSENT)
-    private volatile IGeneration generation; // собственная генерация
-
     //region характеристики
     public Forecast getForecast() {
         return forecast;
@@ -92,14 +89,6 @@ public class ConsumerSpecification implements ISpecifications {
 
     public void setConsumertype(SupportedConsumers consumertype) {
         this.consumertype = consumertype;
-    }
-
-    public IGeneration getGeneration() {
-        return generation;
-    }
-
-    public void setGeneration(IGeneration generation) {
-        this.generation = generation;
     }
     //endregion
 

@@ -7,8 +7,6 @@ import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.*;
 import re.smartcity.energynet.component.data.GreenGenerationSpecification;
 
-import java.time.LocalTime;
-
 @Table("component")
 public class GreenGeneration implements IComponentIdentification {
 
@@ -46,6 +44,11 @@ public class GreenGeneration implements IComponentIdentification {
 
     @Override
     public SupportedTypes getComponentType() { return this.componentType; }
+
+    @Override
+    public boolean itIsMine(int address) {
+        return this.devaddr == address;
+    }
     //endregion
 
     public GreenGenerationSpecification getData() {

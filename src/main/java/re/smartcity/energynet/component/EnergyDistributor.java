@@ -7,6 +7,8 @@ import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.*;
 import re.smartcity.energynet.component.data.EnergyDistributorSpecification;
 
+import java.util.Arrays;
+
 @Table("component")
 public class EnergyDistributor implements IComponentIdentification {
 
@@ -43,6 +45,13 @@ public class EnergyDistributor implements IComponentIdentification {
 
     @Override
     public SupportedTypes getComponentType() { return this.componentType; }
+
+    @Override
+    public boolean itIsMine(int address) {
+        return this.devaddr == address ||
+                this.data.getInaddr() == address ||
+                Arrays.stream(this.data.getOutputs()).anyMatch(e -> e.getDevaddr() == address);
+    }
     //endregion
 
     public EnergyDistributorSpecification getData() {

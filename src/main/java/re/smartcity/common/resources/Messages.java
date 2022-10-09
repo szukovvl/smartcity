@@ -37,4 +37,5 @@ public final class Messages {
     public final static String SER_4 = "Одно и тоже устройство может быть подключено только один раз к одной линии.";
 
     public final static String FSER_0 = "Неизвестный объект 0x%02X.";
+    public final static String FSER_1 = "Объект не подключен 0x%02X.";
 }

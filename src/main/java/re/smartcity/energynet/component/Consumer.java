@@ -7,6 +7,8 @@ import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.*;
 import re.smartcity.energynet.component.data.ConsumerSpecification;
 
+import java.util.Arrays;
+
 @Table("component")
 public class Consumer implements IComponentIdentification, IConsumer {
 
@@ -40,6 +42,12 @@ public class Consumer implements IComponentIdentification, IConsumer {
 
     @Override
     public SupportedTypes getComponentType() { return this.componentType; }
+
+    @Override
+    public boolean itIsMine(int address) {
+        return this.devaddr == address ||
+                Arrays.stream(this.data.getInputs()).anyMatch(e -> e.getDevaddr() == address);
+    }
     //endregion
 
     public ConsumerSpecification getData() {

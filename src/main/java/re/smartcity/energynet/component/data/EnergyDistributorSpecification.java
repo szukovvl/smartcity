@@ -1,9 +1,7 @@
 package re.smartcity.energynet.component.data;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import re.smartcity.energynet.ISpecifications;
 import re.smartcity.energynet.component.ElectricalSubnet;
-import re.smartcity.energynet.IGeneration;
 
 public class EnergyDistributorSpecification implements ISpecifications {
 
@@ -12,9 +10,6 @@ public class EnergyDistributorSpecification implements ISpecifications {
     private byte inaddr; // !!! входная линия
 
     private ElectricalSubnet[] outputs; // подсети потребителей
-
-    @JsonInclude(JsonInclude.Include.NON_ABSENT)
-    private IGeneration generation; // собственная генерация
 
     //region характеристики
     public byte getInaddr() {
@@ -31,14 +26,6 @@ public class EnergyDistributorSpecification implements ISpecifications {
 
     public void setOutputs(ElectricalSubnet[] outputs) {
         this.outputs = outputs;
-    }
-
-    public IGeneration getGeneration() {
-        return generation;
-    }
-
-    public void setGeneration(IGeneration generation) {
-        this.generation = generation;
     }
     //endregion
 

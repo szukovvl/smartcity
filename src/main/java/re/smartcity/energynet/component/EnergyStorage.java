@@ -7,8 +7,6 @@ import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.*;
 import re.smartcity.energynet.component.data.EnergyStorageSpecification;
 
-import java.time.LocalTime;
-
 @Table("component")
 public class EnergyStorage implements IComponentIdentification, IEnergyStorage {
 
@@ -45,6 +43,11 @@ public class EnergyStorage implements IComponentIdentification, IEnergyStorage {
 
     @Override
     public SupportedTypes getComponentType() { return this.componentType; }
+
+    @Override
+    public boolean itIsMine(int address) {
+        return this.devaddr == address;
+    }
     //endregion
 
     public EnergyStorageSpecification getData() {

@@ -44,6 +44,11 @@ public class Generation implements IComponentIdentification, IGeneration {
 
     @Override
     public SupportedTypes getComponentType() { return this.componentType; }
+
+    @Override
+    public boolean itIsMine(int address) {
+        return this.devaddr == address;
+    }
     //endregion
 
     public GenerationSpecification getData() {

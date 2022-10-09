@@ -1,8 +1,5 @@
 package re.smartcity.stand;
 
-import re.smartcity.energynet.IComponentIdentification;
-import re.smartcity.energynet.SupportedTypes;
-
 public final class SerialElementAddresses {
     public final static byte SUN_SIMULATOR = 0x01; // имитатор солнца
     public final static byte WIND_SIMULATOR = 0x02; // имитатор ветра

@@ -6,4 +6,5 @@ public interface IComponentIdentification {
     String getIdenty();
     byte getDevaddr();
     SupportedTypes getComponentType();
+    boolean itIsMine(int address); // определяет принадлежность адреса данному устройству
 }
