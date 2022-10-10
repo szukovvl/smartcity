@@ -8,7 +8,7 @@ import re.smartcity.energynet.*;
 import re.smartcity.energynet.component.data.GreenGenerationSpecification;
 
 @Table("component")
-public class GreenGeneration implements IComponentIdentification {
+public class GreenGeneration implements IComponentIdentification, IGeneration {
 
     // одинаковые для всех
     @JsonProperty(value = "id", access = JsonProperty.Access.READ_ONLY)
