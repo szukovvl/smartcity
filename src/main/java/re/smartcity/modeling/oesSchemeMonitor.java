@@ -267,12 +267,14 @@ public class oesSchemeMonitor implements Runnable {
 
                     // ищу компоненты по полученным адресам и ранее подключенные устройства
                     if (items.length != 0) {
+                        logger.info("-- 1");
                         Arrays.stream(items)
                                 .forEach(b -> { // b - адрес устройства на линии
                                     IOesHub hub = devices.stream()
                                             .filter(a -> a.itIsMine(b)) // ищу у себя
                                             .findFirst()
                                             .orElse(null);
+                                    logger.info("-- 2");
                                     if (hub == null) { // устройства нет
                                         hub = Arrays.stream(
                                                         pack.getTask().getRoot().getDevices() != null
@@ -290,6 +292,7 @@ public class oesSchemeMonitor implements Runnable {
                                                                 .map(OesRootHub::createOther)
                                                                 .orElse(null)
                                                 );
+                                        logger.info("-- 3");
                                         if (hub != null) {
                                             // подключить объект
                                             if (!e.addConection(hub.connectionByAddress(b))) {
@@ -300,6 +303,7 @@ public class oesSchemeMonitor implements Runnable {
                                             }
                                             devices.add(hub);
                                         } else {
+                                            logger.info("-- 4");
                                             // такого объекта нет
                                             e.setError(combineErrorMsg(
                                                     e.getError(), String.format(Messages.FSER_0, b)));
@@ -307,6 +311,7 @@ public class oesSchemeMonitor implements Runnable {
                                         }
                                     } else {
                                         // нашел у себя!
+                                        logger.info("-- 5");
                                         if (!e.addConection(hub.connectionByAddress(b))) {
                                             // подключение не добавлено
                                             e.setError(combineErrorMsg(
@@ -326,7 +331,7 @@ public class oesSchemeMonitor implements Runnable {
                             String.format("%02X", e.getAddress()), e.getConnections());
                 });
 
-        logger.info(":: --= {} =--", String.format("%02X", pack.getDevaddr())); // !!!
+        logger.info(":: --= {}/{} =--", String.format("%02X", pack.getDevaddr()), devices); // !!!
 
         root.setDevices(devices.size() != 0 ? devices.toArray(IOesHub[]::new) : null);
         pack.getTask().setRoot(root);
