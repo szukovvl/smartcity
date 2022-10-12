@@ -22,6 +22,7 @@ public enum GameEventTypes {
     GAME_SCENE_AUCTION_BAY_LOT, // игрок забирает лот
     GAME_SCENE_AUCTION_TIME_LOT, // текущее время лота (остаток)
     GAME_SCENE_SCHEME, // схема
+    GAME_SCHEMA_DATA, // схема
     SCENESDATA, // запрос данных сцен игрока
     ERROR // инициируется только сервисом для конкретного клиента
 }
