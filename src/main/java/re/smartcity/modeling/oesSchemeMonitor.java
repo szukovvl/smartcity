@@ -464,7 +464,7 @@ public class oesSchemeMonitor implements Runnable {
                 StandBinaryPackage pack = scheme.poll();
                 if (pack == null) {
                     if (isMessage) {
-                        logger.info("!!! отправить сообщение...");
+                        modelingData.sendSchemeDataMessage();
                     }
                     isMessage = false;
                     synchronized (_syncThread) {

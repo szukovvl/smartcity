@@ -18,6 +18,7 @@ import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
 import re.smartcity.modeling.data.AuctionSettings;
 import re.smartcity.modeling.data.GamerScenesData;
+import re.smartcity.modeling.scheme.IOesHub;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
@@ -54,6 +55,7 @@ public class GameSocketHandler implements WebSocketHandler {
 
     public GameSocketHandler(ModelingData modelingData) {
         this.modelingData = modelingData;
+        modelingData.setMessenger(this);
     }
 
     private void onSubscribe(WebSocketSession session) {
@@ -760,6 +762,7 @@ public class GameSocketHandler implements WebSocketHandler {
                             .build());
                 }
             }
+            case GAME_SCHEMA_DATA -> sendSchemeDataMessage(session);
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.ERROR)
@@ -952,6 +955,25 @@ public class GameSocketHandler implements WebSocketHandler {
                 .doOnError(this::onError)
                 .doFinally(e -> onFinally(session, e))
                 .then();
+    }
+
+    public void sendSchemeDataMessage(WebSocketSession session) {
+        GameServiceEvent event = GameServiceEvent
+                .type(GameEventTypes.GAME_SCHEMA_DATA)
+                .data(Arrays.stream(modelingData.getTasks())
+                        .map(TaskData::getRoot)
+                        .toArray(IOesHub[]::new))
+                .build();
+        if (session != null) {
+            sendEvent(session, event);
+        } else {
+            sendEventToAll(GameServiceEvent
+                    .type(GameEventTypes.GAME_SCHEMA_DATA)
+                    .data(Arrays.stream(modelingData.getTasks())
+                            .map(TaskData::getRoot)
+                            .toArray(IOesHub[]::new))
+                    .build());
+        }
     }
 
     private class LotExecutor implements Runnable {

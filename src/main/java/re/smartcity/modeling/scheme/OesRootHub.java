@@ -25,6 +25,7 @@ public final class OesRootHub implements IOesHub {
 
     private final IConnectionPort[] outputs;
 
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String error;
 
     private OesRootHub(MainSubstationPowerSystem oes) {

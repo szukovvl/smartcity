@@ -21,6 +21,7 @@ public final class OesPort implements IConnectionPort {
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private IConnectionPort[] connections;
 
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String error;
 
     public OesPort(int address, IOesHub owner) {

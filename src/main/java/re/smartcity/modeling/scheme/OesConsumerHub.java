@@ -1,6 +1,7 @@
 package re.smartcity.modeling.scheme;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.Consumer;
 
@@ -15,6 +16,7 @@ public final class OesConsumerHub implements IOesHub {
 
     private final IConnectionPort[] inputs;
 
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String error;
 
     private OesConsumerHub(Consumer oes) {

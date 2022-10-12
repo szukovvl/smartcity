@@ -2,6 +2,7 @@ package re.smartcity.modeling;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import re.smartcity.config.sockets.GameSocketHandler;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
@@ -30,6 +31,8 @@ public class ModelingData {
 
     private final ConcurrentLinkedQueue<StandBinaryPackage> standSchemes = new ConcurrentLinkedQueue<>();
     private final Object _syncSchemeData = new Object();
+
+    private GameSocketHandler messenger;
 
     //region данные модели
     private TaskData[] tasks;
@@ -122,6 +125,16 @@ public class ModelingData {
         standSchemes.offer(new StandBinaryPackage(devaddr, data));
         synchronized (_syncSchemeData) {
             _syncSchemeData.notifyAll();
+        }
+    }
+
+    public void setMessenger(GameSocketHandler messenger) {
+        this.messenger = messenger;
+    }
+
+    public void sendSchemeDataMessage() {
+        if (this.messenger != null) {
+            messenger.sendSchemeDataMessage(null);
         }
     }
 }

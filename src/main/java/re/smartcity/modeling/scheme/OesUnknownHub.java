@@ -1,13 +1,18 @@
 package re.smartcity.modeling.scheme;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.ElectricalSubnet;
 
 public final class OesUnknownHub implements IOesHub {
 
     private final int address;
+
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String error;
+
     private IConnectionPort port;
+
     private OesUnknownHub(int address) {
         this.address = address;
         this.port = new OesPort(address, this);
