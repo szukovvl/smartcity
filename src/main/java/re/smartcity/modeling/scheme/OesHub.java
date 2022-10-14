@@ -11,6 +11,7 @@ public final class OesHub implements IOesHub {
 
     private final int address;
 
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private final IConnectionPort[] inputs;
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)

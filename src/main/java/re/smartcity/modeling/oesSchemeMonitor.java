@@ -273,21 +273,21 @@ public class oesSchemeMonitor implements Runnable {
                         .toArray(Byte[]::new))
                 .orElse(null);
         if (block == null || block.length == 0) {
-            pack.getTask().getRoot().setError(
-                    combineErrorMsg(pack.getTask().getRoot().getError(), Messages.SER_0));
-            logger.warn(pack.getTask().getRoot().getError()); // !!!
+            root.setError(
+                    combineErrorMsg(root.getError(), Messages.SER_0));
+            logger.warn(root.getError()); // !!!
         } else if (Arrays.stream(block)
-                .noneMatch(b -> b == pack.getTask().getRoot().getControlPort().getAddress())) {
-            pack.getTask().getRoot().setError(
-                    combineErrorMsg(pack.getTask().getRoot().getError(), Messages.SER_2));
-            logger.warn(pack.getTask().getRoot().getError()); // !!!
+                .noneMatch(b -> b == root.getControlPort().getAddress())) {
+            root.setError(
+                    combineErrorMsg(root.getError(), Messages.SER_2));
+            logger.warn(root.getError()); // !!!
         }
 
         // 2. сборка входных линий
-        buildConnections(pack, devices, pack.getTask().getRoot().getInputs());
+        buildConnections(pack, devices, root.getInputs());
 
         // проверки на допустимость подключений
-        Arrays.stream(pack.getTask().getRoot().getInputs())
+        Arrays.stream(root.getInputs())
                 .forEach(e -> {
                     // должно быть не более одного объекта генерации
                     if (e.getConnections() != null) {
@@ -303,10 +303,10 @@ public class oesSchemeMonitor implements Runnable {
                 });
 
         // 3. сборка выходных линий
-        buildConnections(pack, devices, pack.getTask().getRoot().getOutputs());
+        buildConnections(pack, devices, root.getOutputs());
 
         // проверки на допустимость подключений
-        Arrays.stream(pack.getTask().getRoot().getInputs())
+        Arrays.stream(root.getInputs())
                 .forEach(e -> {
                     // могут подключаться только миниподстанции и потребители 1-й и 2-й категорий
                     if (!Arrays.stream(
@@ -348,7 +348,7 @@ public class oesSchemeMonitor implements Runnable {
 
         // пополнить список своих устройств
         // актуально только для выходных линий
-        buildDevices(devices, pack.getTask().getRoot().getOutputs());
+        buildDevices(devices, root.getOutputs());
 
         logger.info(":: --= {}/{} =--", String.format("%02X", pack.getDevaddr()), devices); // !!!
 
