@@ -241,8 +241,8 @@ public class oesSchemeMonitor implements Runnable {
         Arrays.stream(ports)
                 .filter(port -> port.getConnections() != null)
                 .flatMap(port -> Stream.of(port.getConnections())) // подключения на линии
-                .filter(conn -> conn.getOwner().hasOwner())
-                .map(IConnectionPort::getOwner) // обертка компонент
+                .map(IConnectionPort::getOwner)
+                .filter(IOesHub::hasOwner) // обертка компонент
                 .forEach(hub -> {
                     if (target.stream().noneMatch(e -> e.getAddress() == hub.getAddress())) {
                         if (hub.getAddress() == newdev.getAddress()) {
@@ -378,21 +378,16 @@ public class oesSchemeMonitor implements Runnable {
             station.setError(
                     combineErrorMsg(station.getError(), Messages.SER_5));
             logger.warn(station.getError()); // !!!
-        } else { // входная линия имеет подключения
-            if (block.length > 1) {
-                station.setError(
-                        combineErrorMsg(station.getError(), Messages.SER_6));
-                logger.warn(station.getError()); // !!!
-            } else {
+        } else {
                 // что на входной линии, главная подстанция?
                 if (Arrays.stream(modelingData.getTasks())
-                        .noneMatch(a -> a.getRoot().itIsMine(block[0]))) {
+                        .noneMatch(a -> Arrays.stream(block)
+                                .anyMatch(b -> a.getRoot().itIsMine(b)))) {
                     station.setError(
                             combineErrorMsg(station.getError(), Messages.SER_5));
                     logger.warn(station.getError()); // !!!
                 }
             }
-        }
 
         // 2. Добавляю себя в список устройств
         devices.add(station);
@@ -415,7 +410,7 @@ public class oesSchemeMonitor implements Runnable {
                                 }
                             })) {
                         e.setError(
-                                combineErrorMsg(e.getError(), Messages.SER_7));
+                                combineErrorMsg(e.getError(), Messages.SER_6));
                         logger.warn(e.getError()); // !!!
                     }
 

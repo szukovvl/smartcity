@@ -430,6 +430,7 @@ public class GameSocketHandler implements WebSocketHandler {
                     case GAMERS_CHOICE_OES -> modelingData.setGameStatus(GameStatuses.GAMERS_IDENTIFY);
                     case GAMERS_AUCTION_PREPARE -> modelingData.setGameStatus(GameStatuses.GAMERS_CHOICE_OES);
                     case GAMERS_AUCTION_SALE -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_PREPARE);
+                    case GAMERS_SCHEME -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_SALE);
                     default -> {
                         sendEvent(session, GameServiceEvent
                                 .type(GameEventTypes.ERROR)
@@ -459,10 +460,10 @@ public class GameSocketHandler implements WebSocketHandler {
                             .type(GameEventTypes.GAME_SCENE_AUCTION_SALE)
                             .data(buildAuctionSceneResponse())
                             .build());
-                    case GAMERS_SCHEME -> sendEventToAll(GameServiceEvent
+                    /*case GAMERS_SCHEME -> sendEventToAll(GameServiceEvent
                             .type(GameEventTypes.GAME_SCENE_SCHEME)
                             .data(buildSchemeResponse())
-                            .build());
+                            .build());*/
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
                             .data(new GameErrorEvent(event.getType().toString(), Messages.ER_15))
@@ -762,6 +763,10 @@ public class GameSocketHandler implements WebSocketHandler {
                             .build());
                 }
             }
+            case GAME_SCENE_SCHEME -> sendEvent(session, GameServiceEvent
+                    .type(GameEventTypes.GAME_SCENE_SCHEME)
+                    .data(buildSchemeResponse())
+                    .build());
             case GAME_SCHEMA_DATA -> sendSchemeDataMessage(session);
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
