@@ -403,18 +403,24 @@ public class oesSchemeMonitor implements Runnable {
                         .ifPresent(a -> Arrays.stream(a.getOutputs())
                                 // перекидываю только выходы. "a" - миниподстанция в прошлом; "e" - новое устройство (миниподстанция)
                                 .forEach(oldLine -> {
-                                    IConnectionPort targetConn = e.connectionByAddress(oldLine.getAddress());
                                     IConnectionPort[] oldConnections = oldLine.getConnections();
                                     if (oldConnections != null) {
+                                        IConnectionPort targetConn = e.connectionByAddress(oldLine.getAddress());
                                         Arrays.stream(oldConnections)
                                                 .forEach(oldItem -> {
                                                     // перебираю все элементы подключений
-
-                                                    // !!! здесь надо проверить устройство в имеющемся списке !!!
+                                                    IOesHub hub = passingList.stream()
+                                                            .filter(h -> h.getAddress() == oldItem.getOwner().getAddress())
+                                                            .findFirst()
+                                                            .orElse(null);
+                                                    if (hub == null) {
+                                                        hub = oldItem.getOwner();
+                                                        passingList.add(hub);
+                                                    }
 
                                                     try {
                                                         if (!targetConn.addConection(
-                                                                oldItem.getOwner().connectionByAddress(
+                                                                hub.connectionByAddress(
                                                                         oldItem.getAddress()))) {
                                                             logger.error(Messages.FSER_2,
                                                                     oldItem.getAddress(), e.getOwner().getIdenty());
@@ -424,6 +430,11 @@ public class oesSchemeMonitor implements Runnable {
                                                         logger.error(Messages.FSER_3,
                                                                 oldLine.getAddress(), e.getOwner().getIdenty());
                                                     }
+
+
+
+
+                                                    // !!! проверка подключения портов миниподстанции
                                                 });
                                     }
                                 })));
