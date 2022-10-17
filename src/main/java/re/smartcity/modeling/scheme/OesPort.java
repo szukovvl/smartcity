@@ -15,8 +15,8 @@ public final class OesPort implements IConnectionPort {
     @JsonIgnore
     private final IOesHub owner;
 
-    @JsonIgnore
-    private final ElectricalSubnet subnet;
+    // @JsonIgnore
+    // private final ElectricalSubnet subnet;
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private IConnectionPort[] connections;
@@ -27,14 +27,14 @@ public final class OesPort implements IConnectionPort {
     public OesPort(int address, IOesHub owner) {
         this.address = address;
         this.owner = owner;
-        this.subnet = null;
+        // this.subnet = null;
     }
 
-    public OesPort(IOesHub owner, ElectricalSubnet subnet) {
+    /*public OesPort(IOesHub owner, ElectricalSubnet subnet) {
         this.owner = owner;
-        this.subnet = subnet;
+        // this.subnet = subnet;
         this.address = subnet.getDevaddr();
-    }
+    }*/
 
     //region IConnectionPort
     @Override
@@ -43,11 +43,11 @@ public final class OesPort implements IConnectionPort {
     @Override
     public IOesHub getOwner() { return this.owner; }
 
-    @Override
-    public boolean hasSubnet() { return this.subnet != null; }
+    // @Override
+    // public boolean hasSubnet() { return this.subnet != null; }
 
-    @Override
-    public ElectricalSubnet getSubnet() { return this.subnet; }
+    // @Override
+    // public ElectricalSubnet getSubnet() { return this.subnet; }
 
     @Override
     public boolean hasError() { return this.error != null; }

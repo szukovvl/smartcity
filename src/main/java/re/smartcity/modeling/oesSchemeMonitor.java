@@ -105,19 +105,20 @@ public class oesSchemeMonitor implements Runnable {
                                                         e.getError(), String.format(Messages.FSER_1, b)));
                                                 logger.warn(e.getError()); // !!!
                                             }
-                                            devices.add(hub);
                                         } else {
                                             // такого объекта нет
+                                            hub = OesUnknownHub.create(b);
                                             e.setError(combineErrorMsg(
                                                     e.getError(), String.format(Messages.FSER_0, b)));
                                             logger.warn(e.getError()); // !!!
-                                            if (!e.addConection(OesUnknownHub.create(b).connectionByAddress(b))) {
+                                            if (!e.addConection(hub.connectionByAddress(b))) {
                                                 // подключение не добавлено
                                                 e.setError(combineErrorMsg(
                                                         e.getError(), String.format(Messages.FSER_1, b)));
                                                 logger.warn(e.getError()); // !!!
                                             }
                                         }
+                                        devices.add(hub);
                                     } else {
                                         // нашел у себя!
                                         if (!e.addConection(hub.connectionByAddress(b))) {
@@ -132,9 +133,6 @@ public class oesSchemeMonitor implements Runnable {
                         // ничего нет
                         e.setConnections(null);
                     }
-
-                    logger.info("-- объекты порта {}: {}",
-                            String.format("%02X", e.getAddress()), e.getConnections());
                 });
     }
 
@@ -184,19 +182,20 @@ public class oesSchemeMonitor implements Runnable {
                                                         e.getError(), String.format(Messages.FSER_1, b)));
                                                 logger.warn(e.getError()); // !!!
                                             }
-                                            devices.add(hub);
                                         } else {
                                             // такого объекта нет
+                                            hub = OesUnknownHub.create(b);
                                             e.setError(combineErrorMsg(
                                                     e.getError(), String.format(Messages.FSER_0, b)));
                                             logger.warn(e.getError()); // !!!
-                                            if (!e.addConection(OesUnknownHub.create(b).connectionByAddress(b))) {
+                                            if (!e.addConection(hub.connectionByAddress(b))) {
                                                 // подключение не добавлено
                                                 e.setError(combineErrorMsg(
                                                         e.getError(), String.format(Messages.FSER_1, b)));
                                                 logger.warn(e.getError()); // !!!
                                             }
                                         }
+                                        devices.add(hub);
                                     } else {
                                         // нашел у себя!
                                         if (!e.addConection(hub.connectionByAddress(b))) {
@@ -211,9 +210,6 @@ public class oesSchemeMonitor implements Runnable {
                         // ничего нет
                         e.setConnections(null);
                     }
-
-                    logger.info("-- объекты порта {}: {}",
-                            String.format("%02X", e.getAddress()), e.getConnections());
                 });
     }
 
@@ -235,6 +231,7 @@ public class oesSchemeMonitor implements Runnable {
                                 buildDevices(devices, c.getOutputs());
                             }
                         }));
+        logger.info("-- buildDevices: {}", devices);
     }
 
     private void rebuildDeviceList(IConnectionPort[] ports, List<IOesHub> target, IOesHub newdev) {
@@ -244,6 +241,7 @@ public class oesSchemeMonitor implements Runnable {
                 .map(IConnectionPort::getOwner)
                 .filter(IOesHub::hasOwner) // обертка компонент
                 .forEach(hub -> {
+                    logger.info("++ rebuildDeviceList: {}", target);
                     if (target.stream().noneMatch(e -> e.getAddress() == hub.getAddress())) {
                         if (hub.getAddress() == newdev.getAddress()) {
                             target.add(newdev);
@@ -251,14 +249,203 @@ public class oesSchemeMonitor implements Runnable {
                             target.add(hub);
                         }
                     }
+                    logger.info("++ (1) rebuildDeviceList: {}", target);
                     if (hub.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR) {
                         rebuildDeviceList(hub.getOutputs(), target, newdev);
                     }
                 });
     }
 
+    private void buildConnections_A(StandBinaryPackage pack, List<IOesHub> devices, IConnectionPort port) {
+
+        //region 1. получаю только адреса подключенных устройств на линии
+        Byte[] items = Arrays.stream(Arrays.stream(pack.getOesbin())
+                        .filter(l -> Arrays.stream(l)
+                                .anyMatch(b -> b == port.getAddress()))
+                        .findFirst()
+                        .orElse(new Byte[0]))
+                .filter(b -> b != port.getAddress())
+                .toArray(Byte[]::new);
+        //endregion
+
+        logger.info("-- порт {}: [{}]", String.format("%02X", port.getAddress()),
+                SerialPackageBuilder.bytesAsHexString(items));
+
+        //region 2. связываю компоненты
+        Arrays.stream(items)
+                .forEach(b -> { // b - адрес устройства на линии
+                            // ищу в существующих
+                    IOesHub hub = devices.stream()
+                            .filter(a -> a.itIsMine(b))
+                            .findFirst()
+                            .orElse(null);
+                    if (hub == null) { // устройства нет
+                                // ищу сам компонент
+                        hub = Arrays.stream(modelingData.getAllobjects())
+                                .filter(a -> a.itIsMine(b))
+                                .findFirst()
+                                .map(OesRootHub::createOther)
+                                .orElse(OesUnknownHub.create(b)); // если нет - создаю "неизвестный"
+                    }
+
+                    // подключаю объект к линии
+                    port.addConection(hub.connectionByAddress(b));
+                    devices.add(hub);
+                });
+        //endregion
+    }
+
+    private void rootOesChanged_A(StandBinaryPackage pack) {
+        OesRootHub root = OesRootHub.create(pack.getTask().getPowerSystem());
+
+        //region 1. проверка подключения к блоку управления
+        Byte[] block = Arrays.stream(pack.getOesbin())
+                .filter(e -> Arrays.stream(e)
+                        .anyMatch(SerialElementAddresses::isControlBlock))
+                .findFirst()
+                .map(b -> Arrays.stream(b)
+                        .filter(a -> !SerialElementAddresses.isControlBlock(a))
+                        .toArray(Byte[]::new))
+                .orElse(null);
+        if (block == null || block.length == 0) {
+            root.setError(
+                    combineErrorMsg(root.getError(), Messages.SER_0));
+        } else if (Arrays.stream(block)
+                .noneMatch(b -> b == root.getControlPort().getAddress())) {
+            root.setError(
+                    combineErrorMsg(root.getError(), Messages.SER_2));
+        }
+        //endregion
+
+        List<IOesHub> passingList = new ArrayList<>();
+
+        // 2. сборка входных линий
+        Arrays.stream(root.getInputs())
+                        .forEach(line -> buildConnections_A(pack, passingList, line));
+
+        logger.info("-- входные линии: {}", passingList);
+
+        //region 3. проверки на допустимость подключений
+        Arrays.stream(root.getInputs())
+                .filter(e -> e.getConnections() != null && e.getConnections().length != 0)
+                .forEach(e -> {
+                    // должно быть не более одного объекта генерации
+                    if (e.getConnections().length > 1 ||
+                            (!e.getConnections()[0].getOwner().hasOwner()) ||
+                            (!e.getConnections()[0].getOwner().getClass().isAssignableFrom(IGeneration.class))) {
+                        e.setError(
+                                combineErrorMsg(e.getError(), Messages.SER_1));
+                    }
+                });
+        //endregion
+
+        // 4. сборка выходных линий
+        Arrays.stream(root.getOutputs())
+                .forEach(line -> buildConnections_A(pack, passingList, line));
+
+        logger.info("-- выходные линии: {}", passingList);
+
+        //region 5. проверки на допустимость подключений
+        Arrays.stream(root.getOutputs())
+                .filter(e -> e.getConnections() != null && e.getConnections().length != 0)
+                .forEach(e -> {
+                    // могут подключаться только миниподстанции и потребители 1-й и 2-й категорий
+                    if (!Arrays.stream(e.getConnections())
+                            .allMatch(c -> {
+                                if (c.getOwner().hasOwner()) {
+                                    switch (c.getOwner().getOwner().getComponentType()) {
+                                        case DISTRIBUTOR -> { return true; }
+                                        case CONSUMER -> {
+                                            ConsumerSpecification pars = ((Consumer) c.getOwner().getOwner()).getData();
+                                            return pars.getConsumertype() == SupportedConsumers.HOSPITAL ||
+                                                    pars.getConsumertype() == SupportedConsumers.INDUSTRY;
+                                        }
+                                        default -> { return false; }
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            })) {
+                        e.setError(
+                                combineErrorMsg(e.getError(), Messages.SER_3));
+                    }
+
+                    // одно и то же устройство не может быть подключено более одного раза
+                    Set<Integer> items = new HashSet<>();
+                    if (Arrays.stream(e.getConnections())
+                            .filter(c -> c.getOwner().hasOwner())
+                            .map(c -> c.getOwner().getAddress())
+                            .anyMatch(n -> !items.add(n))) {
+                        e.setError(
+                                combineErrorMsg(e.getError(), Messages.SER_4));
+                    }
+                });
+        //endregion
+
+        /*
+        // пополнить список своих устройств
+        // актуально только для выходных линий
+        buildDevices(devices, root.getOutputs());
+        logger.info(">> buildDevices: {}", devices);
+
+        root.setDevices(devices.size() != 0 ? devices.toArray(IOesHub[]::new) : null);
+        pack.getTask().setRoot(root);
+        */
+
+        // 6. возможно, есть где-то миниподстанция...
+        passingList.stream()
+                .filter(IOesHub::hasOwner)
+                .filter(e -> e.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR)
+                .forEach(e -> Arrays.stream(pack.getTask().getRoot().getDevices())
+                        // ищу в уже подключенных. "e" - новое устройство
+                        .filter(a -> a.getAddress() == e.getAddress())
+                        .findFirst()
+                        .ifPresent(a -> Arrays.stream(a.getOutputs())
+                                // перекидываю только выходы. "a" - миниподстанция в прошлом; "e" - новое устройство (миниподстанция)
+                                .forEach(oldLine -> {
+                                    IConnectionPort targetConn = e.connectionByAddress(oldLine.getAddress());
+                                    IConnectionPort[] oldConnections = oldLine.getConnections();
+                                    if (oldConnections != null) {
+                                        Arrays.stream(oldConnections)
+                                                .forEach(oldItem -> {
+                                                    // перебираю все элементы подключений
+
+                                                    // !!! здесь надо проверить устройство в имеющемся списке !!!
+
+                                                    try {
+                                                        if (!targetConn.addConection(
+                                                                oldItem.getOwner().connectionByAddress(
+                                                                        oldItem.getAddress()))) {
+                                                            logger.error(Messages.FSER_2,
+                                                                    oldItem.getAddress(), e.getOwner().getIdenty());
+                                                        }
+                                                    }
+                                                    catch (NullPointerException ex) {
+                                                        logger.error(Messages.FSER_3,
+                                                                oldLine.getAddress(), e.getOwner().getIdenty());
+                                                    }
+                                                });
+                                    }
+                                })));
+
+        root.setDevices(passingList.size() != 0 ? passingList.toArray(IOesHub[]::new) : null);
+        pack.getTask().setRoot(root);
+
+        // !!!
+        if (root.hasError()) {
+            logger.warn(root.getError());
+        }
+        Arrays.stream(root.getInputs())
+                .filter(IConnectionPort::hasError)
+                .map(IConnectionPort::getError)
+                .forEach(logger::warn);
+        Arrays.stream(root.getOutputs())
+                .filter(IConnectionPort::hasError)
+                .map(IConnectionPort::getError)
+                .forEach(logger::warn);
+    }
+
     private void rootOesChanged(StandBinaryPackage pack) {
-        logger.info("--= {} =--", String.format("%02X", pack.getDevaddr())); // !!!
         // !!! не отслеживаю количество подключений - считаю их неизменными.
         OesRootHub root = OesRootHub.create(pack.getTask().getPowerSystem());
         List<IOesHub> devices = new ArrayList<>();
@@ -344,20 +531,16 @@ public class oesSchemeMonitor implements Runnable {
                     }
                 });
 
-        logger.info(":: --= {}/{} =--", String.format("%02X", pack.getDevaddr()), devices); // !!!
-
         // пополнить список своих устройств
         // актуально только для выходных линий
         buildDevices(devices, root.getOutputs());
-
-        logger.info(":: --= {}/{} =--", String.format("%02X", pack.getDevaddr()), devices); // !!!
+        logger.info(">> buildDevices: {}", devices);
 
         root.setDevices(devices.size() != 0 ? devices.toArray(IOesHub[]::new) : null);
         pack.getTask().setRoot(root);
     }
 
     private void distributorOesChanged(StandBinaryPackage pack) {
-        logger.info("--= МП -- {} =--", String.format("%02X", pack.getDevaddr())); // !!!
         // создаю список устройств
         List<IOesHub> devices = new ArrayList<>();
 
@@ -390,7 +573,7 @@ public class oesSchemeMonitor implements Runnable {
             }
 
         // 2. Добавляю себя в список устройств
-        devices.add(station);
+        // devices.add(station); !!!
 
         // 3. Собираю выходные линии
         buildConnectionsAll(pack, devices, station.getOutputs());
@@ -431,21 +614,21 @@ public class oesSchemeMonitor implements Runnable {
         Arrays.stream(modelingData.getTasks())
                         .forEach(e -> {
                             List<IOesHub> target = new ArrayList<>();
+                            logger.info(">> rebuildDeviceList: {}", e.getRoot().getDevices());
                             rebuildDeviceList(e.getRoot().getOutputs(), target, station);
+                            logger.info("-- rebuildDeviceList: {}", target);
                             e.getRoot().setDevices(target.size() != 0 ? target.toArray(IOesHub[]::new) : null);
                         });
-
-
-        logger.info(":: --= МП -- {} =--", String.format("%02X", pack.getDevaddr())); // !!!
     }
 
     private void checkAndBuild(StandBinaryPackage pack) {
         if (pack.getTask() != null) {
-            rootOesChanged(pack);
+            // rootOesChanged(pack);
+            rootOesChanged_A(pack);
         } else if (pack.getOes().getComponentType() == SupportedTypes.DISTRIBUTOR) {
             // это или миниподстанция или потребитель 1, 2-й категорий
             // думаю, что вес имеют только миниподстанции, соответственно, потребителей скидываю...
-            distributorOesChanged(pack);
+            // distributorOesChanged(pack);
         }
     }
 
@@ -508,9 +691,6 @@ public class oesSchemeMonitor implements Runnable {
                             }
                         }
                 }
-
-                logger.info(String.format("- устройство %02X:", pack.getDevaddr()));
-                Arrays.stream(pack.getOesbin()).forEach(e -> logger.info("- {}", SerialPackageBuilder.bytesAsHexString(e)));
 
                 /*
                 Для дальнейшей обработки используются только главные подстанции, миниподстанции и 2-х входовые потребители;

@@ -40,4 +40,6 @@ public final class Messages {
 
     public final static String FSER_0 = "Неизвестный объект 0x%02X.";
     public final static String FSER_1 = "Объект не подключен 0x%02X.";
+    public final static String FSER_2 = "Невосстановленное подключение для порта {} элемента {}";
+    public final static String FSER_3 = "Нарушение идентичности порта {} элемента {}";
 }
