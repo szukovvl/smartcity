@@ -58,6 +58,7 @@ public class oesSchemeMonitor implements Runnable {
         return appendMsg;
     }
 
+    /*
     private void buildConnections(StandBinaryPackage pack, List<IOesHub> devices, IConnectionPort[] ports) {
         Arrays.stream(ports)
                 .forEach(e -> {
@@ -135,7 +136,9 @@ public class oesSchemeMonitor implements Runnable {
                     }
                 });
     }
+    */
 
+    /*
     private void buildConnectionsAll(StandBinaryPackage pack, List<IOesHub> devices, IConnectionPort[] ports) {
         Arrays.stream(ports)
                 .forEach(e -> {
@@ -212,7 +215,9 @@ public class oesSchemeMonitor implements Runnable {
                     }
                 });
     }
+    */
 
+    /*
     private void buildDevices(List<IOesHub> devices, IConnectionPort[] ports) {
         // дополняю список устройств от текущего
         Arrays.stream(ports)
@@ -233,7 +238,9 @@ public class oesSchemeMonitor implements Runnable {
                         }));
         logger.info("-- buildDevices: {}", devices);
     }
+    */
 
+    /*
     private void rebuildDeviceList(IConnectionPort[] ports, List<IOesHub> target, IOesHub newdev) {
         Arrays.stream(ports)
                 .filter(port -> port.getConnections() != null)
@@ -255,6 +262,7 @@ public class oesSchemeMonitor implements Runnable {
                     }
                 });
     }
+    */
 
     private void buildConnections_A(StandBinaryPackage pack, List<IOesHub> devices, IConnectionPort port) {
 
@@ -316,7 +324,7 @@ public class oesSchemeMonitor implements Runnable {
                     combineErrorMsg(root.getError(), Messages.SER_2));
         }
 
-        root.setConnected(root.getError() == null);
+        root.setConnected(root.getError() == null); // если есть ошибки - подключение к блоку управления отсутствует
         //endregion
 
         List<IOesHub> passingList = new ArrayList<>();
@@ -356,7 +364,9 @@ public class oesSchemeMonitor implements Runnable {
                             .allMatch(c -> {
                                 if (c.getOwner().hasOwner()) {
                                     switch (c.getOwner().getOwner().getComponentType()) {
-                                        case DISTRIBUTOR -> { return true; }
+                                        case DISTRIBUTOR -> {
+                                            return c.getAddress() == c.getOwner().getInputs()[0].getAddress();
+                                        }
                                         case CONSUMER -> {
                                             ConsumerSpecification pars = ((Consumer) c.getOwner().getOwner()).getData();
                                             return pars.getConsumertype() == SupportedConsumers.HOSPITAL ||
@@ -384,17 +394,7 @@ public class oesSchemeMonitor implements Runnable {
                 });
         //endregion
 
-        /*
-        // пополнить список своих устройств
-        // актуально только для выходных линий
-        buildDevices(devices, root.getOutputs());
-        logger.info(">> buildDevices: {}", devices);
-
-        root.setDevices(devices.size() != 0 ? devices.toArray(IOesHub[]::new) : null);
-        pack.getTask().setRoot(root);
-        */
-
-        // 6. возможно, есть где-то миниподстанция...
+        //region 6. возможно, есть где-то миниподстанция...
         passingList.stream()
                 .filter(IOesHub::hasOwner)
                 .filter(e -> e.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR)
@@ -467,6 +467,7 @@ public class oesSchemeMonitor implements Runnable {
                                                 });
                                     }
                                 })));
+        //endregion
 
         root.setDevices(passingList.size() != 0 ? passingList.toArray(IOesHub[]::new) : null);
         pack.getTask().setRoot(root);
@@ -485,6 +486,152 @@ public class oesSchemeMonitor implements Runnable {
                 .forEach(logger::warn);
     }
 
+    private void distributorOesChanged_A(StandBinaryPackage pack) {
+        // подключаемая станция
+        OesDistributorHub station = OesDistributorHub.create((EnergyDistributor) pack.getOes());
+
+        //region 1. определяю, куда подключена подстанция...
+        Byte[] block = Arrays.stream(pack.getOesbin())
+                .filter(e -> Arrays.stream(e)
+                        .anyMatch(b -> b == station.getInputs()[0].getAddress())) // миниподстанция имеет только один порт подключения
+                .findFirst()
+                .map(b -> Arrays.stream(b)
+                        .filter(a -> !(a == station.getInputs()[0].getAddress()))
+                        .toArray(Byte[]::new))
+                .orElse(new Byte[0]);
+
+        // получил список устройств, которые есть на входной линии миниподстанции
+        // выделяю главную подстанцию
+        TaskData task = null;
+        for (TaskData item : modelingData.getTasks()) {
+            if (Arrays.stream(block)
+                    .anyMatch(b -> Arrays.stream(item.getRoot().getOutputs())
+                            .anyMatch(a -> a.getAddress() == b))) {
+                task = item;
+                break;
+            }
+        }
+        if (task == null) {
+            // подключена куда-то в другое место...
+            // ищу в списках устройств на наличие данной подстанции
+            IOesHub hub = Arrays.stream(modelingData.getTasks())
+                    .map(e -> e.getRoot())
+                    .flatMap(e -> Stream.of(e.getDevices()))
+                    .filter(e -> e.getAddress() == station.getAddress())
+                    .findFirst()
+                    .orElse(null);
+            if (hub != null) {
+                // нашел где-то свою подстанцию и устанавливаю для нее ошибку
+                hub.setError(combineErrorMsg(
+                        hub.getError(), Messages.SER_7));
+                logger.warn(hub.getError()); // !!!
+                // больше ничего не делаю и прекращаю обработку...
+            } else {
+                // непонятно, где болтается данная миниподстанция...
+                // запрашиваю схему повторно, на всякий случай.
+                // !!! сделю позже
+                logger.warn("(!-1) запросить схему повторно для {} (#{})",
+                        station.getOwner().getIdenty(), station.getAddress()); // !!!
+            }
+            return;
+        }
+
+        // подстанцию определил, выбираю порт подключения...
+        // !!! не проверяю объединение выходов подстанций (подстанции)
+        // выделяю себя из списка устройств, прикрепленного к данной подстанции...
+        IOesHub oldStation = Arrays.stream(task.getRoot().getDevices())
+                .filter(e -> e.getAddress() == station.getAddress())
+                .findFirst()
+                .orElse(null);
+        IConnectionPort mainPort = null;
+        for (IConnectionPort output : task.getRoot().getOutputs()) {
+            if (output.getConnections() != null) {
+                if (Arrays.stream(output.getConnections())
+                        .anyMatch(conn -> conn.getAddress() == station.getInputs()[0].getAddress())) {
+                    mainPort = output;
+                    break;
+                }
+            }
+        }
+        if (mainPort == null) {
+            // к главной станции не подключена...
+            if (oldStation != null) {
+                oldStation.setError(combineErrorMsg(
+                        oldStation.getError(), Messages.SER_7));
+                logger.warn(oldStation.getError()); // !!!
+            } else {
+                // запросить схему повторно?
+                // !!! сделю позже
+                logger.warn("(!-2) запросить схему повторно для {} (#{})",
+                        station.getOwner().getIdenty(), station.getAddress()); // !!!
+            }
+            return;
+        }
+        //endregion
+
+        // вроде подключена нормально...
+        //region 2. корректирую существующие подключения (список не пересобираю заново)
+        // удаляю подключение из существующих
+        mainPort.setConnections(Arrays.stream(mainPort.getConnections())
+                .filter(conn -> conn.getAddress() != station.getInputs()[0].getAddress())
+                .toArray(IConnectionPort[]::new));
+
+        // удаляю старое устройство из списка
+        List<IOesHub> passingList = new ArrayList<>(Arrays.stream(task.getRoot().getDevices())
+                .filter(dev -> dev.getAddress() != station.getAddress())
+                .toList());
+
+        // создаю подключение и добавляю себя в список
+        passingList.add(station);
+        mainPort.addConection(station.getInputs()[0]);
+        //endregion
+
+        // 3. сборка выходных линий
+        Arrays.stream(station.getOutputs())
+                .forEach(line -> buildConnections_A(pack, passingList, line));
+
+        logger.info("-- {} выходные линии: {}", station.getOwner().getIdenty(), passingList);
+
+        // 4. проверяю допустимость подключений...
+        Arrays.stream(station.getOutputs())
+                .filter(e -> e.getConnections() != null && e.getConnections().length != 0)
+                .forEach(e -> {
+                    // могут подключаться только потребители 3-й категории
+                    if (!Arrays.stream(e.getConnections())
+                            .allMatch(c -> {
+                                if (c.getOwner().hasOwner()) {
+                                    ConsumerSpecification pars = ((Consumer) c.getOwner().getOwner()).getData();
+                                    return pars.getConsumertype() == SupportedConsumers.DISTRICT;
+                                } else {
+                                    return false;
+                                }
+                            })) {
+                        e.setError(
+                                combineErrorMsg(e.getError(), Messages.SER_6));
+                    }
+
+                    // одно и то же устройство не может быть подключено более одного раза
+                    Set<Integer> items = new HashSet<>();
+                    if (Arrays.stream(e.getConnections())
+                            .filter(c -> c.getOwner().hasOwner())
+                            .map(c -> c.getOwner().getAddress())
+                            .anyMatch(n -> !items.add(n))) {
+                        e.setError(
+                                combineErrorMsg(e.getError(), Messages.SER_4));
+                    }
+                });
+
+        // 5. сохраняю
+        task.getRoot().setDevices(passingList.size() != 0 ? passingList.toArray(IOesHub[]::new) : null);
+
+        // !!!
+        Arrays.stream(station.getOutputs())
+                .filter(IConnectionPort::hasError)
+                .map(IConnectionPort::getError)
+                .forEach(logger::warn);
+    }
+
+    /*
     private void rootOesChanged(StandBinaryPackage pack) {
         // !!! не отслеживаю количество подключений - считаю их неизменными.
         OesRootHub root = OesRootHub.create(pack.getTask().getPowerSystem());
@@ -579,7 +726,9 @@ public class oesSchemeMonitor implements Runnable {
         root.setDevices(devices.size() != 0 ? devices.toArray(IOesHub[]::new) : null);
         pack.getTask().setRoot(root);
     }
+    */
 
+    /*
     private void distributorOesChanged(StandBinaryPackage pack) {
         // создаю список устройств
         List<IOesHub> devices = new ArrayList<>();
@@ -660,15 +809,15 @@ public class oesSchemeMonitor implements Runnable {
                             e.getRoot().setDevices(target.size() != 0 ? target.toArray(IOesHub[]::new) : null);
                         });
     }
+    */
 
     private void checkAndBuild(StandBinaryPackage pack) {
         if (pack.getTask() != null) {
-            // rootOesChanged(pack);
             rootOesChanged_A(pack);
         } else if (pack.getOes().getComponentType() == SupportedTypes.DISTRIBUTOR) {
             // это или миниподстанция или потребитель 1, 2-й категорий
             // думаю, что вес имеют только миниподстанции, соответственно, потребителей скидываю...
-            // distributorOesChanged(pack);
+            distributorOesChanged_A(pack);
         }
     }
 
