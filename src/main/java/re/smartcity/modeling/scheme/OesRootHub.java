@@ -28,6 +28,8 @@ public final class OesRootHub implements IOesHub {
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String error;
 
+    private boolean connected = false;
+
     private OesRootHub(MainSubstationPowerSystem oes) {
         this.owner = oes;
         this.address = oes.getDevaddr();
@@ -105,6 +107,14 @@ public final class OesRootHub implements IOesHub {
 
     public void setDevices(IOesHub[] devices) {
         this.devices = devices;
+    }
+
+    public boolean isConnected() {
+        return connected;
+    }
+
+    public void setConnected(boolean connected) {
+        this.connected = connected;
     }
 
     public static OesRootHub create(MainSubstationPowerSystem oes) {

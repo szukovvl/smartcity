@@ -315,6 +315,8 @@ public class oesSchemeMonitor implements Runnable {
             root.setError(
                     combineErrorMsg(root.getError(), Messages.SER_2));
         }
+
+        root.setConnected(root.getError() == null);
         //endregion
 
         List<IOesHub> passingList = new ArrayList<>();
@@ -431,10 +433,37 @@ public class oesSchemeMonitor implements Runnable {
                                                                 oldLine.getAddress(), e.getOwner().getIdenty());
                                                     }
 
+                                                    // куда подключена...
+                                                    if (Arrays.stream(root.getOutputs())
+                                                            .filter(c -> c.getConnections() != null)
+                                                            .flatMap(c -> Stream.of(c.getConnections()))
+                                                            .noneMatch(c -> Arrays.stream(e.getInputs())
+                                                                    .anyMatch(d -> d.getAddress() == c.getAddress()))) {
+                                                        e.setError(
+                                                                combineErrorMsg(e.getError(), Messages.SER_7));
+                                                    }
 
-
-
-                                                    // !!! проверка подключения портов миниподстанции
+                                                    // что подключено ...
+                                                    Arrays.stream(e.getOutputs())
+                                                            .filter(d -> d.getConnections() != null)
+                                                            .forEach(d -> Arrays.stream(d.getConnections())
+                                                                    .forEach(b -> {
+                                                                        if (b.getOwner().hasOwner()) {
+                                                                            if (b.getOwner().getOwner().getComponentType() == SupportedTypes.CONSUMER) {
+                                                                                ConsumerSpecification data = ((Consumer) b.getOwner().getOwner()).getData();
+                                                                                if (data.getConsumertype() != SupportedConsumers.DISTRICT) {
+                                                                                    d.setError(
+                                                                                            combineErrorMsg(d.getError(), Messages.SER_6));
+                                                                                }
+                                                                            } else {
+                                                                                d.setError(
+                                                                                        combineErrorMsg(d.getError(), Messages.SER_6));
+                                                                            }
+                                                                        } else {
+                                                                            d.setError(
+                                                                                    combineErrorMsg(d.getError(), Messages.SER_6));
+                                                                        }
+                                                                    }));
                                                 });
                                     }
                                 })));

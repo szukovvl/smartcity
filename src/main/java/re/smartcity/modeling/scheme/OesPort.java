@@ -30,11 +30,11 @@ public final class OesPort implements IConnectionPort {
         // this.subnet = null;
     }
 
-    /*public OesPort(IOesHub owner, ElectricalSubnet subnet) {
+    public OesPort(IOesHub owner, ElectricalSubnet subnet) {
         this.owner = owner;
         // this.subnet = subnet;
         this.address = subnet.getDevaddr();
-    }*/
+    }
 
     //region IConnectionPort
     @Override
