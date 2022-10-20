@@ -131,7 +131,7 @@ public class StandService {
         if (executorService == null)
         {
             // !!!
-            Executors.newSingleThreadExecutor().execute(() -> {
+            /*Executors.newSingleThreadExecutor().execute(() -> {
                 List<Byte[]> items = Arrays.asList(
                         new Byte[] {
                                 0x61,
@@ -189,7 +189,7 @@ public class StandService {
                             catch (InterruptedException ignored) { }
                         }
                 );
-            });
+            });*/
             // !!!
 
             executorService = Executors.newSingleThreadExecutor();
