@@ -131,8 +131,10 @@ public class StandService {
         if (executorService == null)
         {
             // !!!
-            /*Executors.newSingleThreadExecutor().execute(() -> {
+            Executors.newSingleThreadExecutor().execute(() -> {
                 List<Byte[]> items = Arrays.asList(
+                // неверная схема
+                /* 
                         new Byte[] {
                                 0x61,
                                 0x1E, SEQUENCE_SEPARATOR,
@@ -176,6 +178,30 @@ public class StandService {
                                 0x03, 0x36, SEQUENCE_SEPARATOR,
                                 0x31, 0x37
                         }
+                 */
+                // одно устройство генерации и микрорайон
+                // 1F 29  | 17 2A  | 2B  | 2C  | 2D  | 2E  | 0E 2F
+                        new Byte[] {
+                                0x62,
+                                0x1E, 0x22, SEQUENCE_SEPARATOR,
+                                0x16, 0x23, SEQUENCE_SEPARATOR,
+                                0x24, 0x1B, SEQUENCE_SEPARATOR,
+                                0x25, 0x08, SEQUENCE_SEPARATOR,
+                                0x26, SEQUENCE_SEPARATOR,
+                                0x27, SEQUENCE_SEPARATOR,
+                                0x08
+                        },
+                        new Byte[] {
+                                0x63,
+                                0x1F, 0x29, SEQUENCE_SEPARATOR,
+                                0x07, 0x2A, SEQUENCE_SEPARATOR,
+                                0x2B, SEQUENCE_SEPARATOR,
+                                0x2C, SEQUENCE_SEPARATOR,
+                                0x2D, SEQUENCE_SEPARATOR,
+                                0x2E, SEQUENCE_SEPARATOR,
+                                0x0E //, 0x2F
+                        }
+
                 );
 
                 items.forEach(e -> {
@@ -189,7 +215,7 @@ public class StandService {
                             catch (InterruptedException ignored) { }
                         }
                 );
-            });*/
+            });
             // !!!
 
             executorService = Executors.newSingleThreadExecutor();
