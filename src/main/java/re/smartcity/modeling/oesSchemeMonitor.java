@@ -81,7 +81,9 @@ public class oesSchemeMonitor implements Runnable {
                             .filter(a -> a.itIsMine(b))
                             .findFirst()
                             .orElse(null);
+                    boolean toList = false;
                     if (hub == null) { // устройства нет
+                        toList = true;
                                 // ищу сам компонент
                         hub = Arrays.stream(modelingData.getAllobjects())
                                 .filter(a -> a.itIsMine(b))
@@ -92,7 +94,9 @@ public class oesSchemeMonitor implements Runnable {
 
                     // подключаю объект к линии
                     port.addConection(hub.connectionByAddress(b));
-                    devices.add(hub);
+                    if (toList) {
+                        devices.add(hub);
+                    }
                 });
         //endregion
     }
@@ -198,7 +202,11 @@ public class oesSchemeMonitor implements Runnable {
         passingList.stream()
                 .filter(IOesHub::hasOwner)
                 .filter(e -> e.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR)
-                .forEach(e -> Arrays.stream(pack.getTask().getRoot().getDevices())
+                .forEach(e -> Arrays.stream(
+                            pack.getTask().getRoot().getDevices() != null
+                                    ? pack.getTask().getRoot().getDevices()
+                                    : new IOesHub[0]
+                        )
                         // ищу в уже подключенных. "e" - новое устройство
                         .filter(a -> a.getAddress() == e.getAddress())
                         .findFirst()
@@ -518,6 +526,7 @@ public class oesSchemeMonitor implements Runnable {
             }
             catch (Exception ex) {
                 logger.error(ex.getMessage());
+                // ex.printStackTrace();
                 errorCount++;
                 if (errorCount > 5) {
                     errorCount = 0;
