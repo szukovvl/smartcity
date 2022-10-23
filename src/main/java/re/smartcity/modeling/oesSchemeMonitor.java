@@ -407,7 +407,8 @@ public class oesSchemeMonitor implements Runnable {
                     // могут подключаться только потребители 3-й категории
                     if (!Arrays.stream(e.getConnections())
                             .allMatch(c -> {
-                                if (c.getOwner().hasOwner()) {
+                                if (c.getOwner().hasOwner() &&
+                                        c.getOwner().getOwner().getComponentType() == SupportedTypes.CONSUMER) {
                                     ConsumerSpecification pars = ((Consumer) c.getOwner().getOwner()).getData();
                                     return pars.getConsumertype() == SupportedConsumers.DISTRICT;
                                 } else {

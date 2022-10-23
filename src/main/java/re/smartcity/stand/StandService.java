@@ -179,8 +179,8 @@ public class StandService {
                                 0x31, 0x37
                         }
                  */
-                // одно устройство генерации и микрорайон
-                // 1F 29  | 17 2A  | 2B  | 2C  | 2D  | 2E  | 0E 2F
+                //
+                //
                         new Byte[] {
                                 0x62,
                                 0x1E, 0x22, SEQUENCE_SEPARATOR,
@@ -199,9 +199,15 @@ public class StandService {
                                 0x2C, SEQUENCE_SEPARATOR,
                                 0x2D, 0x37, 0x3E, SEQUENCE_SEPARATOR,
                                 0x2E, 0x36, SEQUENCE_SEPARATOR,
-                                0x2F, 0x3F, 0x30
+                                0x2F, 0x30, 0x3F
+                        },
+                        // 2F 30  | 0E 31  | 32
+                        new Byte[] {
+                                0x64,
+                                0x2F, 0x30, SEQUENCE_SEPARATOR,
+                                0x31, 0x0E, 0x0D, 0x0F, SEQUENCE_SEPARATOR,
+                                0x32, 0x11, 0x10, SEQUENCE_SEPARATOR
                         }
-
                 );
 
                 items.forEach(e -> {
