@@ -4,10 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
+import re.smartcity.common.CommonStorage;
+import re.smartcity.common.data.Tariffs;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.config.sockets.model.*;
 import re.smartcity.energynet.IComponentIdentification;
@@ -29,12 +32,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
 @Component
 public class GameSocketHandler implements WebSocketHandler {
 
     private final Logger logger = LoggerFactory.getLogger(GameSocketHandler.class);
+
+    @Autowired
+    private CommonStorage commonStorage;
 
     private final Map<String, WebSocketSession> guests = new ConcurrentHashMap<>();
     private final ModelingData modelingData;
@@ -883,15 +890,37 @@ public class GameSocketHandler implements WebSocketHandler {
 
     private synchronized ResponseSchemeData[] buildSchemeResponse() {
         List<ResponseSchemeData> data = new ArrayList<>();
+
+        // !!! кривова-то как-то
+        AtomicReference<Double> tp = new AtomicReference<>(0.0);
+        commonStorage.getAndCreate(Tariffs.key, Tariffs.class)
+                .subscribe(e -> {
+                    synchronized (tp) {
+                        tp.set(e.getData().getTech_price());
+                        tp.notifyAll();
+                    }
+                });
+
+        try {
+            synchronized (tp) {
+                tp.wait(5000);
+            }
+        }
+        catch (InterruptedException ex) {
+            logger.error(ex.getMessage());
+        }
+
         for (TaskData task : modelingData.getTasks()) {
             ResponseSchemeDataBuilder builder = ResponseSchemeData.build(task.getPowerSystem().getDevaddr());
 
             builder
                     .substation(task.getScenesData().getSubstation().getDevaddr())
-                            .consumers(Arrays.stream(task.getScenesData().getPredefconsumers())
-                                    .mapToInt(Consumer::getDevaddr)
-                                    .toArray())
-                                    .tcconsumers(task.getChoicesScene());
+                    .consumers(Arrays.stream(task.getScenesData().getPredefconsumers())
+                            .mapToInt(Consumer::getDevaddr)
+                            .toArray())
+                    .tcconsumers(task.getChoicesScene())
+                    .tcprice(tp.get())
+                    .generators(task.getAuctionScene());
 
             data.add(builder.build());
         }
