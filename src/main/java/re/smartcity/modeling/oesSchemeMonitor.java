@@ -199,7 +199,9 @@ public class oesSchemeMonitor implements Runnable {
         //endregion
 
         //region 6. возможно, есть где-то миниподстанция...
+        List<IOesHub> newDev = new ArrayList<>();
         passingList.stream()
+        // Arrays.stream(passingList.toArray(IOesHub[]::new)) // !!! (???)
                 .filter(IOesHub::hasOwner)
                 .filter(e -> e.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR)
                 .forEach(e -> Arrays.stream(
@@ -210,56 +212,67 @@ public class oesSchemeMonitor implements Runnable {
                         // ищу в уже подключенных. "e" - новое устройство
                         .filter(a -> a.getAddress() == e.getAddress())
                         .findFirst()
-                        .ifPresent(a -> Arrays.stream(a.getOutputs())
+                        .ifPresent(a -> Arrays.stream(a.getOutputs() != null
+                                        ? a.getOutputs()
+                                        : new IConnectionPort[0])
                                 // перекидываю только выходы. "a" - миниподстанция в прошлом; "e" - новое устройство (миниподстанция)
                                 .forEach(oldLine -> {
                                     IConnectionPort[] oldConnections = oldLine.getConnections();
-                                    if (oldConnections != null) {
+                                    if (oldConnections != null && oldConnections.length != 0) {
                                         IConnectionPort targetConn = e.connectionByAddress(oldLine.getAddress());
-                                        Arrays.stream(oldConnections)
-                                                .forEach(oldItem -> {
-                                                    // перебираю все элементы подключений
-                                                    IOesHub hub = passingList.stream()
-                                                            .filter(h -> h.getAddress() == oldItem.getOwner().getAddress())
-                                                            .findFirst()
-                                                            .orElse(null);
-                                                    if (hub == null) {
-                                                        hub = oldItem.getOwner();
-                                                        passingList.add(hub);
-                                                    }
-
-                                                    try {
-                                                        if (!targetConn.addConection(
-                                                                hub.connectionByAddress(
-                                                                        oldItem.getAddress()))) {
-                                                            logger.error(Messages.FSER_2,
-                                                                    oldItem.getAddress(), e.getOwner().getIdenty());
+                                        if (targetConn != null) { // !!!
+                                            Arrays.stream(oldConnections)
+                                                    .forEach(oldItem -> {
+                                                        // перебираю все элементы подключений
+                                                        IOesHub hub = passingList.stream()
+                                                                .filter(h -> h.getAddress() == oldItem.getOwner().getAddress())
+                                                                .findFirst()
+                                                                .orElse(newDev.stream()
+                                                                        .filter(h -> h.getAddress() == oldItem.getOwner().getAddress())
+                                                                        .findFirst()
+                                                                        .orElse(null));
+                                                        if (hub == null) { // !!! новое устройство (?)
+                                                            hub = oldItem.getOwner();
+                                                            newDev.add(hub);
                                                         }
-                                                    }
-                                                    catch (NullPointerException ex) {
-                                                        logger.error(Messages.FSER_3,
-                                                                oldLine.getAddress(), e.getOwner().getIdenty());
-                                                    }
 
-                                                    // куда подключена...
-                                                    if (Arrays.stream(root.getOutputs())
-                                                            .filter(c -> c.getConnections() != null)
-                                                            .flatMap(c -> Stream.of(c.getConnections()))
-                                                            .noneMatch(c -> Arrays.stream(e.getInputs())
-                                                                    .anyMatch(d -> d.getAddress() == c.getAddress()))) {
-                                                        e.setError(
-                                                                combineErrorMsg(e.getError(), Messages.SER_7));
-                                                    }
+                                                        try {
+                                                            if (!targetConn.addConection(
+                                                                    hub.connectionByAddress(
+                                                                            oldItem.getAddress()))) {
+                                                                logger.error(Messages.FSER_2,
+                                                                        oldItem.getAddress(), e.getOwner().getIdenty());
+                                                            }
+                                                        } catch (NullPointerException ex) {
+                                                            logger.error(Messages.FSER_3,
+                                                                    oldLine.getAddress(), e.getOwner().getIdenty());
+                                                        }
 
-                                                    // что подключено ...
-                                                    Arrays.stream(e.getOutputs())
-                                                            .filter(d -> d.getConnections() != null)
-                                                            .forEach(d -> Arrays.stream(d.getConnections())
-                                                                    .forEach(b -> {
-                                                                        if (b.getOwner().hasOwner()) {
-                                                                            if (b.getOwner().getOwner().getComponentType() == SupportedTypes.CONSUMER) {
-                                                                                ConsumerSpecification data = ((Consumer) b.getOwner().getOwner()).getData();
-                                                                                if (data.getConsumertype() != SupportedConsumers.DISTRICT) {
+                                                        // куда подключена...
+                                                        if (Arrays.stream(root.getOutputs())
+                                                                .filter(c -> c.getConnections() != null)
+                                                                .flatMap(c -> Stream.of(c.getConnections()))
+                                                                .noneMatch(c -> Arrays.stream(e.getInputs())
+                                                                        .anyMatch(d -> d.getAddress() == c.getAddress()))) {
+                                                            e.setError(
+                                                                    combineErrorMsg(e.getError(), Messages.SER_7));
+                                                        }
+
+                                                        // что подключено ...
+                                                        Arrays.stream(e.getOutputs() != null
+                                                                        ? e.getOutputs()
+                                                                        : new IConnectionPort[0])
+                                                                .filter(d -> d.getConnections() != null)
+                                                                .forEach(d -> Arrays.stream(d.getConnections())
+                                                                        .forEach(b -> {
+                                                                            if (b.getOwner().hasOwner()) {
+                                                                                if (b.getOwner().getOwner().getComponentType() == SupportedTypes.CONSUMER) {
+                                                                                    ConsumerSpecification data = ((Consumer) b.getOwner().getOwner()).getData();
+                                                                                    if (data.getConsumertype() != SupportedConsumers.DISTRICT) {
+                                                                                        d.setError(
+                                                                                                combineErrorMsg(d.getError(), Messages.SER_6));
+                                                                                    }
+                                                                                } else {
                                                                                     d.setError(
                                                                                             combineErrorMsg(d.getError(), Messages.SER_6));
                                                                                 }
@@ -267,14 +280,12 @@ public class oesSchemeMonitor implements Runnable {
                                                                                 d.setError(
                                                                                         combineErrorMsg(d.getError(), Messages.SER_6));
                                                                             }
-                                                                        } else {
-                                                                            d.setError(
-                                                                                    combineErrorMsg(d.getError(), Messages.SER_6));
-                                                                        }
-                                                                    }));
-                                                });
+                                                                        }));
+                                                    });
+                                        }
                                     }
                                 })));
+        passingList.addAll(newDev);
         //endregion
 
         root.setDevices(passingList.size() != 0 ? passingList.toArray(IOesHub[]::new) : null);
@@ -387,7 +398,7 @@ public class oesSchemeMonitor implements Runnable {
         // удаляю старое устройство из списка
         List<IOesHub> passingList = new ArrayList<>(Arrays.stream(task.getRoot().getDevices())
                 .filter(dev -> dev.getAddress() != station.getAddress())
-                .toList());
+                .toList()); // !!! нужно удалить и все его устройства...
 
         // создаю подключение и добавляю себя в список
         passingList.add(station);
@@ -527,7 +538,7 @@ public class oesSchemeMonitor implements Runnable {
             }
             catch (Exception ex) {
                 logger.error(ex.getMessage());
-                // ex.printStackTrace();
+                ex.printStackTrace();
                 errorCount++;
                 if (errorCount > 5) {
                     errorCount = 0;
