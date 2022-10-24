@@ -400,8 +400,12 @@ public class oesSchemeMonitor implements Runnable {
         // удаляю старое устройство из списка
         List<IOesHub> passingList = new ArrayList<>(Arrays.stream(task.getRoot().getDevices())
                 .filter(dev -> dev.getAddress() != station.getAddress())
+                .filter(dev -> dev.getInputs() != null && dev.getInputs().length != 0)
+                .filter(dev -> Arrays.stream(dev.getInputs())
+                        .noneMatch(port -> port.getOwner().getAddress() == station.getAddress()))
                 .toList()); // !!! нужно удалить и все его устройства...
                             // !!! проще пересобрать список заново
+        // проверить, может, для много входовых устройств, может некоторые порты остались...
 
         // создаю подключение и добавляю себя в список
         passingList.add(station);
