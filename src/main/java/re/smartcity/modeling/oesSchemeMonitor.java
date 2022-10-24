@@ -358,7 +358,9 @@ public class oesSchemeMonitor implements Runnable {
         // подстанцию определил, выбираю порт подключения...
         // !!! не проверяю объединение выходов подстанций (подстанции)
         // выделяю себя из списка устройств, прикрепленного к данной подстанции...
-        IOesHub oldStation = Arrays.stream(task.getRoot().getDevices())
+        IOesHub oldStation = Arrays.stream(task.getRoot().getDevices() != null
+                        ? task.getRoot().getDevices()
+                        : new IOesHub[0])
                 .filter(e -> e.getAddress() == station.getAddress())
                 .findFirst()
                 .orElse(null);
@@ -399,6 +401,7 @@ public class oesSchemeMonitor implements Runnable {
         List<IOesHub> passingList = new ArrayList<>(Arrays.stream(task.getRoot().getDevices())
                 .filter(dev -> dev.getAddress() != station.getAddress())
                 .toList()); // !!! нужно удалить и все его устройства...
+                            // !!! проще пересобрать список заново
 
         // создаю подключение и добавляю себя в список
         passingList.add(station);
