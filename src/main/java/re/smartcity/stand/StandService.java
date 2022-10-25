@@ -131,8 +131,8 @@ public class StandService {
         if (executorService == null)
         {
             // !!!
-            Executors.newSingleThreadExecutor().execute(() -> {
-                List<Byte[]> items = Arrays.asList(
+            /*Executors.newSingleThreadExecutor().execute(() -> {
+                List<Byte[]> items = Arrays.asList(*/
                 // неверная схема
                 /* 
                         new Byte[] {
@@ -181,7 +181,7 @@ public class StandService {
                  */
                 //
                 //
-                        new Byte[] {
+                        /*new Byte[] {
                                 0x62,
                                 0x1E, 0x22, SEQUENCE_SEPARATOR,
                                 0x16, 0x23, SEQUENCE_SEPARATOR,
@@ -221,7 +221,7 @@ public class StandService {
                             catch (InterruptedException ignored) { }
                         }
                 );
-            });
+            });*/
             // !!!
 
             executorService = Executors.newSingleThreadExecutor();
