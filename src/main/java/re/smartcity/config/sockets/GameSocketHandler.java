@@ -992,7 +992,38 @@ public class GameSocketHandler implements WebSocketHandler {
     }
 
     public void sendSchemeDataMessage(WebSocketSession session) {
-        GameServiceEvent event = GameServiceEvent
+        Arrays.stream(modelingData.getTasks())
+                .forEach(task -> {
+                    int[] all = IntStream.concat(
+                            IntStream.concat(
+                                    IntStream.of(task.getScenesData().getSubstation().getDevaddr()),
+                                    Arrays.stream(task.getAuctionScene())
+                                            .mapToInt(PurchasedLot::key)
+                                    ),
+                            IntStream.concat(
+                                    Arrays.stream(task.getScenesData().getPredefconsumers())
+                                            .mapToInt(Consumer::getDevaddr),
+                                    IntStream.of(task.getChoicesScene()))
+                            )
+                            .toArray();
+                    int[] addresses = Arrays.stream(task.getRoot().getDevices())
+                            .mapToInt(IOesHub::getAddress)
+                            .toArray();
+                    int[] missed = Arrays.stream(all)
+                            .filter(addr -> Arrays.stream(addresses)
+                                    .noneMatch(hubaddr -> hubaddr == addr))
+                            .toArray();
+
+                    task.getRoot().setMissed(missed.length != 0 ? missed : null);
+
+                    Arrays.stream(task.getRoot().getDevices() != null
+                                    ? task.getRoot().getDevices()
+                                    : new IOesHub[0])
+                            .forEach(hub -> hub.setAlien(Arrays.stream(all)
+                                    .noneMatch(b -> hub.getAddress() == b)));
+                });
+
+        GameServiceEvent<?> event = GameServiceEvent
                 .type(GameEventTypes.GAME_SCHEMA_DATA)
                 .data(Arrays.stream(modelingData.getTasks())
                         .map(TaskData::getRoot)

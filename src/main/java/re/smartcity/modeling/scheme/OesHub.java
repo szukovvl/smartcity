@@ -17,6 +17,8 @@ public final class OesHub implements IOesHub {
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String error;
 
+    private boolean alien;
+
     private OesHub(IComponentIdentification oes) {
         this.owner = oes;
         this.address = oes.getDevaddr();
@@ -71,6 +73,12 @@ public final class OesHub implements IOesHub {
     public IConnectionPort connectionByAddress(int address) {
         return this.inputs[0].getAddress() == address ? this.inputs[0] : null;
     }
+
+    @Override
+    public boolean isAlien() { return this.alien; }
+
+    @Override
+    public void setAlien(boolean alien) { this.alien = alien; }
     //endregion
 
     public static OesHub create(IComponentIdentification oes) {

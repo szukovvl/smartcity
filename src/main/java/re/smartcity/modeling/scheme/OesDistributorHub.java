@@ -18,6 +18,8 @@ public final class OesDistributorHub implements IOesHub {
 
     private final IConnectionPort[] outputs;
 
+    private boolean alien;
+
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String error;
 
@@ -86,6 +88,12 @@ public final class OesDistributorHub implements IOesHub {
                 .findFirst()
                 .orElse(null);
     }
+
+    @Override
+    public boolean isAlien() { return this.alien; }
+
+    @Override
+    public void setAlien(boolean alien) { this.alien = alien; }
     //endregion
 
     public static OesDistributorHub create(EnergyDistributor oes) {

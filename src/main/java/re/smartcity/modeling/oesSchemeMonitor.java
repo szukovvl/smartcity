@@ -4,13 +4,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.energynet.IComponentIdentification;
-import re.smartcity.energynet.IGeneration;
 import re.smartcity.energynet.SupportedConsumers;
 import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.energynet.component.Consumer;
 import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.data.ConsumerSpecification;
-import re.smartcity.energynet.component.data.EnergyDistributorSpecification;
 import re.smartcity.modeling.data.StandBinaryPackage;
 import re.smartcity.modeling.scheme.*;
 import re.smartcity.stand.SerialElementAddresses;
@@ -334,7 +332,7 @@ public class oesSchemeMonitor implements Runnable {
             // подключена куда-то в другое место...
             // ищу в списках устройств на наличие данной подстанции
             IOesHub hub = Arrays.stream(modelingData.getTasks())
-                    .map(e -> e.getRoot())
+                    .map(TaskData::getRoot)
                     .flatMap(e -> Stream.of(e.getDevices()))
                     .filter(e -> e.getAddress() == station.getAddress())
                     .findFirst()
@@ -400,9 +398,35 @@ public class oesSchemeMonitor implements Runnable {
         // удаляю старое устройство из списка
         List<IOesHub> passingList = new ArrayList<>(Arrays.stream(task.getRoot().getDevices())
                 .filter(dev -> dev.getAddress() != station.getAddress())
-                // .filter(dev -> dev.getInputs() != null && dev.getInputs().length != 0)
-                // .filter(dev -> Arrays.stream(dev.getInputs())
-                //        .noneMatch(port -> port.getOwner().getAddress() == station.getAddress()))
+                .filter(dev -> dev.getInputs() != null && dev.getInputs().length != 0)
+                .filter(dev -> {
+                    IConnectionPort[] lines = dev.getInputs();
+                    if (lines.length == 1) {
+                        if (lines[0].getConnections() != null) {
+                            IConnectionPort[] ports = Arrays.stream(lines[0].getConnections())
+                                    .filter(e -> !station.itIsMine(e.getAddress()))
+                                    .toArray(IConnectionPort[]::new);
+                            if (ports.length != 0) {
+                                lines[0].setConnections(ports);
+                            } else {
+                                return false;
+                            }
+                        }
+                    } else {
+                        Arrays.stream(lines)
+                                .forEach(e -> {
+                                    if (e.getConnections() != null) {
+                                        IConnectionPort[] ports = Arrays.stream(e.getConnections())
+                                                .filter(l -> !station.itIsMine(l.getAddress()))
+                                                .toArray(IConnectionPort[]::new);
+                                        e.setConnections(ports.length != 0 ? ports : null);
+                                    }
+                                });
+                        return Arrays.stream(lines)
+                                .anyMatch(e -> e.getConnections() != null);
+                    }
+                    return true;
+                })
                 .toList()); // !!! нужно удалить и все его устройства...
                             // !!! проще пересобрать список заново
         // проверить, может, для многовходовых устройств, может некоторые порты остались...
@@ -490,17 +514,27 @@ public class oesSchemeMonitor implements Runnable {
                 logger.info(String.format("обработка пакета схемы %02X: %s", pack.getDevaddr(),
                         SerialPackageBuilder.bytesAsHexString(pack.getData())));
                 switch (pack.getDevaddr()) {
-                    case CONTROL_BLOCK: continue;
-                    case MAIN_SUBSTATION_1:
-                    case MAIN_SUBSTATION_2:
+                    case CONTROL_BLOCK -> {
+                        isMessage = true;
+                        Arrays.stream(modelingData.getTasks())
+                                .map(TaskData::getRoot)
+                                .forEach(root -> {
+                                    if (Arrays.stream(pack.getData())
+                                            .noneMatch(root::itIsMine)) {
+                                        root.setConnected(false);
+                                    }
+                                });
+                        continue;
+                    }
+                    case MAIN_SUBSTATION_1, MAIN_SUBSTATION_2 -> {
                         isMessage = true;
                         pack.setTask(Arrays.stream(modelingData.getTasks())
                                 .filter(e -> e.getPowerSystem().getDevaddr() == pack.getDevaddr())
                                 .findFirst()
                                 .get());
                         pack.setOesbin(parsePackage(pack));
-                        break;
-                    default:
+                    }
+                    default -> {
                         IComponentIdentification cmp = Arrays.stream(modelingData.getAllobjects())
                                 .filter(e -> e.getDevaddr() == pack.getDevaddr())
                                 .findFirst()
@@ -526,6 +560,7 @@ public class oesSchemeMonitor implements Runnable {
                                 continue;
                             }
                         }
+                    }
                 }
 
                 /*

@@ -17,4 +17,6 @@ public interface IOesHub {
     void setError(String error);
     boolean itIsMine(int address); // определяет принадлежность адреса данному устройству
     IConnectionPort connectionByAddress(int address);
+    boolean isAlien();
+    void setAlien(boolean alien);
 }

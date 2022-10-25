@@ -13,6 +13,8 @@ public final class OesUnknownHub implements IOesHub {
 
     private IConnectionPort port;
 
+    private boolean alien;
+
     private OesUnknownHub(int address) {
         this.address = address;
         this.port = new OesPort(address, this);
@@ -66,6 +68,12 @@ public final class OesUnknownHub implements IOesHub {
     public IConnectionPort connectionByAddress(int address) {
         return this.address == address ? this.port : null;
     }
+
+    @Override
+    public boolean isAlien() { return this.alien; }
+
+    @Override
+    public void setAlien(boolean alien) { this.alien = alien; }
     //endregion
 
     public static OesUnknownHub create(int addrress) {

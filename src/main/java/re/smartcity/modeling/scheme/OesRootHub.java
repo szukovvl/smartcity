@@ -15,6 +15,9 @@ public final class OesRootHub implements IOesHub {
     private final IComponentIdentification owner;
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
+    private int[] missed;
+
+    @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private IOesHub[] devices;
 
     private final int address;
@@ -99,7 +102,22 @@ public final class OesRootHub implements IOesHub {
                         .findFirst()
                         .orElse(null));
     }
+
+    @Override
+    public boolean isAlien() { return false; }
+
+    @Override
+    public void setAlien(boolean alien) {  }
     //endregion
+
+
+    public int[] getMissed() {
+        return missed;
+    }
+
+    public void setMissed(int[] missed) {
+        this.missed = missed;
+    }
 
     public IOesHub[] getDevices() {
         return devices;

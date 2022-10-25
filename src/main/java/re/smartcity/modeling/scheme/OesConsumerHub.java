@@ -16,6 +16,8 @@ public final class OesConsumerHub implements IOesHub {
 
     private final IConnectionPort[] inputs;
 
+    private boolean alien;
+
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String error;
 
@@ -77,6 +79,12 @@ public final class OesConsumerHub implements IOesHub {
                 .findFirst()
                 .orElse(null);
     }
+
+    @Override
+    public boolean isAlien() { return this.alien; }
+
+    @Override
+    public void setAlien(boolean alien) { this.alien = alien; }
     //endregion
 
     public static OesConsumerHub create(Consumer oes) {
