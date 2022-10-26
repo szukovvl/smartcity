@@ -20,15 +20,15 @@ import java.util.stream.Stream;
 import static re.smartcity.stand.SerialElementAddresses.*;
 import static re.smartcity.stand.SerialServiceSymbols.SEQUENCE_SEPARATOR;
 
-public class oesSchemeMonitor implements Runnable {
+public class OesSchemeMonitor implements Runnable {
 
-    private final Logger logger = LoggerFactory.getLogger(oesSchemeMonitor.class);
+    private final Logger logger = LoggerFactory.getLogger(OesSchemeMonitor.class);
 
     private final Object _syncThread;
     private final Queue<StandBinaryPackage> scheme;
     private final ModelingData modelingData;
 
-    public oesSchemeMonitor(ModelingData modelingData, Object syncThread, Queue<StandBinaryPackage> scheme) {
+    public OesSchemeMonitor(ModelingData modelingData, Object syncThread, Queue<StandBinaryPackage> scheme) {
         this._syncThread = syncThread;
         this.scheme = scheme;
         this.modelingData = modelingData;
@@ -396,8 +396,6 @@ public class oesSchemeMonitor implements Runnable {
                 .toArray(IConnectionPort[]::new));
 
         // удаляю старое устройство из списка
-        logger.info("(1): {}", task.getRoot().getDevices() != null ? task.getRoot().getDevices().length : 0);
-
         // список без станции
         List<IOesHub> passingList = new ArrayList<>(Arrays.stream(
                         task.getRoot().getDevices() != null
@@ -405,39 +403,24 @@ public class oesSchemeMonitor implements Runnable {
                                 : new IOesHub[0])
                 .filter(dev -> dev.getAddress() != station.getAddress())
                 .toList());
-        passingList.stream()
-                .filter(item -> item.hasOwner())
-                .forEach(item -> {
-                    logger.info("** {}", item.getOwner().getIdenty());
-                });
+
         IConnectionPort[] usedPorts = Stream.concat(
                 Stream.concat(Stream.of(task.getRoot().getOutputs()),
                                 Stream.of(task.getRoot().getInputs()))
                         .filter(item -> item.getConnections() != null)
                         .flatMap(item -> Stream.of(item.getConnections())),
                         passingList.stream()
-                                .filter(item -> item.supportOutputs())
+                                .filter(IOesHub::supportOutputs)
                                 .flatMap(item -> Stream.of(item.getOutputs()))
                                 .filter(item -> item.getConnections() != null)
                                 .flatMap(item -> Stream.of(item.getConnections()))
                 )
                 .toArray(IConnectionPort[]::new);
 
-        Arrays.stream(usedPorts)
-                .forEach(item -> {
-                    logger.info("+ подключение {} - {} - {}",
-                            item.getAddress(),
-                            item.getOwner().getAddress(),
-                            item.getOwner().hasOwner() ? item.getOwner().getOwner().getIdenty() : '#');
-                });
-
         passingList = new ArrayList<>(passingList.stream()
-                //.filter(item -> item.supportInputs())
                 .filter(item -> Arrays.stream(usedPorts)
                         .anyMatch(port -> item.itIsMine(port.getAddress())))
                 .toList());
-
-        logger.info("(3): {}", passingList.size());
 
         // создаю подключение и добавляю себя в список
         passingList.add(station);

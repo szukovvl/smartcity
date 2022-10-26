@@ -106,7 +106,7 @@ public class ModelingData {
 
         // !!!
         Executors.newSingleThreadScheduledExecutor().schedule(
-                new oesSchemeMonitor(this, _syncSchemeData, standSchemes),
+                new OesSchemeMonitor(this, _syncSchemeData, standSchemes),
                 3,
                 TimeUnit.SECONDS
         );
