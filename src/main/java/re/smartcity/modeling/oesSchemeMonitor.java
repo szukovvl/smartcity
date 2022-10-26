@@ -396,40 +396,48 @@ public class oesSchemeMonitor implements Runnable {
                 .toArray(IConnectionPort[]::new));
 
         // удаляю старое устройство из списка
-        List<IOesHub> passingList = new ArrayList<>(Arrays.stream(task.getRoot().getDevices())
+        logger.info("(1): {}", task.getRoot().getDevices() != null ? task.getRoot().getDevices().length : 0);
+
+        // список без станции
+        List<IOesHub> passingList = new ArrayList<>(Arrays.stream(
+                        task.getRoot().getDevices() != null
+                                ? task.getRoot().getDevices()
+                                : new IOesHub[0])
                 .filter(dev -> dev.getAddress() != station.getAddress())
-                .filter(dev -> dev.getInputs() != null && dev.getInputs().length != 0)
-                .filter(dev -> {
-                    IConnectionPort[] lines = dev.getInputs();
-                    if (lines.length == 1) {
-                        if (lines[0].getConnections() != null) {
-                            IConnectionPort[] ports = Arrays.stream(lines[0].getConnections())
-                                    .filter(e -> !station.itIsMine(e.getAddress()))
-                                    .toArray(IConnectionPort[]::new);
-                            if (ports.length != 0) {
-                                lines[0].setConnections(ports);
-                            } else {
-                                return false;
-                            }
-                        }
-                    } else {
-                        Arrays.stream(lines)
-                                .forEach(e -> {
-                                    if (e.getConnections() != null) {
-                                        IConnectionPort[] ports = Arrays.stream(e.getConnections())
-                                                .filter(l -> !station.itIsMine(l.getAddress()))
-                                                .toArray(IConnectionPort[]::new);
-                                        e.setConnections(ports.length != 0 ? ports : null);
-                                    }
-                                });
-                        return Arrays.stream(lines)
-                                .anyMatch(e -> e.getConnections() != null);
-                    }
-                    return true;
-                })
-                .toList()); // !!! нужно удалить и все его устройства...
-                            // !!! проще пересобрать список заново
-        // проверить, может, для многовходовых устройств, может некоторые порты остались...
+                .toList());
+        passingList.stream()
+                .filter(item -> item.hasOwner())
+                .forEach(item -> {
+                    logger.info("** {}", item.getOwner().getIdenty());
+                });
+        IConnectionPort[] usedPorts = Stream.concat(
+                Stream.concat(Stream.of(task.getRoot().getOutputs()),
+                                Stream.of(task.getRoot().getInputs()))
+                        .filter(item -> item.getConnections() != null)
+                        .flatMap(item -> Stream.of(item.getConnections())),
+                        passingList.stream()
+                                .filter(item -> item.supportOutputs())
+                                .flatMap(item -> Stream.of(item.getOutputs()))
+                                .filter(item -> item.getConnections() != null)
+                                .flatMap(item -> Stream.of(item.getConnections()))
+                )
+                .toArray(IConnectionPort[]::new);
+
+        Arrays.stream(usedPorts)
+                .forEach(item -> {
+                    logger.info("+ подключение {} - {} - {}",
+                            item.getAddress(),
+                            item.getOwner().getAddress(),
+                            item.getOwner().hasOwner() ? item.getOwner().getOwner().getIdenty() : '#');
+                });
+
+        passingList = new ArrayList<>(passingList.stream()
+                //.filter(item -> item.supportInputs())
+                .filter(item -> Arrays.stream(usedPorts)
+                        .anyMatch(port -> item.itIsMine(port.getAddress())))
+                .toList());
+
+        logger.info("(3): {}", passingList.size());
 
         // создаю подключение и добавляю себя в список
         passingList.add(station);
@@ -437,8 +445,9 @@ public class oesSchemeMonitor implements Runnable {
         //endregion
 
         // 3. сборка выходных линий
+        List<IOesHub> finalPassingList = passingList;
         Arrays.stream(station.getOutputs())
-                .forEach(line -> buildConnections_A(pack, passingList, line));
+                .forEach(line -> buildConnections_A(pack, finalPassingList, line));
 
         logger.info("-- {} выходные линии: {}", station.getOwner().getIdenty(), passingList);
 

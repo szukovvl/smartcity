@@ -1001,12 +1001,16 @@ public class GameSocketHandler implements WebSocketHandler {
                                             .mapToInt(PurchasedLot::key)
                                     ),
                             IntStream.concat(
-                                    Arrays.stream(task.getScenesData().getPredefconsumers())
+                                    Arrays.stream(task.getScenesData().getPredefconsumers() != null
+                                                    ? task.getScenesData().getPredefconsumers()
+                                                    : new Consumer[0])
                                             .mapToInt(Consumer::getDevaddr),
                                     IntStream.of(task.getChoicesScene()))
                             )
                             .toArray();
-                    int[] addresses = Arrays.stream(task.getRoot().getDevices())
+                    int[] addresses = Arrays.stream(task.getRoot().getDevices() != null
+                                    ? task.getRoot().getDevices()
+                                    : new IOesHub[0])
                             .mapToInt(IOesHub::getAddress)
                             .toArray();
                     int[] missed = Arrays.stream(all)
