@@ -68,9 +68,6 @@ public class OesSchemeMonitor implements Runnable {
                 .toArray(Byte[]::new);
         //endregion
 
-        logger.info("-- порт {}: [{}]", String.format("%02X", port.getAddress()),
-                SerialPackageBuilder.bytesAsHexString(items));
-
         //region 2. связываю компоненты
         Arrays.stream(items)
                 .forEach(b -> { // b - адрес устройства на линии
@@ -135,8 +132,6 @@ public class OesSchemeMonitor implements Runnable {
         Arrays.stream(root.getInputs())
                         .forEach(line -> buildConnections_A(pack, passingList, line));
 
-        logger.info("-- входные линии: {}", passingList);
-
         //region 3. проверки на допустимость подключений
         Arrays.stream(root.getInputs())
                 .filter(e -> e.getConnections() != null && e.getConnections().length != 0)
@@ -154,8 +149,6 @@ public class OesSchemeMonitor implements Runnable {
         // 4. сборка выходных линий
         Arrays.stream(root.getOutputs())
                 .forEach(line -> buildConnections_A(pack, passingList, line));
-
-        logger.info("-- выходные линии: {}", passingList);
 
         //region 5. проверки на допустимость подключений
         Arrays.stream(root.getOutputs())
@@ -431,8 +424,6 @@ public class OesSchemeMonitor implements Runnable {
         List<IOesHub> finalPassingList = passingList;
         Arrays.stream(station.getOutputs())
                 .forEach(line -> buildConnections_A(pack, finalPassingList, line));
-
-        logger.info("-- {} выходные линии: {}", station.getOwner().getIdenty(), passingList);
 
         // 4. проверяю допустимость подключений...
         Arrays.stream(station.getOutputs())

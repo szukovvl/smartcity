@@ -22,6 +22,9 @@ import re.smartcity.modeling.TaskData;
 import re.smartcity.modeling.data.AuctionSettings;
 import re.smartcity.modeling.data.GamerScenesData;
 import re.smartcity.modeling.scheme.IOesHub;
+import re.smartcity.stand.SerialCommand;
+import re.smartcity.stand.SerialPackageTypes;
+import re.smartcity.stand.StandService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
@@ -42,6 +45,9 @@ public class GameSocketHandler implements WebSocketHandler {
 
     @Autowired
     private CommonStorage commonStorage;
+
+    @Autowired
+    StandService standService;
 
     private final Map<String, WebSocketSession> guests = new ConcurrentHashMap<>();
     private final ModelingData modelingData;
