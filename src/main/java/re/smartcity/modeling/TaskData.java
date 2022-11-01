@@ -1,5 +1,6 @@
 package re.smartcity.modeling;
 
+import re.smartcity.config.sockets.model.GameBlock;
 import re.smartcity.config.sockets.model.PurchasedLot;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
 import re.smartcity.modeling.data.GamerScenesData;
@@ -14,7 +15,8 @@ public class TaskData {
     private final GamerScenesData scenesData;
     private int[] choicesScene = new int[0]; // !!! пока а костылях
     private PurchasedLot[] auctionScene = new PurchasedLot[0];
-    private OesRootHub root;
+    private volatile OesRootHub root;
+    private volatile GameBlock gameBlock;
 
     public TaskData (
             ExecutorService service,
@@ -61,5 +63,13 @@ public class TaskData {
 
     public void setChoicesScene(int[] choicesScene) {
         this.choicesScene = choicesScene;
+    }
+
+    public GameBlock getGameBlock() {
+        return gameBlock;
+    }
+
+    public void setGameBlock(GameBlock gameBlock) {
+        this.gameBlock = gameBlock;
     }
 }

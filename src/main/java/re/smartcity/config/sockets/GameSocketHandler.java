@@ -16,15 +16,15 @@ import re.smartcity.config.sockets.model.*;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.energynet.component.Consumer;
+import re.smartcity.energynet.component.MainSubstationPowerSystem;
 import re.smartcity.modeling.GameStatuses;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
 import re.smartcity.modeling.data.AuctionSettings;
 import re.smartcity.modeling.data.GamerScenesData;
+import re.smartcity.modeling.scheme.IConnectionPort;
 import re.smartcity.modeling.scheme.IOesHub;
-import re.smartcity.stand.SerialCommand;
-import re.smartcity.stand.SerialPackageTypes;
-import re.smartcity.stand.StandService;
+import re.smartcity.modeling.scheme.OesRootHub;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
@@ -45,9 +45,6 @@ public class GameSocketHandler implements WebSocketHandler {
 
     @Autowired
     private CommonStorage commonStorage;
-
-    @Autowired
-    StandService standService;
 
     private final Map<String, WebSocketSession> guests = new ConcurrentHashMap<>();
     private final ModelingData modelingData;
@@ -386,6 +383,7 @@ public class GameSocketHandler implements WebSocketHandler {
                     case GAMERS_CHOICE_OES -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_PREPARE);
                     case GAMERS_AUCTION_PREPARE -> modelingData.setGameStatus(GameStatuses.GAMERS_AUCTION_SALE);
                     case GAMERS_AUCTION_SALE -> modelingData.setGameStatus(GameStatuses.GAMERS_SCHEME);
+                    case GAMERS_SCHEME -> modelingData.setGameStatus(GameStatuses.GAME_PROCESS);
                     default -> {
                         sendEvent(session, GameServiceEvent
                                 .type(GameEventTypes.ERROR)
@@ -412,9 +410,16 @@ public class GameSocketHandler implements WebSocketHandler {
                             .type(GameEventTypes.GAME_SCENE_AUCTION_SALE)
                             .data(buildAuctionSceneResponse())
                             .build());
-                    case GAMERS_SCHEME -> sendEventToAll(GameServiceEvent
-                            .type(GameEventTypes.GAME_SCENE_SCHEME)
-                            .data(buildSchemeResponse())
+                    case GAMERS_SCHEME -> {
+                        sendEventToAll(GameServiceEvent
+                                .type(GameEventTypes.GAME_SCENE_SCHEME)
+                                .data(buildSchemeResponse())
+                                .build());
+                        sendSchemeDataMessage(null);
+                    }
+                    case GAME_PROCESS -> sendEventToAll(GameServiceEvent
+                            .type(GameEventTypes.GAME_PROCESS_START)
+                            .data(prepareGame())
                             .build());
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
@@ -473,10 +478,6 @@ public class GameSocketHandler implements WebSocketHandler {
                             .type(GameEventTypes.GAME_SCENE_AUCTION_SALE)
                             .data(buildAuctionSceneResponse())
                             .build());
-                    /*case GAMERS_SCHEME -> sendEventToAll(GameServiceEvent
-                            .type(GameEventTypes.GAME_SCENE_SCHEME)
-                            .data(buildSchemeResponse())
-                            .build());*/
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
                             .data(new GameErrorEvent(event.getType().toString(), Messages.ER_15))
@@ -945,6 +946,94 @@ public class GameSocketHandler implements WebSocketHandler {
                         .sceneIdentify(e.getScenesData().getSceneIdentify())
                         .build())
                 .toArray(ResponseScenesEventData[]::new);
+    }
+
+    private GameBlock[] prepareGame() {
+        return Arrays.stream(modelingData.getTasks())
+                .map(e -> buildGameBlock(e.getRoot()))
+                .toArray(GameBlock[]::new);
+    }
+
+    private GameBlock buildGameBlock(OesRootHub root) {
+        return GameBlock.builder()
+                .root(prepareRootHub(root))
+                .build();
+    }
+
+    private OesRootHub prepareRootHub(OesRootHub source) {
+        OesRootHub dest = OesRootHub.create((MainSubstationPowerSystem) source.getOwner());
+
+        IOesHub[] filteredDevices = Arrays.stream(source.getDevices() != null
+                        ? source.getDevices()
+                        : new IOesHub[0])
+                .filter(e -> e.hasOwner())
+                .filter(e -> !e.isAlien())
+                .filter(e -> !e.hasError())
+                .toArray(IOesHub[]::new);
+        List<IOesHub> actualDevices = new ArrayList<>();
+
+        Arrays.stream(source.getInputs())
+                .filter(e -> !e.hasError())
+                .filter(e -> e.getConnections() != null)
+                .forEach(line -> {
+                    IConnectionPort destPort = Arrays.stream(dest.getInputs())
+                            .filter(e -> e.getAddress() == line.getAddress())
+                            .findFirst()
+                            .orElseThrow();
+                    Arrays.stream(line.getConnections())
+                            .forEach(pt -> {
+                                prepareConnections(pt, destPort, filteredDevices, actualDevices);
+                            });
+                });
+        Arrays.stream(source.getOutputs())
+                .filter(e -> !e.hasError())
+                .filter(e -> e.getConnections() != null)
+                .forEach(line -> {
+                    IConnectionPort destPort = Arrays.stream(dest.getOutputs())
+                            .filter(e -> e.getAddress() == line.getAddress())
+                            .findFirst()
+                            .orElseThrow();
+                    Arrays.stream(line.getConnections())
+                            .forEach(pt -> {
+                                prepareConnections(pt, destPort, filteredDevices, actualDevices);
+                            });
+                });
+
+        dest.setDevices(actualDevices.toArray(IOesHub[]::new));
+
+        return dest;
+    }
+
+    private void prepareConnections(IConnectionPort srcPort, IConnectionPort dstPort,
+                                    IOesHub[] allDev, List<IOesHub> actualDev) {
+        IOesHub hub = actualDev.stream()
+                .filter(e -> e.itIsMine(srcPort.getAddress()))
+                .findFirst()
+                .orElse(null);
+        if (hub == null) {
+            hub = Arrays.stream(allDev)
+                    .filter(e -> e.itIsMine(srcPort.getAddress()))
+                    .findFirst()
+                    .orElse(null);
+            if (hub != null) {
+                actualDev.add(hub);
+            }
+        }
+        if (hub != null) {
+            IConnectionPort conn = null;
+            if (hub.supportInputs()) {
+                conn = Arrays.stream(hub.getInputs())
+                        .filter(e -> e.getAddress() == srcPort.getAddress())
+                        .findFirst()
+                        .orElse(null);
+            } else if (hub.supportOutputs()) {
+                conn = Arrays.stream(hub.getOutputs())
+                        .filter(e -> e.getAddress() == srcPort.getAddress())
+                        .findFirst()
+                        .orElse(null);
+            }
+            dstPort.addConection(conn);
+        }
     }
 
     private GameServiceEvent<?> buildStatusEvent() {

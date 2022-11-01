@@ -6,5 +6,6 @@ public enum GameStatuses {
     GAMERS_CHOICE_OES, // сцена 2 - выбор объектов
     GAMERS_AUCTION_PREPARE, // сцена 3 - аукцион - подготовка
     GAMERS_AUCTION_SALE, // сцена 4 - аукцион торговля
-    GAMERS_SCHEME // сцена 5 - сборка схемы
+    GAMERS_SCHEME, // сцена 5 - сборка схемы
+    GAME_PROCESS // выполнение игры
 }
