@@ -88,7 +88,7 @@ public class OesSchemeMonitor implements Runnable {
                     }
 
                     // подключаю объект к линии
-                    port.addConection(hub.connectionByAddress(b));
+                    port.addConnection(hub.connectionByAddress(b));
                     if (toList) {
                         devices.add(hub);
                     }
@@ -228,7 +228,7 @@ public class OesSchemeMonitor implements Runnable {
                                                         }
 
                                                         try {
-                                                            if (!targetConn.addConection(
+                                                            if (!targetConn.addConnection(
                                                                     hub.connectionByAddress(
                                                                             oldItem.getAddress()))) {
                                                                 logger.error(Messages.FSER_2,
@@ -417,7 +417,7 @@ public class OesSchemeMonitor implements Runnable {
 
         // создаю подключение и добавляю себя в список
         passingList.add(station);
-        mainPort.addConection(station.getInputs()[0]);
+        mainPort.addConnection(station.getInputs()[0]);
         //endregion
 
         // 3. сборка выходных линий

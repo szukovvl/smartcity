@@ -37,6 +37,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @Component
 public class GameSocketHandler implements WebSocketHandler {
@@ -417,10 +418,16 @@ public class GameSocketHandler implements WebSocketHandler {
                                 .build());
                         sendSchemeDataMessage(null);
                     }
-                    case GAME_PROCESS -> sendEventToAll(GameServiceEvent
-                            .type(GameEventTypes.GAME_PROCESS_START)
-                            .data(prepareGame())
-                            .build());
+                    case GAME_PROCESS -> {
+                        sendEventToAll(GameServiceEvent
+                                .type(GameEventTypes.GAME_PROCESS_START)
+                                .data(prepareGame())
+                                .build());
+                        sendEventToAll(GameServiceEvent
+                                .type(GameEventTypes.GAME_PROCESS_ITERATION)
+                                .data(0)
+                                .build());
+                    }
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
                             .data(new GameErrorEvent(event.getType().toString(), Messages.ER_15))
@@ -960,13 +967,55 @@ public class GameSocketHandler implements WebSocketHandler {
                 .build();
     }
 
+    private void buildUnconnectedGameDevices() {
+        /*
+        List<ResponseSchemeData> data = new ArrayList<>();
+
+        // !!! кривова-то как-то
+        AtomicReference<Double> tp = new AtomicReference<>(0.0);
+        commonStorage.getAndCreate(Tariffs.key, Tariffs.class)
+                .subscribe(e -> {
+                    synchronized (tp) {
+                        tp.set(e.getData().getTech_price());
+                        tp.notifyAll();
+                    }
+                });
+
+        try {
+            synchronized (tp) {
+                tp.wait(5000);
+            }
+        }
+        catch (InterruptedException ex) {
+            logger.error(ex.getMessage());
+        }
+
+        for (TaskData task : modelingData.getTasks()) {
+            ResponseSchemeDataBuilder builder = ResponseSchemeData.build(task.getPowerSystem().getDevaddr());
+
+            builder
+                    .substation(task.getScenesData().getSubstation().getDevaddr())
+                    .consumers(Arrays.stream(task.getScenesData().getPredefconsumers())
+                            .mapToInt(Consumer::getDevaddr)
+                            .toArray())
+                    .tcconsumers(task.getChoicesScene())
+                    .tcprice(tp.get())
+                    .generators(task.getAuctionScene());
+
+            data.add(builder.build());
+        }
+
+         */
+    }
+
     private OesRootHub prepareRootHub(OesRootHub source) {
         OesRootHub dest = OesRootHub.create((MainSubstationPowerSystem) source.getOwner());
 
+        //
         IOesHub[] filteredDevices = Arrays.stream(source.getDevices() != null
                         ? source.getDevices()
                         : new IOesHub[0])
-                .filter(e -> e.hasOwner())
+                .filter(IOesHub::hasOwner)
                 .filter(e -> !e.isAlien())
                 .filter(e -> !e.hasError())
                 .toArray(IOesHub[]::new);
@@ -981,9 +1030,7 @@ public class GameSocketHandler implements WebSocketHandler {
                             .findFirst()
                             .orElseThrow();
                     Arrays.stream(line.getConnections())
-                            .forEach(pt -> {
-                                prepareConnections(pt, destPort, filteredDevices, actualDevices);
-                            });
+                            .forEach(pt -> prepareConnections(pt, destPort, filteredDevices, actualDevices));
                 });
         Arrays.stream(source.getOutputs())
                 .filter(e -> !e.hasError())
@@ -994,10 +1041,20 @@ public class GameSocketHandler implements WebSocketHandler {
                             .findFirst()
                             .orElseThrow();
                     Arrays.stream(line.getConnections())
-                            .forEach(pt -> {
-                                prepareConnections(pt, destPort, filteredDevices, actualDevices);
-                            });
+                            .forEach(pt -> prepareConnections(pt, destPort, filteredDevices, actualDevices));
                 });
+
+        // подключение портов
+        Stream.concat(Stream.of(dest.getInputs()), Stream.of(dest.getOutputs()))
+                        .forEach(item -> item.setOn(true));
+        actualDevices.forEach(item -> {
+            if (item.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR) {
+                Stream.concat(Stream.of(item.getInputs()), Stream.of(item.getOutputs()))
+                        .forEach(distributor -> distributor.setOn(true));
+            } else {
+                item.getInputs()[0].setOn(true);
+            }
+        });
 
         dest.setDevices(actualDevices.toArray(IOesHub[]::new));
 
@@ -1016,23 +1073,25 @@ public class GameSocketHandler implements WebSocketHandler {
                     .findFirst()
                     .orElse(null);
             if (hub != null) {
-                actualDev.add(hub);
+                IOesHub newhub = OesRootHub.createOther(hub.getOwner());
+                actualDev.add(newhub);
+                if (hub.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR) {
+                    // обработка миниподстанции
+                    Arrays.stream(hub.getOutputs())
+                            .filter(e -> !e.hasError())
+                            .filter(e -> e.getConnections() != null)
+                            .forEach(line -> Arrays.stream(line.getConnections())
+                                    .forEach(port -> prepareConnections(
+                                            port,
+                                            newhub.connectionByAddress(line.getAddress()),
+                                            allDev,
+                                            actualDev)));
+                }
+                hub = newhub;
             }
         }
         if (hub != null) {
-            IConnectionPort conn = null;
-            if (hub.supportInputs()) {
-                conn = Arrays.stream(hub.getInputs())
-                        .filter(e -> e.getAddress() == srcPort.getAddress())
-                        .findFirst()
-                        .orElse(null);
-            } else if (hub.supportOutputs()) {
-                conn = Arrays.stream(hub.getOutputs())
-                        .filter(e -> e.getAddress() == srcPort.getAddress())
-                        .findFirst()
-                        .orElse(null);
-            }
-            dstPort.addConection(conn);
+            dstPort.addConnection(hub.connectionByAddress(srcPort.getAddress()));
         }
     }
 

@@ -15,24 +15,21 @@ public final class OesPort implements IConnectionPort {
     @JsonIgnore
     private final IOesHub owner;
 
-    // @JsonIgnore
-    // private final ElectricalSubnet subnet;
-
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private IConnectionPort[] connections;
 
     @JsonInclude(JsonInclude.Include.NON_ABSENT)
     private String error;
 
+    private boolean ison;
+
     public OesPort(int address, IOesHub owner) {
         this.address = address;
         this.owner = owner;
-        // this.subnet = null;
     }
 
     public OesPort(IOesHub owner, ElectricalSubnet subnet) {
         this.owner = owner;
-        // this.subnet = subnet;
         this.address = subnet.getDevaddr();
     }
 
@@ -42,12 +39,6 @@ public final class OesPort implements IConnectionPort {
 
     @Override
     public IOesHub getOwner() { return this.owner; }
-
-    // @Override
-    // public boolean hasSubnet() { return this.subnet != null; }
-
-    // @Override
-    // public ElectricalSubnet getSubnet() { return this.subnet; }
 
     @Override
     public boolean hasError() { return this.error != null; }
@@ -65,7 +56,7 @@ public final class OesPort implements IConnectionPort {
     public void setConnections(IConnectionPort[] connections) { this.connections = connections; }
 
     @Override
-    public boolean addConection(IConnectionPort port) {
+    public boolean addConnection(IConnectionPort port) {
         if (port == null) {
             return false;
         }
@@ -81,5 +72,11 @@ public final class OesPort implements IConnectionPort {
         this.setConnections(items.toArray(IConnectionPort[]::new));
         return true;
     }
+
+    @Override
+    public boolean isOn() { return this.ison; }
+
+    @Override
+    public void setOn(boolean ison) { this.ison = ison; }
     //endregion
 }
