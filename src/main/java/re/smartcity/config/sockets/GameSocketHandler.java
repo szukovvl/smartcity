@@ -957,17 +957,54 @@ public class GameSocketHandler implements WebSocketHandler {
 
     private GameBlock[] prepareGame() {
         return Arrays.stream(modelingData.getTasks())
-                .map(e -> buildGameBlock(e.getRoot()))
+                .map(e -> buildGameBlock(e))
                 .toArray(GameBlock[]::new);
     }
 
-    private GameBlock buildGameBlock(OesRootHub root) {
+    private GameBlock buildGameBlock(TaskData task) {
+        // запрос стоимости технологического присоединения
+        AtomicReference<Double> tp = new AtomicReference<>(0.0);
+        commonStorage.getAndCreate(Tariffs.key, Tariffs.class)
+                .subscribe(e -> {
+                    synchronized (tp) {
+                        tp.set(e.getData().getTech_price());
+                        tp.notifyAll();
+                    }
+                });
+
+        // схема
+        OesRootHub gameRoot = prepareRootHub(task.getRoot());
+
+        // адреса всех устройств, распределенных по сценарию
+        int[] allAdresses = IntStream.concat(
+                IntStream.of(task.getScenesData().getSubstation().getDevaddr()), // министанция
+                IntStream.concat(
+                        Arrays.stream(task.getScenesData().getPredefconsumers())
+                                .mapToInt(e -> e.getDevaddr()),
+                        IntStream.concat(
+                                IntStream.of(task.getChoicesScene()),
+                                Arrays.stream(task.getAuctionScene())
+                                        .mapToInt(e -> e.key())
+                        )))
+                .toArray();
+
+        // получение стоимости технологического присоединения
+        try {
+            synchronized (tp) {
+                tp.wait(5000);
+            }
+        }
+        catch (InterruptedException ex) {
+            logger.error(ex.getMessage());
+        }
+
         return GameBlock.builder()
-                .root(prepareRootHub(root))
+                .root(gameRoot)
+                .udevices(buildUnconnectedGameDevices(null))
                 .build();
     }
 
-    private void buildUnconnectedGameDevices() {
+    private IOesHub[] buildUnconnectedGameDevices(OesRootHub root) {
         /*
         List<ResponseSchemeData> data = new ArrayList<>();
 
@@ -1006,6 +1043,7 @@ public class GameSocketHandler implements WebSocketHandler {
         }
 
          */
+        return null;
     }
 
     private OesRootHub prepareRootHub(OesRootHub source) {
