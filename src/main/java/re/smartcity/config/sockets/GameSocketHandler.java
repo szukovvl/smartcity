@@ -1023,7 +1023,6 @@ public class GameSocketHandler implements WebSocketHandler {
                 .root(gameRoot)
                 .udevices(Arrays.stream(uconnDevices).mapToInt(e -> e.getDevaddr()).toArray())
                 .adevices(task.getAuctionScene())
-                .credit(tp_sum)
                 .credit_total(tp_sum)
                 .build());
 
