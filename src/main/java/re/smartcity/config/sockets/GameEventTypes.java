@@ -25,6 +25,7 @@ public enum GameEventTypes {
     GAME_SCHEMA_DATA, // схема
     GAME_PROCESS_START, // запуск игры
     GAME_PROCESS_ITERATION, // временной срез
+    GAME_PROCESS_DATA, // запрос данных игрового блока
     SCENESDATA, // запрос данных сцен игрока
     ERROR // инициируется только сервисом для конкретного клиента
 }

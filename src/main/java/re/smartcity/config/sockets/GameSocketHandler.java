@@ -789,6 +789,12 @@ public class GameSocketHandler implements WebSocketHandler {
                     .data(buildSchemeResponse())
                     .build());
             case GAME_SCHEMA_DATA -> sendSchemeDataMessage(session);
+            case GAME_PROCESS_DATA -> sendEvent(session, GameServiceEvent
+                    .type(GameEventTypes.GAME_PROCESS_DATA)
+                    .data(Arrays.stream(modelingData.getTasks())
+                            .map(task -> task.getGameBlock())
+                            .toArray(GameBlock[]::new))
+                    .build());
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.ERROR)
@@ -976,17 +982,25 @@ public class GameSocketHandler implements WebSocketHandler {
         OesRootHub gameRoot = prepareRootHub(task.getRoot());
 
         // адреса всех устройств, распределенных по сценарию
-        int[] allAdresses = IntStream.concat(
-                IntStream.of(task.getScenesData().getSubstation().getDevaddr()), // министанция
-                IntStream.concat(
-                        Arrays.stream(task.getScenesData().getPredefconsumers())
-                                .mapToInt(e -> e.getDevaddr()),
-                        IntStream.concat(
-                                IntStream.of(task.getChoicesScene()),
-                                Arrays.stream(task.getAuctionScene())
-                                        .mapToInt(e -> e.key())
+        IComponentIdentification[] gamerDevices = Stream.concat(
+                Stream.of(task.getScenesData().getSubstation()),
+                Stream.concat(
+                        Arrays.stream(task.getScenesData().getPredefconsumers()),
+                        Stream.concat(
+                                Arrays.stream(modelingData.getAllobjects())
+                                        .filter(e -> Arrays.stream(task.getChoicesScene())
+                                                .anyMatch(a -> e.getDevaddr() == a)),
+                                Arrays.stream(modelingData.getAllobjects())
+                                        .filter(e -> Arrays.stream(task.getAuctionScene())
+                                                .anyMatch(a -> e.getDevaddr() == a.key()))
                         )))
-                .toArray();
+                .toArray(IComponentIdentification[]::new);
+
+        // получаю неподключенные устройства
+        IComponentIdentification[] uconnDevices = Arrays.stream(gamerDevices)
+                .filter(e -> Arrays.stream(gameRoot.getDevices())
+                        .noneMatch(a -> a.getAddress() == e.getDevaddr()))
+                .toArray(IComponentIdentification[]::new);
 
         // получение стоимости технологического присоединения
         try {
@@ -998,52 +1012,22 @@ public class GameSocketHandler implements WebSocketHandler {
             logger.error(ex.getMessage());
         }
 
-        return GameBlock.builder()
+        // расчет технологического подключения
+        double tp_sum = Arrays.stream(gameRoot.getDevices())
+                .filter(e -> e.getOwner().getComponentType() == SupportedTypes.CONSUMER)
+                .map(e -> (Consumer) e.getOwner())
+                .mapToDouble(e -> e.getData().getEnergy() * 1000.0 * tp.get())
+                .sum();
+
+        task.setGameBlock(GameBlock.builder()
                 .root(gameRoot)
-                .udevices(buildUnconnectedGameDevices(null))
-                .build();
-    }
+                .udevices(Arrays.stream(uconnDevices).mapToInt(e -> e.getDevaddr()).toArray())
+                .adevices(task.getAuctionScene())
+                .credit(tp_sum)
+                .credit_total(tp_sum)
+                .build());
 
-    private IOesHub[] buildUnconnectedGameDevices(OesRootHub root) {
-        /*
-        List<ResponseSchemeData> data = new ArrayList<>();
-
-        // !!! кривова-то как-то
-        AtomicReference<Double> tp = new AtomicReference<>(0.0);
-        commonStorage.getAndCreate(Tariffs.key, Tariffs.class)
-                .subscribe(e -> {
-                    synchronized (tp) {
-                        tp.set(e.getData().getTech_price());
-                        tp.notifyAll();
-                    }
-                });
-
-        try {
-            synchronized (tp) {
-                tp.wait(5000);
-            }
-        }
-        catch (InterruptedException ex) {
-            logger.error(ex.getMessage());
-        }
-
-        for (TaskData task : modelingData.getTasks()) {
-            ResponseSchemeDataBuilder builder = ResponseSchemeData.build(task.getPowerSystem().getDevaddr());
-
-            builder
-                    .substation(task.getScenesData().getSubstation().getDevaddr())
-                    .consumers(Arrays.stream(task.getScenesData().getPredefconsumers())
-                            .mapToInt(Consumer::getDevaddr)
-                            .toArray())
-                    .tcconsumers(task.getChoicesScene())
-                    .tcprice(tp.get())
-                    .generators(task.getAuctionScene());
-
-            data.add(builder.build());
-        }
-
-         */
-        return null;
+        return task.getGameBlock();
     }
 
     private OesRootHub prepareRootHub(OesRootHub source) {
