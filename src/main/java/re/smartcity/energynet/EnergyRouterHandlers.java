@@ -196,7 +196,7 @@ public class EnergyRouterHandlers {
                             .ok()
                             .header("Content-Language", "ru")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .body(Mono.just(retobj), ISpecifications.class);
+                            .body(Mono.just(retobj), retobj.getClass());
                 })
                 .onErrorResume(t -> ServerResponse
                         .status(HttpStatus.INTERNAL_SERVER_ERROR)

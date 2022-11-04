@@ -181,7 +181,7 @@ public class StandService {
                  */
                 //
                 //
-                        new Byte[] {
+                        /*new Byte[] {
                                 0x62,
                                 0x1E, 0x22, SEQUENCE_SEPARATOR,
                                 0x16, 0x23, SEQUENCE_SEPARATOR,
@@ -205,6 +205,35 @@ public class StandService {
                         new Byte[] {
                                 0x64,
                                 0x2F, 0x30, SEQUENCE_SEPARATOR,
+                                0x31, 0x0E, 0x0D, 0x0F, SEQUENCE_SEPARATOR,
+                                0x32, 0x11, 0x10, SEQUENCE_SEPARATOR
+                        }*/
+                        //
+                        //
+                        new Byte[] {
+                                0x62, // главная подстанция #1
+                                0x1E, 0x22, SEQUENCE_SEPARATOR,
+                                0x16, 0x23, SEQUENCE_SEPARATOR,
+                                0x24, 0x1B, SEQUENCE_SEPARATOR,
+                                0x25, 0x08, SEQUENCE_SEPARATOR,
+                                0x26, 0x38, 0x3A, SEQUENCE_SEPARATOR,
+                                0x27, 0x39, 0x3B, 0x3C, 0x40, SEQUENCE_SEPARATOR,
+                                0x28, 0x3D, 0x41, 0x30
+                        },
+                        new Byte[] {
+                                0x63, // главная подстанция #2
+                                0x1F, 0x29, SEQUENCE_SEPARATOR,
+                                0x07, 0x2A, SEQUENCE_SEPARATOR,
+                                0x2B, SEQUENCE_SEPARATOR,
+                                0x2C, SEQUENCE_SEPARATOR,
+                                0x2D, 0x37, 0x3E, SEQUENCE_SEPARATOR,
+                                0x2E, 0x36, SEQUENCE_SEPARATOR,
+                                0x2F, 0x3F
+                        },
+                        // 2F 30  | 0E 31  | 32
+                        new Byte[] {
+                                0x64, // миниподстанция #1
+                                0x28, 0x30, SEQUENCE_SEPARATOR,
                                 0x31, 0x0E, 0x0D, 0x0F, SEQUENCE_SEPARATOR,
                                 0x32, 0x11, 0x10, SEQUENCE_SEPARATOR
                         }
