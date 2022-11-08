@@ -3,6 +3,7 @@ package re.smartcity.config.sockets.process;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import re.smartcity.config.sockets.GameSocketHandler;
+import re.smartcity.config.sockets.model.GameBlock;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
 
@@ -11,8 +12,8 @@ import java.time.LocalTime;
 
 public class GameProcess implements Runnable {
 
-    public final static int SECONDS_OF_DAY = 86400;
-    public final static int MODEL_DISCRET = 250;
+    public final static int SECONDS_OF_DAY = 86400; // количество секунд в сутках
+    public final static int MODEL_DISCRET = 250; // время дискретизации в мс
 
     private final Logger logger = LoggerFactory.getLogger(GameProcess.class);
 
@@ -26,47 +27,38 @@ public class GameProcess implements Runnable {
         this.modelingData = modelingData;
     }
 
+    private double getSecondInMillis() {
+        return (((double) modelingData.getGamingDay().toSecondOfDay()) / ((double) SECONDS_OF_DAY)) * 1000;
+    }
+
     @Override
     public void run() {
-        logger.info("++++++++++++++++");
-        int seconds = modelingData.getGamingDay().toSecondOfDay();
-        double compression = ((double) seconds) / ((double) SECONDS_OF_DAY);
-        double secInMillis = compression * 1000;
-        long gameStep = Math.round(MODEL_DISCRET / secInMillis);
-        long delay = Math.round((gameStep * secInMillis) / 10.0) * 10L;
+        logger.info("Игровой сценарий для {} запущен", task.getPowerSystem().getIdenty());
+        double secInMillis = getSecondInMillis(); // реальных секунд в мс
+        long gameStep = Math.round(MODEL_DISCRET / secInMillis); // дискретизация - шаг игры в секундах
+        long delay = Math.round((gameStep * secInMillis) / 10.0) * 10L; // дискретизация - в мс
 
-        long totalSec = 0;
-        LocalTime t = LocalTime.of(0, 0, 0);
+        int totalSec = 0;
+        GameDataset dataset = new GameDataset(task.getPowerSystem().getDevaddr());
+        dataset.setCumulative_total(GameValues.builder()
+                .credit(task.getGameBlock().getCredit_total())
+                .build());
+
+        messenger.gameTracertMessage(null, dataset);
 
         try {
-            logger.info(" старт: {}", t);
-            while(totalSec <= SECONDS_OF_DAY) {
+            while(totalSec < SECONDS_OF_DAY) {
                 Thread.sleep(delay);
-                t = t.plusSeconds(gameStep);
                 totalSec += gameStep;
-                logger.info(" - : {}", t);
-                //messenger.gemeTracertMessage(null);
+                dataset.setSeconds(totalSec);
+                messenger.gameTracertMessage(null, dataset);
 
             }
         }
-        catch (InterruptedException ignored) { }
-
-        logger.info(" стоп: {}", t);
-
-        logger.info("--------------------");
-
-
-        /*logger.info("монитор для {} начал выполнение.", taskData.getPowerSystem().getIdenty());
-        try {
-            while (!taskData.getService().isShutdown() && !taskData.getService().isTerminated()) {
-                Thread.sleep(300);
-            }
+        catch (InterruptedException ignored) {
+            logger.warn("Игровой сценарий для {} прерван", task.getPowerSystem().getIdenty());
         }
-        catch (InterruptedException ex) {
-            logger.info("работа монитора прервана.");
-        }
-        finally {
-            logger.info("монитор для {} завершил выполнение.", taskData.getPowerSystem().getIdenty());
-        }*/
+
+        logger.info("Игровой сценарий для {} завершен", task.getPowerSystem().getIdenty());
     }
 }

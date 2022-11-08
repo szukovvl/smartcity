@@ -13,6 +13,7 @@ import re.smartcity.common.CommonStorage;
 import re.smartcity.common.data.Tariffs;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.config.sockets.model.*;
+import re.smartcity.config.sockets.process.GameDataset;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedTypes;
 import re.smartcity.energynet.component.Consumer;
@@ -1225,16 +1226,16 @@ public class GameSocketHandler implements WebSocketHandler {
         }
     }
 
-    public void gemeTracertMessage(WebSocketSession session) {
+    public void gameTracertMessage(WebSocketSession session, GameDataset dataset) {
         if (session != null) {
             sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.GAME_PROCESS_ITERATION)
-                    .data(0)
+                    .data(dataset)
                     .build());
         } else {
             sendEventToAll(GameServiceEvent
                     .type(GameEventTypes.GAME_PROCESS_ITERATION)
-                    .data(0)
+                    .data(dataset)
                     .build());
         }
     }
