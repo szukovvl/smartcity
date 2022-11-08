@@ -22,8 +22,6 @@ public class ModelingData {
     private final Logger logger = LoggerFactory.getLogger(ModelingData.class);
     private final Object syncObj = new Object();
 
-    private final int discreteness = 500; // дискретность модели, не игровой
-
     private volatile IComponentIdentification[] allobjects = new IComponentIdentification[] { };
 
     private volatile GameStatuses gameStatus = GameStatuses.NONE; //
@@ -84,8 +82,7 @@ public class ModelingData {
         if (items != null) {
             logger.info("--> остановка модели");
             for (TaskData item : items) {
-                item.getService().shutdown();
-                logger.info("--> остановка моделирования для {}", item.getPowerSystem().getIdenty());
+                item.stopGame();
             }
         }
     }
@@ -95,14 +92,10 @@ public class ModelingData {
         TaskData[] tasks = new TaskData[mainstations.length];
         for (int i = 0; i < tasks.length; i++) {
             tasks[i] = new TaskData(
-                    Executors.newSingleThreadExecutor(),
                     mainstations[i],
                     new GamerScenesData(substations[i]));
         }
         setTasks(tasks);
-        for (TaskData task : tasks) {
-            task.getService().execute(new SubnetMonitor(this, task));
-        }
 
         // !!!
         Executors.newSingleThreadScheduledExecutor().schedule(

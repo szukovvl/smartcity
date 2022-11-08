@@ -251,6 +251,9 @@ public class GameSocketHandler implements WebSocketHandler {
                     return event;
                 }
 
+                Arrays.stream(modelingData.getTasks())
+                        .forEach(e -> e.stopGame());
+
                 // !!! для костылей
                 synchronized (_locked) {
                     this.choicesScene = new int[0];
@@ -323,6 +326,9 @@ public class GameSocketHandler implements WebSocketHandler {
                             .build());
                     return event;
                 }
+
+                Arrays.stream(modelingData.getTasks())
+                        .forEach(e -> e.stopGame());
 
                 modelingData.cancelScenes(); // !!!
 
@@ -423,10 +429,9 @@ public class GameSocketHandler implements WebSocketHandler {
                                 .type(GameEventTypes.GAME_PROCESS_START)
                                 .data(prepareGame())
                                 .build());
-                        sendEventToAll(GameServiceEvent
-                                .type(GameEventTypes.GAME_PROCESS_ITERATION)
-                                .data(0)
-                                .build());
+
+                        Arrays.stream(modelingData.getTasks())
+                                .forEach(e -> e.startGame(this, modelingData));
                     }
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
@@ -1216,6 +1221,20 @@ public class GameSocketHandler implements WebSocketHandler {
                     .data(Arrays.stream(modelingData.getTasks())
                             .map(TaskData::getRoot)
                             .toArray(IOesHub[]::new))
+                    .build());
+        }
+    }
+
+    public void gemeTracertMessage(WebSocketSession session) {
+        if (session != null) {
+            sendEvent(session, GameServiceEvent
+                    .type(GameEventTypes.GAME_PROCESS_ITERATION)
+                    .data(0)
+                    .build());
+        } else {
+            sendEventToAll(GameServiceEvent
+                    .type(GameEventTypes.GAME_PROCESS_ITERATION)
+                    .data(0)
                     .build());
         }
     }
