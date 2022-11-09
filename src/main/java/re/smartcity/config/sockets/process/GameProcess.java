@@ -3,12 +3,12 @@ package re.smartcity.config.sockets.process;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import re.smartcity.config.sockets.GameSocketHandler;
-import re.smartcity.config.sockets.model.GameBlock;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
+import re.smartcity.modeling.scheme.IConnectionPort;
 
-import java.sql.Time;
-import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.Map;
 
 public class GameProcess implements Runnable {
 
@@ -37,6 +37,8 @@ public class GameProcess implements Runnable {
         double secInMillis = getSecondInMillis(); // реальных секунд в мс
         long gameStep = Math.round(MODEL_DISCRET / secInMillis); // дискретизация - шаг игры в секундах
         long delay = Math.round((gameStep * secInMillis) / 10.0) * 10L; // дискретизация - в мс
+
+        Map<Integer, IConnectionPort> ports = new HashMap<>();
 
         int totalSec = 0;
         GameDataset dataset = new GameDataset(task.getPowerSystem().getDevaddr());
