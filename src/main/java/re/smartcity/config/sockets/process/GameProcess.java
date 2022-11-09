@@ -110,12 +110,49 @@ public class GameProcess implements Runnable {
             while(totalSec < SECONDS_OF_DAY) {
                 Thread.sleep(delay);
                 totalSec += gameStep;
+
                 dataset.setRoot_values(HubTracertValues.builder()
                         .hub(task.getGameBlock().getRoot().getAddress())
                         .totals(GameValues.builder()
                                 .energy(dataset.getRoot_values().getTotals().getEnergy() + 1.0)
                                 .build())
                         .build());
+
+                ports.values().forEach(e -> e.setTracert(PortTracertValues.builder()
+                        .on(e.getTracert().isOn())
+                        .owner(e.getTracert().getOwner())
+                        .state(e.getTracert().getState())
+                        .port(e.getTracert().getPort())
+                        .zone(e.getTracert().getZone())
+                        .totals(GameValues.builder()
+                                .energy(e.getTracert().getTotals().getEnergy() + 0.15)
+                                .carbon(e.getTracert().getTotals().getCarbon() + 0.1)
+                                .build())
+                        .values(GameValues.builder()
+                                .energy(e.getTracert().getValues().getEnergy() + 0.33)
+                                .debit(e.getTracert().getValues().getDebit() + 10.2)
+                                .build())
+                        .build()));
+                dataset.setPort_values(ports.values()
+                        .stream()
+                        .map(e -> e.getTracert())
+                        .toArray(PortTracertValues[]::new)
+                );
+
+                hubs.values().forEach(e -> e.setTracert(HubTracertValues.builder()
+                        .hub(e.getTracert().getHub())
+                        .totals(GameValues.builder()
+                                .carbon(e.getTracert().getTotals().getCarbon() + 0.05)
+                                .build())
+                        .values(GameValues.builder()
+                                .debit(e.getTracert().getValues().getDebit() + 10.2)
+                                .build())
+                        .build()));
+                dataset.setHub_values(hubs.values()
+                        .stream()
+                        .map(e -> e.getTracert())
+                        .toArray(HubTracertValues[]::new));
+
                 dataset.setSeconds(totalSec);
                 messenger.gameTracertMessage(null, dataset);
 
