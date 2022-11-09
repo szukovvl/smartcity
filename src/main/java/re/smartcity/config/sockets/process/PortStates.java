@@ -1,6 +1,6 @@
-package re.smartcity.energynet;
+package re.smartcity.config.sockets.process;
 
-public enum SupportedLoadIndicators {
+public enum PortStates {
     LOW,               // низкая нагрузка
     NORMAL,            // нормальная
     MEDIUM,            // средняя
