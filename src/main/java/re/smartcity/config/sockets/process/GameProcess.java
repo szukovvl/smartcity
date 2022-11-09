@@ -195,6 +195,8 @@ public class GameProcess implements Runnable {
                 messenger.gameTracertMessage(null, dataset);
 
             }
+
+            Thread.sleep(500); // приторможу перед завершением ...
         }
         catch (InterruptedException ignored) {
             logger.warn("Игровой сценарий для {} прерван", task.getPowerSystem().getIdenty());
