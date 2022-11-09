@@ -3,11 +3,18 @@ package re.smartcity.config.sockets.process;
 import io.r2dbc.spi.Parameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import re.smartcity.config.sockets.GameSocketHandler;
+import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
 import re.smartcity.modeling.scheme.IConnectionPort;
 import re.smartcity.modeling.scheme.IOesHub;
+import re.smartcity.stand.SerialCommand;
+import re.smartcity.stand.SerialElementAddresses;
+import re.smartcity.stand.SerialPackageTypes;
+import re.smartcity.stand.StandService;
+import re.smartcity.wind.WindRouterHandlers;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,6 +22,12 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 public class GameProcess implements Runnable {
+
+    @Autowired
+    private StandService standService;
+
+    @Autowired
+    private WindRouterHandlers wind;
 
     public final static int SECONDS_OF_DAY = 86400; // количество секунд в сутках
     public final static int MODEL_DISCRET = 250; // время дискретизации в мс
@@ -70,14 +83,37 @@ public class GameProcess implements Runnable {
         Map<Integer, HubTracertInternalData> hubs = new HashMap<>();
 
         Arrays.stream(task.getGameBlock().getRoot().getDevices())
-                .forEach(e -> hubs.put(e.getAddress(), new HubTracertInternalData(e)));
+                .forEach(e -> {
+                    IComponentIdentification cmp = Arrays.stream(modelingData.getAllobjects())
+                            .filter(oes -> oes.getDevaddr() == e.getAddress())
+                            .findFirst()
+                            .orElseThrow();
+                    hubs.put(e.getAddress(),
+                            new HubTracertInternalData(e, cmp));
+
+                    // установить прогноз текущего сценария (потребители и ДГ)
+
+                });
 
         return hubs;
+    }
+
+    private void standAllOff() {
+        wind.windOff();
+        standService.pushSerialCommand(
+                new SerialCommand(SerialElementAddresses.SUN_SIMULATOR,
+                        SerialPackageTypes.SET_BRIGHTNESS_SUN_SIMULATOR, 0));
+        standService.pushSerialCommand(
+                new SerialCommand(SerialPackageTypes.SET_HIGHLIGHT_LEVEL, 0));
     }
 
     @Override
     public void run() {
         logger.info("Игровой сценарий для {} запущен", task.getPowerSystem().getIdenty());
+
+        // останов всех устройств стенда
+        standAllOff();
+
         double secInMillis = getSecondInMillis(); // реальных секунд в мс
         long gameStep = Math.round(MODEL_DISCRET / secInMillis); // дискретизация - шаг игры в секундах
         long delay = Math.round((gameStep * secInMillis) / 10.0) * 10L; // дискретизация - в мс
@@ -107,6 +143,8 @@ public class GameProcess implements Runnable {
         messenger.gameTracertMessage(null, dataset);
 
         try {
+            Thread.sleep(500); // немного притормозим перед началом...
+
             while(totalSec < SECONDS_OF_DAY) {
                 Thread.sleep(delay);
                 totalSec += gameStep;
@@ -161,6 +199,9 @@ public class GameProcess implements Runnable {
         catch (InterruptedException ignored) {
             logger.warn("Игровой сценарий для {} прерван", task.getPowerSystem().getIdenty());
         }
+
+        // останов всех устройств стенда
+        standAllOff();
 
         logger.info("Игровой сценарий для {} завершен", task.getPowerSystem().getIdenty());
     }

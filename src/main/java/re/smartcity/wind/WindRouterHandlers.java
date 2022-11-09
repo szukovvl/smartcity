@@ -405,4 +405,52 @@ public class WindRouterHandlers {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(windStatusData);
     }
+
+    public void windPower(byte power) {
+        if (windStatusData.getUrl() == null || windStatusData.getUrl().equals("")) {
+            windStatusData.setErrorMsg("Адрес сетевого ресурса устройста управления вентилятором не задан.");
+            return;
+        }
+
+        windClient
+                .get()
+                .uri(UriComponentsBuilder
+                        .fromHttpUrl(windStatusData.getUrl())
+                        .path("Fan")
+                        .queryParam("params", power)
+                        .build()
+                        .toUri())
+                .exchangeToMono(response -> {
+                    if (response.statusCode() == HttpStatus.OK) {
+                        windStatusData.setErrorMsg(null);
+                    } else {
+                        response.bodyToMono(String.class)
+                                .map(msg -> {
+                                    if (msg != null && !msg.equals("")) {
+                                        windStatusData.setErrorMsg(String.format("Ошибка %d: %s", response.statusCode().value(), msg));
+                                    } else {
+                                        windStatusData.setErrorMsg(String.format("Ошибка %d", response.statusCode().value()));
+                                    }
+
+                                    return Mono.empty();
+                                })
+                                .onErrorResume(t -> {
+                                    windStatusData.setErrorMsg(t.getMessage());
+                                    return Mono.empty();
+                                })
+                                .subscribe();
+                    }
+
+                    return Mono.empty();
+                })
+                .onErrorResume(t -> {
+                    windStatusData.setErrorMsg(t.getMessage());
+                    return Mono.empty();
+                })
+                .subscribe();
+    }
+
+    public void windOff() {
+        windPower((byte) 0);
+    }
 }
