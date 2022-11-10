@@ -1,34 +1,29 @@
 package re.smartcity.config.sockets.process;
 
-import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
 
-@Value
-@Builder
+@Data
 public class PortTracertValues {
 
-    @Builder.Default
-    GameValues values = GameValues.builder().build();
+    private GameValues values = new GameValues();
 
-    @Builder.Default
-    GameValues totals = GameValues.builder().build();
+    private GameValues totals = new GameValues();
 
-    @Builder.Default
-    int port = 0;
+    private final int port;
 
-    @Builder.Default
-    int owner = 0;
+    private final int owner;
 
-    @Builder.Default
-    int game_step = 0;
+    private int game_step = 0;
 
-    @Builder.Default
-    boolean on = false;
+    private boolean on = false;
 
-    @Builder.Default
-    PortStates state = PortStates.LOW;
+    private PortStates state = PortStates.LOW;
 
-    @Builder.Default
-    AppliedTariffZones zone = AppliedTariffZones.NONE_DAY_PEAK;
+    private AppliedTariffZones zone = AppliedTariffZones.NONE_DAY_PEAK;
+
+    public PortTracertValues(int port, int owner) {
+        this.port = port;
+        this.owner = owner;
+    }
 
 }

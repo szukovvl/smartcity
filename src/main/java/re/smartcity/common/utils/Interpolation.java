@@ -1,6 +1,7 @@
 package re.smartcity.common.utils;
 
 import org.apache.commons.math3.analysis.interpolation.AkimaSplineInterpolator;
+import org.apache.commons.math3.analysis.interpolation.LinearInterpolator;
 import org.apache.commons.math3.analysis.polynomials.PolynomialSplineFunction;
 import re.smartcity.common.data.ForecastPoint;
 import re.smartcity.common.data.exchange.ForecastInterpolation;
@@ -8,6 +9,7 @@ import re.smartcity.common.data.exchange.ForecastInterpolation;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import static re.smartcity.common.resources.AppConstant.*;
@@ -21,24 +23,21 @@ public final class Interpolation {
 
     public static ForecastInterpolation interpolate(ForecastPoint[] points, double scale) {
         ArrayList<ForecastPoint> wrkdata = new ArrayList<>(Arrays.stream(points).toList());
-        ForecastPoint[] data = points;
-        if (data[0].getPoint().toSecondOfDay() != 0)
+        if (points[0].getPoint().toSecondOfDay() != 0)
         {
             wrkdata.add(0, new ForecastPoint());
         }
-        if (data[data.length - 1].getPoint().toSecondOfDay() < (GAMEDAY_MAX_MINUTES * 60)) {
+        if (points[points.length - 1].getPoint().toSecondOfDay() < (GAMEDAY_MAX_MINUTES * 60)) {
             ForecastPoint lastpt = new ForecastPoint();
             lastpt.setPoint(LocalTime.ofSecondOfDay(GAMEDAY_MAX_MINUTES * 60L));
-            lastpt.setValue(data[data.length - 1].getValue());
+            lastpt.setValue(points[points.length - 1].getValue());
             wrkdata.add(lastpt);
         }
 
         ForecastInterpolation interpolation = new ForecastInterpolation();
         if (wrkdata.size() < 5) {
             interpolation.setLinear(true);
-            wrkdata.forEach(pt -> {
-                pt.setValue(pt.getValue() * scale);
-            });
+            wrkdata.forEach(pt -> pt.setValue(pt.getValue() * scale));
             interpolation.setItems(wrkdata.toArray(ForecastPoint[]::new));
         } else {
             double[] xx = wrkdata.stream()
@@ -63,5 +62,42 @@ public final class Interpolation {
         }
 
         return interpolation;
+    }
+
+    public static double[] interpolate(ForecastPoint[] points, double scale, long count_pt, long step) {
+        ArrayList<ForecastPoint> wrkdata = new ArrayList<>(Arrays.stream(points).toList());
+        if (points[0].getPoint().toSecondOfDay() != 0)
+        {
+            wrkdata.add(0, new ForecastPoint());
+        }
+        if (points[points.length - 1].getPoint().toSecondOfDay() < LocalTime.MAX.toSecondOfDay()) {
+            ForecastPoint lastpt = new ForecastPoint();
+            lastpt.setPoint(LocalTime.ofSecondOfDay(LocalTime.MAX.toSecondOfDay()));
+            lastpt.setValue(points[points.length - 1].getValue());
+            wrkdata.add(lastpt);
+        }
+
+        double[] xx = wrkdata.stream()
+                .mapToDouble(b -> b.getPoint().toSecondOfDay()).toArray();
+        double[] yy = wrkdata.stream()
+                .mapToDouble(ForecastPoint::getValue).toArray();
+        PolynomialSplineFunction splineFunction;
+        if (wrkdata.size() < 5) {
+            splineFunction = (new LinearInterpolator()).interpolate(xx, yy);
+        } else {
+            splineFunction = (new AkimaSplineInterpolator()).interpolate(xx, yy);
+        }
+        final double[] current_x = {0.0};
+        return DoubleStream.generate(() -> {
+            double v = splineFunction.value(current_x[0]);
+            if (v < FORECAST_POINT_MIN_VALUE) {
+                v = FORECAST_POINT_MIN_VALUE;
+            } else if (v > FORECAST_POINT_MAX_VALUE) {
+                v = FORECAST_POINT_MAX_VALUE;
+            }
+            v *= scale;
+            current_x[0] += step;
+            return v;
+        }).limit(count_pt).toArray();
     }
 }

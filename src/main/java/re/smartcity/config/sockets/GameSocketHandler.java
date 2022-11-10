@@ -14,10 +14,10 @@ import re.smartcity.common.data.Tariffs;
 import re.smartcity.common.resources.Messages;
 import re.smartcity.config.sockets.model.*;
 import re.smartcity.config.sockets.process.GameDataset;
+import re.smartcity.energynet.GenerationUsageModes;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedTypes;
-import re.smartcity.energynet.component.Consumer;
-import re.smartcity.energynet.component.MainSubstationPowerSystem;
+import re.smartcity.energynet.component.*;
 import re.smartcity.modeling.GameStatuses;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
@@ -26,6 +26,8 @@ import re.smartcity.modeling.data.GamerScenesData;
 import re.smartcity.modeling.scheme.IConnectionPort;
 import re.smartcity.modeling.scheme.IOesHub;
 import re.smartcity.modeling.scheme.OesRootHub;
+import re.smartcity.stand.StandService;
+import re.smartcity.wind.WindRouterHandlers;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
@@ -47,6 +49,12 @@ public class GameSocketHandler implements WebSocketHandler {
 
     @Autowired
     private CommonStorage commonStorage;
+
+    @Autowired
+    private StandService standService;
+
+    @Autowired
+    private WindRouterHandlers wind;
 
     private final Map<String, WebSocketSession> guests = new ConcurrentHashMap<>();
     private final ModelingData modelingData;
@@ -432,7 +440,7 @@ public class GameSocketHandler implements WebSocketHandler {
                                 .build());
 
                         Arrays.stream(modelingData.getTasks())
-                                .forEach(e -> e.startGame(this, modelingData));
+                                .forEach(e -> e.startGame(this, modelingData, this.standService, this.wind));
                     }
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)
@@ -1075,11 +1083,16 @@ public class GameSocketHandler implements WebSocketHandler {
         Stream.concat(Stream.of(dest.getInputs()), Stream.of(dest.getOutputs()))
                         .forEach(item -> item.setOn(true));
         actualDevices.forEach(item -> {
-            if (item.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR) {
-                Stream.concat(Stream.of(item.getInputs()), Stream.of(item.getOutputs()))
+            switch (item.getOwner().getComponentType()) {
+                case DISTRIBUTOR -> Stream.concat(Stream.of(item.getInputs()), Stream.of(item.getOutputs()))
                         .forEach(distributor -> distributor.setOn(true));
-            } else {
-                item.getInputs()[0].setOn(true);
+                case GENERATOR -> item.getInputs()[0].setOn(
+                        ((Generation) item.getOwner()).getData().getMode() == GenerationUsageModes.ALWAYS);
+                case GREEGENERATOR -> item.getInputs()[0].setOn(
+                        ((GreenGeneration) item.getOwner()).getData().getMode() == GenerationUsageModes.ALWAYS);
+                case STORAGE -> item.getInputs()[0].setOn(
+                        ((EnergyStorage) item.getOwner()).getData().getMode() == GenerationUsageModes.ALWAYS);
+                default -> item.getInputs()[0].setOn(true);
             }
         });
 

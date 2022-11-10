@@ -1,26 +1,15 @@
 package re.smartcity.config.sockets.process;
 
-import lombok.Builder;
-import lombok.Value;
-import re.smartcity.modeling.scheme.OesRootHub;
+import lombok.Data;
 
-@Value
-@Builder
+@Data
 public class GameValues {
 
-    @Builder.Default
-    double energy = 0.0; // потребляемая мощность
-
-    @Builder.Default
-    double generation = 0.0; // генерируемые мощности
-
-    @Builder.Default
-    double carbon = 0.0; // экология
-
-    @Builder.Default
-    double credit = 0.0; // расходы
-
-    @Builder.Default
-    double debit = 0.0; // доходы
+    private double energy = 0.0; // потребляемая мощность
+    private double generation = 0.0; // генерируемые мощности
+    private double reserve_generation = 0.0; // резервные генерируемые мощности
+    private double carbon = 0.0; // экология
+    private double credit = 0.0; // расходы
+    private double debit = 0.0; // доходы
 
 }

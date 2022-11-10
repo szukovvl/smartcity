@@ -7,13 +7,12 @@ public class HubTracertInternalData {
     private final IOesHub hub;
     private final IComponentIdentification oes;
     private HubTracertValues tracert;
+    private double[] forecast = null;
 
     public HubTracertInternalData(IOesHub hub, IComponentIdentification oes) {
         this.hub = hub;
         this.oes = oes;
-        this.tracert = HubTracertValues.builder()
-                .hub(hub.getAddress())
-                .build();
+        this.tracert = new HubTracertValues(hub.getAddress());
     }
 
     public IComponentIdentification getOes() {
@@ -31,4 +30,14 @@ public class HubTracertInternalData {
     public void setTracert(HubTracertValues tracert) {
         this.tracert = tracert;
     }
+
+    public double[] getForecast() {
+        return forecast;
+    }
+
+    public void setForecast(double[] forecast) {
+        this.forecast = forecast;
+    }
+
+    public boolean useForecast() { return this.forecast != null; }
 }

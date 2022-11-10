@@ -5,8 +5,8 @@ import lombok.Data;
 @Data
 public class GameDataset {
     private final int key;
-    private GameValues cumulative_total = GameValues.builder().build(); // значения с накоплением
-    private GameValues instant_values = GameValues.builder().build(); // мгновенные значения
+    private GameValues cumulative_total = new GameValues(); // значения с накоплением
+    private GameValues instant_values = new GameValues(); // мгновенные значения
     private int seconds = 0;
 
     private HubTracertValues root_values;

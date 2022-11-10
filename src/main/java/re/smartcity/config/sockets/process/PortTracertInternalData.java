@@ -7,20 +7,13 @@ public final class PortTracertInternalData {
     private PortTracertValues tracert;
 
     public PortTracertInternalData(IConnectionPort port) {
-        this.port = port;
-        this.tracert = PortTracertValues.builder()
-                .port(port.getAddress())
-                .on(port.isOn())
-                .build();
+        this(port, 0);
     }
 
     public PortTracertInternalData(IConnectionPort port, int owner) {
         this.port = port;
-        this.tracert = PortTracertValues.builder()
-                .port(port.getAddress())
-                .on(port.isOn())
-                .owner(owner)
-                .build();
+        this.tracert = new PortTracertValues(port.getAddress(), owner);
+        this.tracert.setOn(port.isOn());
     }
 
     public IConnectionPort getPort() {

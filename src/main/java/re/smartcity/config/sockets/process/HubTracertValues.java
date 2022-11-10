@@ -1,19 +1,15 @@
 package re.smartcity.config.sockets.process;
 
-import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
 
-@Value
-@Builder
+@Data
 public class HubTracertValues {
 
-    @Builder.Default
-    GameValues values = GameValues.builder().build();
+    private GameValues values = new GameValues();
+    private GameValues totals = new GameValues();
+    private final int hub;
 
-    @Builder.Default
-    GameValues totals = GameValues.builder().build();
-
-    @Builder.Default
-    int hub = 0;
-
+    public HubTracertValues(int address) {
+        this.hub = address;
+    }
 }
