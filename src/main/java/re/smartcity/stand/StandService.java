@@ -93,13 +93,14 @@ public class StandService {
                             byteArrayCopy(packet, 6, 4)));
                     if (bg > MAX_ILLUMINATION_VALUE) bg = MAX_ILLUMINATION_VALUE;
                 }
-                commonSocketHandler.pushEvent(CommonEventTypes.SOLAR_SLICE,
-                        new CellDataEvent(
-                                packet[0],
-                                luxury,
-                                bg,
-                                luxury - bg,
-                                Helpers.normalizeAsPercentage(luxury - bg, MAX_ILLUMINATION_VALUE - bg)));
+                CellDataEvent event = new CellDataEvent(
+                        packet[0],
+                        luxury,
+                        bg,
+                        luxury - bg,
+                        Helpers.normalizeAsPercentage(luxury - bg, MAX_ILLUMINATION_VALUE - bg));
+                commonSocketHandler.pushEvent(CommonEventTypes.SOLAR_SLICE, event);
+                modelingData.putGreenGeneration(event.key(), event.percent());
             }
             case SerialPackageTypes.WIND_FORCE_DATA -> {
                 float calibration = 0.0f;
@@ -109,13 +110,14 @@ public class StandService {
                     calibration = Float.parseFloat(new String(
                             byteArrayCopy(packet, 6, 4)));
                 }
-                commonSocketHandler.pushEvent(CommonEventTypes.WIND_SLICE,
-                        new CellDataEvent(
-                                packet[0],
-                                windSpeed,
-                                calibration,
-                                Helpers.noramlizeValue(windSpeed, calibration),
-                                Helpers.normalizeAsPercentage(windSpeed, calibration)));
+                CellDataEvent event = new CellDataEvent(
+                        packet[0],
+                        windSpeed,
+                        calibration,
+                        Helpers.noramlizeValue(windSpeed, calibration),
+                        Helpers.normalizeAsPercentage(windSpeed, calibration));
+                commonSocketHandler.pushEvent(CommonEventTypes.WIND_SLICE, event);
+                modelingData.putGreenGeneration(event.key(), event.percent());
             }
             case SerialPackageTypes.MODEL_HIGHLIGHT_DATA -> { }
             case SerialPackageTypes.DATA_CURRENT_CONSUMED -> logger.warn(String.format(Messages.FER_3, packet[0]));
@@ -215,7 +217,7 @@ public class StandService {
                                 0x1E, 0x22, SEQUENCE_SEPARATOR,
                                 0x16, 0x23, SEQUENCE_SEPARATOR,
                                 0x24, 0x1B, SEQUENCE_SEPARATOR,
-                                0x25, 0x08, SEQUENCE_SEPARATOR,
+                                0x25, 0x03, SEQUENCE_SEPARATOR,
                                 0x26, 0x38, 0x3A, SEQUENCE_SEPARATOR,
                                 0x27, 0x39, 0x3B, 0x3C, 0x40, SEQUENCE_SEPARATOR,
                                 0x28, 0x3D, 0x41, 0x30

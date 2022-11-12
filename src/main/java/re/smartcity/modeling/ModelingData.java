@@ -3,6 +3,7 @@ package re.smartcity.modeling;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import re.smartcity.config.sockets.GameSocketHandler;
+import re.smartcity.config.sockets.model.CellDataEvent;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;
@@ -11,6 +12,8 @@ import re.smartcity.modeling.data.StandBinaryPackage;
 import re.smartcity.stand.SerialPackageBuilder;
 
 import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +32,7 @@ public class ModelingData {
 
     private final ConcurrentLinkedQueue<StandBinaryPackage> standSchemes = new ConcurrentLinkedQueue<>();
     private final Object _syncSchemeData = new Object();
+    private final Map<Integer, Double> green_generation = new HashMap<>();
 
     private GameSocketHandler messenger;
 
@@ -129,5 +133,13 @@ public class ModelingData {
         if (this.messenger != null) {
             messenger.sendSchemeDataMessage(null);
         }
+    }
+
+    public synchronized void putGreenGeneration(int key, double val) {
+        this.green_generation.put(key, val);
+    }
+
+    public synchronized double getGreenGeneration(int key) {
+        return this.green_generation.getOrDefault(key, 0.0);
     }
 }

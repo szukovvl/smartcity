@@ -5,14 +5,15 @@ import org.slf4j.LoggerFactory;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.utils.Interpolation;
 import re.smartcity.config.sockets.GameSocketHandler;
+import re.smartcity.config.sockets.model.PurchasedLot;
 import re.smartcity.energynet.GenerationUsageModes;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedTypes;
-import re.smartcity.energynet.component.Consumer;
-import re.smartcity.energynet.component.Generation;
-import re.smartcity.energynet.component.MainSubstationPowerSystem;
+import re.smartcity.energynet.component.*;
 import re.smartcity.energynet.component.data.ConsumerSpecification;
+import re.smartcity.energynet.component.data.EnergyStorageSpecification;
 import re.smartcity.energynet.component.data.GenerationSpecification;
+import re.smartcity.energynet.component.data.GreenGenerationSpecification;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
 import re.smartcity.modeling.scheme.IConnectionPort;
@@ -31,6 +32,7 @@ import java.util.stream.Stream;
 public class GameProcess implements Runnable {
 
     public final static int SECONDS_OF_DAY = 86400; // количество секунд в сутках
+    public final static int SECONDS_OF_HOURS = 3600; // количество секунд в часе
     public final static int MODEL_DISCRET = 250; // время дискретизации в мс
 
     private final Logger logger = LoggerFactory.getLogger(GameProcess.class);
@@ -131,6 +133,30 @@ public class GameProcess implements Runnable {
         return hubs;
     }
 
+    private Map<Integer, ElectricalSubnet> buildLines() {
+        Map<Integer, ElectricalSubnet> lines = new HashMap<>();
+
+        Stream.concat(
+                        Stream.of(this.task.getPowerSystem().getData().getInputs()),
+                        Stream.of(this.task.getPowerSystem().getData().getOutputs())
+                )
+                .forEach(line -> {
+                    lines.put((int) line.getDevaddr(), line);
+                });
+
+        // обработка миниподстанций: считаю, что только миниподстанции поддерживают выходные порты
+        Arrays.stream(task.getGameBlock().getRoot().getDevices())
+                .filter(IOesHub::supportOutputs)
+                .map(e -> e.getOwner())
+                .filter(e -> e.getComponentType() == SupportedTypes.DISTRIBUTOR)
+                .flatMap(e -> Stream.of(((EnergyDistributor) e).getData().getOutputs()))
+                .forEach(line -> {
+                    lines.put((int) line.getDevaddr(), line);
+                });
+
+        return lines;
+    }
+
     private void standAllOff() {
         wind.windOff();
         standService.pushSerialCommand(
@@ -153,6 +179,7 @@ public class GameProcess implements Runnable {
 
         Map<Integer, PortTracertInternalData> ports = buildPorts();
         Map<Integer, HubTracertInternalData> hubs = buildHubs(SECONDS_OF_DAY / gameStep, gameStep);
+        Map<Integer, ElectricalSubnet> lines = buildLines();
 
         int totalSec = 0;
         GameDataset dataset = new GameDataset(task.getPowerSystem().getDevaddr());
@@ -177,8 +204,11 @@ public class GameProcess implements Runnable {
             Thread.sleep(500); // немного притормозим перед началом...
 
             int fNumber = 0;
+            double energy_for_step = ((double) gameStep) / ((double) SECONDS_OF_HOURS);
 
             while(totalSec <= SECONDS_OF_DAY) {
+
+                Thread.sleep(delay);
 
                 // очистка мгновенных значений
                 dataset.getRoot_values().setValues(new GameValues());
@@ -186,90 +216,87 @@ public class GameProcess implements Runnable {
                 ports.values().forEach(e -> e.getTracert().setValues(new GameValues()));
 
                 // расчет мощностей генерации
-                final double[] max_power = {((MainSubstationPowerSystem) task.getGameBlock().getRoot().getOwner())
-                        .getData().getExternal_energy()};
+                double ext_energy = ((MainSubstationPowerSystem) task.getGameBlock().getRoot().getOwner())
+                        .getData().getExternal_energy();
                 int finalFNumber = fNumber;
                 Arrays.stream(task.getGameBlock().getRoot().getInputs())
                         .filter(e -> e.getConnections() != null)
-                        .filter(IConnectionPort::isOn)
-                        .flatMap(e -> Stream.of(e.getConnections()))
-                        .forEach(port -> {
-                            HubTracertInternalData gen_data = hubs.get(port.getOwner().getAddress());
+                        .forEach(line -> {
+                            PortTracertInternalData line_port = ports.get(line.getAddress());
+                            PortTracertInternalData gen_port = ports.get(line.getConnections()[0].getAddress());
+                            HubTracertInternalData gen_data = hubs.get(gen_port.getPort().getOwner().getAddress());
+                            double gen_energy = 0.0;
+                            double gen_reserve = 0.0;
+                            double v;
+
+                            // мощности генераторов
                             switch (gen_data.getOes().getComponentType()) {
-                                case STORAGE -> logger.info("STORAGE");
+                                case STORAGE -> {
+                                    EnergyStorageSpecification data = ((EnergyStorage) gen_data.getOes()).getData();
+                                    v = data.getEnergy();
+                                    if (gen_port.getPort().isOn()) {
+                                        gen_port.getTracert().getValues().setEnergy(v);
+                                        gen_energy = v;
+                                    } else if (data.getMode() == GenerationUsageModes.RESERVE) {
+                                        gen_reserve = v;
+                                    }
+                                }
                                 case GENERATOR -> {
-                                    double v;
                                     if (gen_data.useForecast()) {
                                         v = gen_data.getForecast()[finalFNumber];
                                     } else {
                                         v = ((Generation) gen_data.getOes()).getData().getEnergy();
                                     }
-                                    if (((Generation) gen_data.getOes()).getData().getMode() == GenerationUsageModes.RESERVE) {
-                                        gen_data.getTracert().getValues().setReserve_generation(v);
-                                    } else {
-                                        gen_data.getTracert().getValues().setEnergy(v);
+                                    v *= energy_for_step;
+                                    gen_data.getTracert().getValues().setGeneration(v);
+                                    if (gen_port.getPort().isOn()) {
+                                        gen_port.getTracert().getValues().setGeneration(v);
+                                        gen_energy = v;
+                                    } else if (((Generation) gen_data.getOes()).getData().getMode() == GenerationUsageModes.RESERVE) {
+                                        gen_reserve = v;
                                     }
                                 }
-                                case GREEGENERATOR -> logger.info("GREEGENERATOR");
+                                case GREEGENERATOR -> {
+                                    GreenGenerationSpecification data = ((GreenGeneration) gen_data.getOes()).getData();
+                                    v = data.getEnergy() * (modelingData.getGreenGeneration(gen_data.getHub().getAddress()) / 100.0);
+                                    v *= energy_for_step;
+                                    if (gen_port.getPort().isOn()) {
+                                        gen_port.getTracert().getValues().setEnergy(v);
+                                        gen_energy = v;
+                                    } else if (data.getMode() == GenerationUsageModes.RESERVE) {
+                                        gen_reserve = v;
+                                    }
+                                }
                             }
-                            max_power[0] += gen_data.getTracert().getValues().getEnergy() +
-                                    gen_data.getTracert().getValues().getReserve_generation();
+
+                            if (line.isOn()) { // линия подключена
+                                ElectricalSubnet subnet = lines.get(line.getAddress());
+                                line_port.getTracert().getValues().setGeneration(gen_energy * subnet.getData().getLossfactor());
+                                line_port.getTracert().getValues().setReserve_generation(gen_reserve * subnet.getData().getLossfactor());
+                            }
+
+                            dataset.getRoot_values().getValues().setGeneration(
+                                    dataset.getRoot_values().getValues().getGeneration() + line_port.getTracert().getValues().getGeneration());
+                            dataset.getRoot_values().getValues().setReserve_generation(
+                                    dataset.getRoot_values().getValues().getReserve_generation() + line_port.getTracert().getValues().getReserve_generation());
                         });
+                dataset.getRoot_values().getValues().setGeneration(
+                        dataset.getRoot_values().getValues().getGeneration() + (ext_energy * energy_for_step));
 
+                // расчет потребления
 
-                dataset.getRoot_values().getValues().setEnergy(max_power[0]); // !!!
-
-                Thread.sleep(delay);
                 totalSec += gameStep;
+                fNumber++;
 
-                HubTracertValues h = new HubTracertValues(task.getGameBlock().getRoot().getAddress());
-                h.getTotals().setEnergy(h.getTotals().getEnergy() + 1.0);
-                dataset.setRoot_values(h);
-
-                ports.values().forEach(e -> {
-                    GameValues v1 = new GameValues();
-                    GameValues v2 = new GameValues();
-
-                    v1.setEnergy(e.getTracert().getTotals().getEnergy() + 0.15);
-                    v1.setCarbon(e.getTracert().getTotals().getCarbon() + 0.1);
-
-                    v2.setEnergy(e.getTracert().getValues().getEnergy() + 0.33);
-                    v2.setDebit(e.getTracert().getValues().getDebit() + 10.2);
-
-                    PortTracertValues pv = new PortTracertValues(e.getTracert().getPort(), e.getTracert().getOwner());
-                    pv.setOn(e.getTracert().isOn());
-                    pv.setState(e.getTracert().getState());
-                    pv.setZone(e.getTracert().getZone());
-                    pv.setTotals(v1);
-                    pv.setValues(v2);
-
-                    e.setTracert(pv);
-                });
-                dataset.setPort_values(ports.values()
-                        .stream()
-                        .map(PortTracertInternalData::getTracert)
-                        .toArray(PortTracertValues[]::new)
-                );
-
-                hubs.values().forEach(e -> {
-                    GameValues v1 = new GameValues();
-                    GameValues v2 = new GameValues();
-
-                    v1.setCarbon(e.getTracert().getTotals().getCarbon() + 0.05);
-
-                    v2.setDebit(e.getTracert().getValues().getDebit() + 10.2);
-
-                    HubTracertValues lh = new HubTracertValues(e.getTracert().getHub());
-                    lh.setTotals(v1);
-                    lh.setValues(v2);
-                    e.setTracert(lh);
-                });
                 dataset.setHub_values(hubs.values()
                         .stream()
                         .map(HubTracertInternalData::getTracert)
                         .toArray(HubTracertValues[]::new));
+                dataset.setPort_values(ports.values()
+                        .stream()
+                        .map(PortTracertInternalData::getTracert)
+                        .toArray(PortTracertValues[]::new));
 
-                fNumber++;
                 dataset.setSeconds(totalSec);
                 messenger.gameTracertMessage(null, dataset);
 
@@ -287,3 +314,4 @@ public class GameProcess implements Runnable {
         logger.info("Игровой сценарий для {} завершен", task.getPowerSystem().getIdenty());
     }
 }
+

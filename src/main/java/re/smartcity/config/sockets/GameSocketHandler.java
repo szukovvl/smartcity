@@ -1033,11 +1033,15 @@ public class GameSocketHandler implements WebSocketHandler {
                 .mapToDouble(e -> e.getData().getEnergy() * 1000.0 * tp.get())
                 .sum();
 
+        double gp_sum = Arrays.stream(task.getAuctionScene())
+                .mapToDouble(e -> e.price())
+                .sum();
+
         task.setGameBlock(GameBlock.builder()
                 .root(gameRoot)
                 .udevices(Arrays.stream(uconnDevices).mapToInt(e -> e.getDevaddr()).toArray())
                 .adevices(task.getAuctionScene())
-                .credit_total(tp_sum)
+                .credit_total(tp_sum + gp_sum)
                 .build());
 
         return task.getGameBlock();
