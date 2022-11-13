@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import re.smartcity.common.data.Forecast;
 import re.smartcity.common.utils.Interpolation;
 import re.smartcity.config.sockets.GameSocketHandler;
-import re.smartcity.config.sockets.model.PurchasedLot;
 import re.smartcity.energynet.GenerationUsageModes;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.SupportedTypes;
@@ -140,19 +139,15 @@ public class GameProcess implements Runnable {
                         Stream.of(this.task.getPowerSystem().getData().getInputs()),
                         Stream.of(this.task.getPowerSystem().getData().getOutputs())
                 )
-                .forEach(line -> {
-                    lines.put((int) line.getDevaddr(), line);
-                });
+                .forEach(line -> lines.put((int) line.getDevaddr(), line));
 
         // обработка миниподстанций: считаю, что только миниподстанции поддерживают выходные порты
         Arrays.stream(task.getGameBlock().getRoot().getDevices())
                 .filter(IOesHub::supportOutputs)
-                .map(e -> e.getOwner())
+                .map(IOesHub::getOwner)
                 .filter(e -> e.getComponentType() == SupportedTypes.DISTRIBUTOR)
                 .flatMap(e -> Stream.of(((EnergyDistributor) e).getData().getOutputs()))
-                .forEach(line -> {
-                    lines.put((int) line.getDevaddr(), line);
-                });
+                .forEach(line -> lines.put((int) line.getDevaddr(), line));
 
         return lines;
     }
@@ -174,16 +169,16 @@ public class GameProcess implements Runnable {
                                       double energy_for_step) {
         Arrays.stream(sub_data.getHub().getOutputs())
                 .filter(e -> e.getConnections() != null)
-                .filter(e -> e.isOn())
+                .filter(IConnectionPort::isOn)
                 .forEach(line -> {
                     PortTracertInternalData line_port = ports.get(line.getAddress());
 
                     Arrays.stream(line.getConnections())
-                            .filter(e -> e.isOn())
+                            .filter(IConnectionPort::isOn)
                             .forEach(conn -> {
                                 PortTracertInternalData consumer_port = ports.get(conn.getAddress());
                                 HubTracertInternalData consumer_data = hubs.get(consumer_port.getPort().getOwner().getAddress());
-                                double v = 0.0;
+                                double v;
 
                                 if (consumer_data.getOes().getComponentType() == SupportedTypes.DISTRIBUTOR) {
                                     v = getSubsystemEnergy(consumer_data, consumer_port,
@@ -333,12 +328,12 @@ public class GameProcess implements Runnable {
                 // расчет потребления
                 Arrays.stream(task.getGameBlock().getRoot().getOutputs())
                         .filter(e -> e.getConnections() != null)
-                        .filter(e -> e.isOn())
+                        .filter(IConnectionPort::isOn)
                         .forEach(line -> {
                             PortTracertInternalData line_port = ports.get(line.getAddress());
 
                             Arrays.stream(line.getConnections())
-                                    .filter(e -> e.isOn())
+                                    .filter(IConnectionPort::isOn)
                                     .forEach(conn -> {
                                         PortTracertInternalData consumer_port = ports.get(conn.getAddress());
                                         HubTracertInternalData consumer_data = hubs.get(consumer_port.getPort().getOwner().getAddress());
