@@ -3,7 +3,6 @@ package re.smartcity.modeling;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import re.smartcity.config.sockets.GameSocketHandler;
-import re.smartcity.config.sockets.model.CellDataEvent;
 import re.smartcity.energynet.IComponentIdentification;
 import re.smartcity.energynet.component.EnergyDistributor;
 import re.smartcity.energynet.component.MainSubstationPowerSystem;

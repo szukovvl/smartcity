@@ -8,6 +8,7 @@ public class HubTracertInternalData {
     private final IComponentIdentification oes;
     private HubTracertValues tracert;
     private double[] forecast = null;
+    private byte illumination = 0;
 
     public HubTracertInternalData(IOesHub hub, IComponentIdentification oes) {
         this.hub = hub;
@@ -40,4 +41,12 @@ public class HubTracertInternalData {
     }
 
     public boolean useForecast() { return this.forecast != null; }
+
+    public byte getIllumination() {
+        return illumination;
+    }
+
+    public void setIllumination(byte illumination) {
+        this.illumination = illumination;
+    }
 }

@@ -79,6 +79,7 @@ public final class Interpolation {
 
         double[] xx = wrkdata.stream()
                 .mapToDouble(b -> b.getPoint().toSecondOfDay()).toArray();
+        xx[xx.length - 1] = 86400; // !!!
         double[] yy = wrkdata.stream()
                 .mapToDouble(ForecastPoint::getValue).toArray();
         PolynomialSplineFunction splineFunction;
@@ -98,6 +99,6 @@ public final class Interpolation {
             v *= scale;
             current_x[0] += step;
             return v;
-        }).limit(count_pt).toArray();
+        }).limit(count_pt + 1).toArray();
     }
 }

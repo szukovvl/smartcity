@@ -21,11 +21,13 @@ import re.smartcity.stand.SerialCommand;
 import re.smartcity.stand.SerialElementAddresses;
 import re.smartcity.stand.SerialPackageTypes;
 import re.smartcity.stand.StandService;
+import re.smartcity.sun.SunRouterHandlers;
 import re.smartcity.wind.WindRouterHandlers;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 public class GameProcess implements Runnable {
@@ -41,15 +43,18 @@ public class GameProcess implements Runnable {
     private final ModelingData modelingData;
     private final StandService standService;
     private final WindRouterHandlers wind;
+    private final SunRouterHandlers sun;
 
     public GameProcess(
             TaskData task,
             GameSocketHandler messenger,
             ModelingData modelingData,
             StandService standService,
-            WindRouterHandlers wind
+            WindRouterHandlers wind,
+            SunRouterHandlers sun
     ) {
         this.wind = wind;
+        this.sun = sun;
         this.standService = standService;
         this.task = task;
         this.messenger = messenger;
@@ -192,17 +197,38 @@ public class GameProcess implements Runnable {
                                 }
 
                                 v *= energy_for_step;
+                                v *= 1000.0; // киловатты
+
                                 consumer_port.getTracert().getValues().setEnergy(v);
                                 consumer_data.getTracert().getValues().setEnergy(v);
                                 line_port.getTracert().getValues().setEnergy(
                                         line_port.getTracert().getValues().getEnergy() +
                                                 consumer_data.getTracert().getValues().getEnergy());
+
+                                consumer_port.getTracert().getTotals().setEnergy(
+                                        consumer_port.getTracert().getTotals().getEnergy() +
+                                                consumer_port.getTracert().getValues().getEnergy() / 1000.0
+                                );
+                                consumer_data.getTracert().getTotals().setEnergy(
+                                        consumer_data.getTracert().getTotals().getEnergy() +
+                                                consumer_data.getTracert().getValues().getEnergy() / 1000.0
+                                );
+                                line_port.getTracert().getTotals().setEnergy(
+                                        line_port.getTracert().getTotals().getEnergy() +
+                                                consumer_data.getTracert().getValues().getEnergy() / 1000.0);
                             });
 
                     sub_port.getTracert().getValues().setEnergy(
                             sub_port.getTracert().getValues().getEnergy() +
                                     line_port.getTracert().getValues().getEnergy());
                     sub_data.getTracert().getValues().setEnergy(sub_port.getTracert().getValues().getEnergy());
+
+                    sub_port.getTracert().getTotals().setEnergy(
+                            sub_port.getTracert().getTotals().getEnergy() +
+                                    sub_port.getTracert().getValues().getEnergy() / 1000.0);
+                    sub_data.getTracert().getTotals().setEnergy(
+                            sub_data.getTracert().getTotals().getEnergy() +
+                                    sub_data.getTracert().getValues().getEnergy() / 1000.0);
                 });
 
         return sub_data.getTracert().getValues().getEnergy();
@@ -222,6 +248,25 @@ public class GameProcess implements Runnable {
         Map<Integer, PortTracertInternalData> ports = buildPorts();
         Map<Integer, HubTracertInternalData> hubs = buildHubs(SECONDS_OF_DAY / gameStep, gameStep);
         Map<Integer, ElectricalSubnet> lines = buildLines();
+
+        double[] forecastSun;
+        if (this.sun.getSunStatusData().isUseforecast()) {
+            forecastSun = Interpolation.interpolate(this.sun.getSunStatusData().getForecast().getData(),
+                    80.0, SECONDS_OF_DAY / gameStep, gameStep);
+        } else {
+            forecastSun = DoubleStream.generate(() -> 80.0).limit(SECONDS_OF_DAY / gameStep + 1).toArray();
+        }
+        byte sun_prev = (byte) Math.round(forecastSun[0]);
+
+        double[] forecastWind;
+        if (this.wind.getWindStatusData().isUseforecast()) {
+            forecastWind = Interpolation.interpolate(this.wind.getWindStatusData().getForecast().getData(),
+                    80.0, SECONDS_OF_DAY / gameStep, gameStep);
+        } else {
+            forecastWind = DoubleStream.generate(() -> 80.0).limit(SECONDS_OF_DAY / gameStep + 1).toArray();
+        }
+        byte wind_prev = (byte) Math.round(forecastSun[0]);
+
 
         int totalSec = 0;
         GameDataset dataset = new GameDataset(task.getPowerSystem().getDevaddr());
@@ -248,7 +293,24 @@ public class GameProcess implements Runnable {
             int fNumber = 0;
             double energy_for_step = ((double) gameStep) / ((double) SECONDS_OF_HOURS);
 
-            while(totalSec <= SECONDS_OF_DAY) {
+            wind.windPower(wind_prev);
+            standService.pushSerialCommand(new SerialCommand(SerialElementAddresses.SUN_SIMULATOR,
+                    SerialPackageTypes.SET_BRIGHTNESS_SUN_SIMULATOR, sun_prev));
+
+            while(totalSec < SECONDS_OF_DAY) {
+
+                // управление солнцем и ветром
+                byte wind_val = (byte) Math.round(forecastWind[fNumber]);
+                if (wind_val != wind_prev) {
+                    wind_prev = wind_val;
+                    wind.windPower(wind_val);
+                }
+                byte sun_val = (byte) Math.round(forecastSun[fNumber]);
+                if (sun_val != sun_prev) {
+                    sun_prev = sun_val;
+                    standService.pushSerialCommand(new SerialCommand(SerialElementAddresses.SUN_SIMULATOR,
+                            SerialPackageTypes.SET_BRIGHTNESS_SUN_SIMULATOR, sun_val));
+                }
 
                 Thread.sleep(delay);
 
@@ -311,6 +373,15 @@ public class GameProcess implements Runnable {
                                 }
                             }
 
+                            gen_energy *= 1000.0; // киловатты
+                            gen_reserve *= 1000.0;
+
+                            gen_data.getTracert().getValues().setGeneration(gen_energy + gen_reserve);
+                            gen_data.getTracert().getTotals().setGeneration(
+                                    gen_data.getTracert().getTotals().getGeneration() +
+                                            gen_data.getTracert().getValues().getGeneration() / 1000.0
+                            );
+
                             if (line.isOn()) { // линия подключена
                                 ElectricalSubnet subnet = lines.get(line.getAddress());
                                 line_port.getTracert().getValues().setGeneration(gen_energy * subnet.getData().getLossfactor());
@@ -324,6 +395,8 @@ public class GameProcess implements Runnable {
                         });
                 dataset.getRoot_values().getValues().setGeneration(
                         dataset.getRoot_values().getValues().getGeneration() + (ext_energy * energy_for_step));
+                dataset.getRoot_values().getTotals().setGeneration(
+                        dataset.getRoot_values().getTotals().getGeneration() + dataset.getRoot_values().getValues().getGeneration() / 1000.0);
 
                 // расчет потребления
                 Arrays.stream(task.getGameBlock().getRoot().getOutputs())
@@ -352,22 +425,123 @@ public class GameProcess implements Runnable {
                                         }
 
                                         v *= energy_for_step;
+                                        v *= 1000.0; // киловатты
                                         v += v1;
+
                                         consumer_port.getTracert().getValues().setEnergy(v);
                                         consumer_data.getTracert().getValues().setEnergy(v);
                                         line_port.getTracert().getValues().setEnergy(
                                                 line_port.getTracert().getValues().getEnergy() +
                                                         consumer_data.getTracert().getValues().getEnergy());
+
+                                        consumer_port.getTracert().getTotals().setEnergy(
+                                                consumer_port.getTracert().getTotals().getEnergy() +
+                                                        consumer_port.getTracert().getValues().getEnergy() / 1000.0
+                                        );
+                                        consumer_data.getTracert().getTotals().setEnergy(
+                                                consumer_data.getTracert().getTotals().getEnergy() +
+                                                        consumer_data.getTracert().getValues().getEnergy() / 1000.0
+                                        );
+                                        line_port.getTracert().getTotals().setEnergy(
+                                                line_port.getTracert().getTotals().getEnergy() +
+                                                        consumer_data.getTracert().getValues().getEnergy() / 1000.0);
                                     });
 
                             dataset.getRoot_values().getValues().setEnergy(
                                     dataset.getRoot_values().getValues().getEnergy() +
                                             line_port.getTracert().getValues().getEnergy());
+                            dataset.getRoot_values().getTotals().setEnergy(
+                                    dataset.getRoot_values().getTotals().getEnergy() +
+                                            dataset.getRoot_values().getValues().getEnergy() / 1000.0);
                         });
 
                 // расчет экологии
+                Arrays.stream(task.getGameBlock().getRoot().getDevices())
+                        .forEach(hub -> {
+                            HubTracertInternalData hub_data = hubs.get(hub.getAddress());
+                            switch (hub.getOwner().getComponentType()) {
+                                case CONSUMER -> {
+                                    ConsumerSpecification data = ((Consumer) hub.getOwner()).getData();
+                                    hub_data.getTracert().getValues().setCarbon(
+                                            hub_data.getTracert().getValues().getEnergy() * data.getCarbon() * energy_for_step
+                                    );
+                                    hub_data.getTracert().getTotals().setCarbon(
+                                            hub_data.getTracert().getTotals().getCarbon() + hub_data.getTracert().getValues().getCarbon() / 1000.0);
+                                }
+                                case GENERATOR -> {
+                                    GenerationSpecification data = ((Generation) hub.getOwner()).getData();
+                                    hub_data.getTracert().getValues().setCarbon(
+                                            hub_data.getTracert().getValues().getEnergy() * data.getCarbon() * energy_for_step
+                                    );
+                                    hub_data.getTracert().getTotals().setCarbon(
+                                            hub_data.getTracert().getTotals().getCarbon() + hub_data.getTracert().getValues().getCarbon() / 1000.0);
+                                }
+                                case GREEGENERATOR -> {
+                                    GreenGenerationSpecification data = ((GreenGeneration) hub.getOwner()).getData();
+                                    hub_data.getTracert().getValues().setCarbon(
+                                            hub_data.getTracert().getValues().getEnergy() * data.getCarbon() * energy_for_step
+                                    );
+                                    hub_data.getTracert().getTotals().setCarbon(
+                                            hub_data.getTracert().getTotals().getCarbon() + hub_data.getTracert().getValues().getCarbon() / 1000.0);
+                                }
+                                case STORAGE -> {
+                                    EnergyStorageSpecification data = ((EnergyStorage) hub.getOwner()).getData();
+                                    hub_data.getTracert().getValues().setCarbon(
+                                            hub_data.getTracert().getValues().getEnergy() * data.getCarbon() * energy_for_step
+                                    );
+                                    hub_data.getTracert().getTotals().setCarbon(
+                                            hub_data.getTracert().getTotals().getCarbon() + hub_data.getTracert().getValues().getCarbon() / 1000.0);
+                                }
+                            }
+                        });
+                Arrays.stream(task.getGameBlock().getRoot().getDevices())
+                        .filter(e -> e.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR)
+                        .forEach(hub -> {
+                            double carbon = Arrays.stream(hub.getOutputs())
+                                    .filter(e -> e.getConnections() != null)
+                                    .flatMap(e -> Stream.of(e.getConnections()))
+                                    .mapToDouble(port -> {
+                                        HubTracertInternalData ldata = hubs.get(port.getOwner().getAddress());
+                                        return ldata.getTracert().getValues().getCarbon();
+                                    })
+                                    .sum();
+                            HubTracertInternalData hub_data = hubs.get(hub.getAddress());
+                            hub_data.getTracert().getValues().setCarbon(carbon);
+                            hub_data.getTracert().getTotals().setCarbon(hub_data.getTracert().getTotals().getCarbon() + carbon / 1000.0);
+                        });
+                double root_carbon = Stream.concat(
+                        Arrays.stream(task.getGameBlock().getRoot().getInputs()),
+                        Arrays.stream(task.getGameBlock().getRoot().getOutputs())
+                        )
+                        .filter(e -> e.isOn())
+                        .filter(e -> e.getConnections() != null)
+                        .flatMap(e -> Stream.of(e.getConnections()))
+                        .mapToDouble(port -> {
+                            HubTracertInternalData ldata = hubs.get(port.getOwner().getAddress());
+                            return ldata.getTracert().getValues().getCarbon();
+                        })
+                        .sum();
+                dataset.getRoot_values().getValues().setCarbon(root_carbon);
+                dataset.getRoot_values().getTotals().setCarbon(
+                        dataset.getRoot_values().getTotals().getCarbon() + root_carbon / 1000.0
+                );
 
                 // money
+
+                // управление подсветкой
+                Arrays.stream(task.getGameBlock().getRoot().getDevices())
+                        .filter(e -> e.getOwner().getComponentType() == SupportedTypes.CONSUMER)
+                        .forEach(hub -> {
+                            HubTracertInternalData consumer_data = hubs.get(hub.getAddress());
+                            ConsumerSpecification data = ((Consumer) consumer_data.getOes()).getData();
+                            byte v = (byte) Math.round(
+                                    (consumer_data.getTracert().getValues().getEnergy() / (data.getEnergy() * energy_for_step * 1000.0)) * 100.0);
+                            if (v != consumer_data.getIllumination()) {
+                                consumer_data.setIllumination(v);
+                                standService.pushSerialCommand(new SerialCommand((byte) hub.getAddress(),
+                                        SerialPackageTypes.SET_HIGHLIGHT_LEVEL, v));
+                            }
+                        });
 
                 totalSec += gameStep;
                 fNumber++;
@@ -398,4 +572,5 @@ public class GameProcess implements Runnable {
         logger.info("Игровой сценарий для {} завершен", task.getPowerSystem().getIdenty());
     }
 }
+
 

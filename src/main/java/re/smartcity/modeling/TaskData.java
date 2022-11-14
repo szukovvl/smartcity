@@ -10,6 +10,7 @@ import re.smartcity.energynet.component.MainSubstationPowerSystem;
 import re.smartcity.modeling.data.GamerScenesData;
 import re.smartcity.modeling.scheme.OesRootHub;
 import re.smartcity.stand.StandService;
+import re.smartcity.sun.SunRouterHandlers;
 import re.smartcity.wind.WindRouterHandlers;
 
 import java.util.concurrent.ExecutorService;
@@ -81,7 +82,8 @@ public class TaskData {
             GameSocketHandler messenger,
             ModelingData modelingData,
             StandService standService,
-            WindRouterHandlers wind
+            WindRouterHandlers wind,
+            SunRouterHandlers sun
     ) {
         Executors.newSingleThreadExecutor().execute(() -> {
             synchronized (_lock) {
@@ -93,7 +95,7 @@ public class TaskData {
                     this.service = null;
                 }
                 this.service = Executors.newSingleThreadExecutor();
-                this.service.execute(new GameProcess(this, messenger, modelingData, standService, wind));
+                this.service.execute(new GameProcess(this, messenger, modelingData, standService, wind, sun));
             }
         });
     }

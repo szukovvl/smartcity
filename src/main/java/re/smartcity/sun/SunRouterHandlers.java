@@ -273,4 +273,8 @@ public class SunRouterHandlers {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(sunStatusData);
     }
+
+    public SunStatusData getSunStatusData() {
+        return sunStatusData;
+    }
 }

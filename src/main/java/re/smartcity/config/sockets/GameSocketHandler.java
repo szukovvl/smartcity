@@ -27,6 +27,7 @@ import re.smartcity.modeling.scheme.IConnectionPort;
 import re.smartcity.modeling.scheme.IOesHub;
 import re.smartcity.modeling.scheme.OesRootHub;
 import re.smartcity.stand.StandService;
+import re.smartcity.sun.SunRouterHandlers;
 import re.smartcity.wind.WindRouterHandlers;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -55,6 +56,9 @@ public class GameSocketHandler implements WebSocketHandler {
 
     @Autowired
     private WindRouterHandlers wind;
+
+    @Autowired
+    private SunRouterHandlers sun;
 
     private final Map<String, WebSocketSession> guests = new ConcurrentHashMap<>();
     private final ModelingData modelingData;
@@ -440,7 +444,8 @@ public class GameSocketHandler implements WebSocketHandler {
                                 .build());
 
                         Arrays.stream(modelingData.getTasks())
-                                .forEach(e -> e.startGame(this, modelingData, this.standService, this.wind));
+                                .forEach(e -> e.startGame(this, modelingData, this.standService,
+                                        this.wind, this.sun));
                     }
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)

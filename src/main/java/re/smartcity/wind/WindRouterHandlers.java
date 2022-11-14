@@ -453,4 +453,8 @@ public class WindRouterHandlers {
     public void windOff() {
         windPower((byte) 0);
     }
+
+    public WindStatusData getWindStatusData() {
+        return windStatusData;
+    }
 }
