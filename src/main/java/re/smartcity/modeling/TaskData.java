@@ -2,6 +2,7 @@ package re.smartcity.modeling;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import re.smartcity.common.CommonStorage;
 import re.smartcity.config.sockets.GameSocketHandler;
 import re.smartcity.config.sockets.model.GameBlock;
 import re.smartcity.config.sockets.model.PurchasedLot;
@@ -83,7 +84,8 @@ public class TaskData {
             ModelingData modelingData,
             StandService standService,
             WindRouterHandlers wind,
-            SunRouterHandlers sun
+            SunRouterHandlers sun,
+            CommonStorage commonStorage
     ) {
         Executors.newSingleThreadExecutor().execute(() -> {
             synchronized (_lock) {
@@ -95,7 +97,8 @@ public class TaskData {
                     this.service = null;
                 }
                 this.service = Executors.newSingleThreadExecutor();
-                this.service.execute(new GameProcess(this, messenger, modelingData, standService, wind, sun));
+                this.service.execute(new GameProcess(this, messenger, modelingData, standService,
+                        wind, sun, commonStorage));
             }
         });
     }

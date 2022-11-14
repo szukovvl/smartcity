@@ -445,7 +445,7 @@ public class GameSocketHandler implements WebSocketHandler {
 
                         Arrays.stream(modelingData.getTasks())
                                 .forEach(e -> e.startGame(this, modelingData, this.standService,
-                                        this.wind, this.sun));
+                                        this.wind, this.sun, this.commonStorage));
                     }
                     default ->  sendEvent(session, GameServiceEvent
                             .type(GameEventTypes.ERROR)

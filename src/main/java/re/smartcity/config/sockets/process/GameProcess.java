@@ -2,7 +2,10 @@ package re.smartcity.config.sockets.process;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import re.smartcity.common.CommonStorage;
 import re.smartcity.common.data.Forecast;
+import re.smartcity.common.data.GameCriteria;
+import re.smartcity.common.data.Tariffs;
 import re.smartcity.common.utils.Interpolation;
 import re.smartcity.config.sockets.GameSocketHandler;
 import re.smartcity.energynet.GenerationUsageModes;
@@ -44,6 +47,7 @@ public class GameProcess implements Runnable {
     private final StandService standService;
     private final WindRouterHandlers wind;
     private final SunRouterHandlers sun;
+    private final CommonStorage commonStorage;
 
     public GameProcess(
             TaskData task,
@@ -51,11 +55,13 @@ public class GameProcess implements Runnable {
             ModelingData modelingData,
             StandService standService,
             WindRouterHandlers wind,
-            SunRouterHandlers sun
+            SunRouterHandlers sun,
+            CommonStorage commonStorage
     ) {
         this.wind = wind;
         this.sun = sun;
         this.standService = standService;
+        this.commonStorage = commonStorage;
         this.task = task;
         this.messenger = messenger;
         this.modelingData = modelingData;
@@ -234,6 +240,16 @@ public class GameProcess implements Runnable {
         return sub_data.getTracert().getValues().getEnergy();
     }
 
+    private Tariffs getTariffs() {
+        return commonStorage.getAndCreate(Tariffs.key, Tariffs.class)
+                .block();
+    }
+
+    private GameCriteria getCriteria() {
+        return commonStorage.getAndCreate(GameCriteria.key, GameCriteria.class)
+                .block();
+    }
+
     @Override
     public void run() {
         logger.info("Игровой сценарий для {} запущен", task.getPowerSystem().getIdenty());
@@ -241,6 +257,11 @@ public class GameProcess implements Runnable {
         // останов всех устройств стенда
         standAllOff();
 
+        // запрос тарифов и критерий
+        Tariffs tariffs = getTariffs();
+        GameCriteria criteria = getCriteria();
+
+        // данные окружения
         double secInMillis = getSecondInMillis(); // реальных секунд в мс
         long gameStep = Math.round(MODEL_DISCRET / secInMillis); // дискретизация - шаг игры в секундах
         long delay = Math.round((gameStep * secInMillis) / 10.0) * 10L; // дискретизация - в мс
@@ -318,10 +339,11 @@ public class GameProcess implements Runnable {
                 dataset.getRoot_values().setValues(new GameValues());
                 hubs.values().forEach(e -> e.getTracert().setValues(new GameValues()));
                 ports.values().forEach(e -> e.getTracert().setValues(new GameValues()));
+                dataset.setInstant_values(new GameValues());
 
                 // расчет мощностей генерации
                 double ext_energy = ((MainSubstationPowerSystem) task.getGameBlock().getRoot().getOwner())
-                        .getData().getExternal_energy();
+                        .getData().getExternal_energy() * 1000.0; // в кВт
                 int finalFNumber = fNumber;
                 Arrays.stream(task.getGameBlock().getRoot().getInputs())
                         .filter(e -> e.getConnections() != null)
@@ -513,7 +535,7 @@ public class GameProcess implements Runnable {
                         Arrays.stream(task.getGameBlock().getRoot().getInputs()),
                         Arrays.stream(task.getGameBlock().getRoot().getOutputs())
                         )
-                        .filter(e -> e.isOn())
+                        .filter(IConnectionPort::isOn)
                         .filter(e -> e.getConnections() != null)
                         .flatMap(e -> Stream.of(e.getConnections()))
                         .mapToDouble(port -> {
@@ -542,6 +564,27 @@ public class GameProcess implements Runnable {
                                         SerialPackageTypes.SET_HIGHLIGHT_LEVEL, v));
                             }
                         });
+
+                // итоговые данные
+                dataset.getInstant_values().setEnergy(dataset.getRoot_values().getValues().getEnergy());
+                dataset.getInstant_values().setCarbon(dataset.getRoot_values().getValues().getCarbon());
+                dataset.getInstant_values().setGeneration(dataset.getRoot_values().getValues().getGeneration());
+                dataset.getInstant_values().setReserve_generation(dataset.getRoot_values().getValues().getReserve_generation());
+                dataset.getInstant_values().setDebit(dataset.getRoot_values().getValues().getDebit());
+                dataset.getInstant_values().setCredit(dataset.getRoot_values().getValues().getCredit());
+
+                dataset.getCumulative_total().setEnergy(
+                        dataset.getCumulative_total().getEnergy() + dataset.getRoot_values().getValues().getEnergy() / 1000.0);
+                dataset.getCumulative_total().setCarbon(
+                        dataset.getCumulative_total().getCarbon() + dataset.getRoot_values().getValues().getCarbon() / 1000.0);
+                dataset.getCumulative_total().setGeneration(
+                        dataset.getCumulative_total().getGeneration() + dataset.getRoot_values().getValues().getGeneration() / 1000.0);
+                dataset.getCumulative_total().setReserve_generation(
+                        dataset.getCumulative_total().getReserve_generation() + dataset.getRoot_values().getValues().getReserve_generation() / 1000.0);
+                dataset.getCumulative_total().setDebit(
+                        dataset.getCumulative_total().getDebit() + dataset.getRoot_values().getValues().getDebit());
+                dataset.getCumulative_total().setCredit(
+                        dataset.getCumulative_total().getCredit() + dataset.getRoot_values().getValues().getCredit());
 
                 totalSec += gameStep;
                 fNumber++;
