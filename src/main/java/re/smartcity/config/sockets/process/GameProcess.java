@@ -486,6 +486,8 @@ public class GameProcess implements Runnable {
                                             dataset.getRoot_values().getValues().getEnergy() / 1000.0);
                         });
 
+                // уравновесить потребление с генерацией
+
                 // расчет экологии
                 Arrays.stream(task.getGameBlock().getRoot().getDevices())
                         .forEach(hub -> {
