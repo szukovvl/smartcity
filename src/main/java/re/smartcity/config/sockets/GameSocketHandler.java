@@ -1239,12 +1239,7 @@ public class GameSocketHandler implements WebSocketHandler {
         if (session != null) {
             sendEvent(session, event);
         } else {
-            sendEventToAll(GameServiceEvent
-                    .type(GameEventTypes.GAME_SCHEMA_DATA)
-                    .data(Arrays.stream(modelingData.getTasks())
-                            .map(TaskData::getRoot)
-                            .toArray(IOesHub[]::new))
-                    .build());
+            sendEventToAll(event);
         }
     }
 
