@@ -361,7 +361,10 @@ public class GameProcess implements Runnable {
                                     EnergyStorageSpecification data = ((EnergyStorage) gen_data.getOes()).getData();
                                     v = data.getEnergy();
                                     if (gen_port.getPort().isOn()) {
-                                        gen_port.getTracert().getValues().setEnergy(v);
+                                        gen_port.getTracert().getValues().setGeneration(v * 1000.0);
+                                        gen_port.getTracert().getTotals().setGeneration(
+                                                gen_port.getTracert().getTotals().getGeneration() +
+                                                        gen_port.getTracert().getValues().getGeneration() / 1000.0);
                                         gen_energy = v;
                                     } else if (data.getMode() == GenerationUsageModes.RESERVE) {
                                         gen_reserve = v;
@@ -376,7 +379,10 @@ public class GameProcess implements Runnable {
                                     v *= energy_for_step;
                                     gen_data.getTracert().getValues().setGeneration(v);
                                     if (gen_port.getPort().isOn()) {
-                                        gen_port.getTracert().getValues().setGeneration(v);
+                                        gen_port.getTracert().getValues().setGeneration(v * 1000.0);
+                                        gen_port.getTracert().getTotals().setGeneration(
+                                                gen_port.getTracert().getTotals().getGeneration() +
+                                                        gen_port.getTracert().getValues().getGeneration() / 1000.0);
                                         gen_energy = v;
                                     } else if (((Generation) gen_data.getOes()).getData().getMode() == GenerationUsageModes.RESERVE) {
                                         gen_reserve = v;
@@ -387,7 +393,10 @@ public class GameProcess implements Runnable {
                                     v = data.getEnergy() * (modelingData.getGreenGeneration(gen_data.getHub().getAddress()) / 100.0);
                                     v *= energy_for_step;
                                     if (gen_port.getPort().isOn()) {
-                                        gen_port.getTracert().getValues().setEnergy(v);
+                                        gen_port.getTracert().getValues().setGeneration(v * 1000.0);
+                                        gen_port.getTracert().getTotals().setGeneration(
+                                                gen_port.getTracert().getTotals().getGeneration() +
+                                                        gen_port.getTracert().getValues().getGeneration() / 1000.0);
                                         gen_energy = v;
                                     } else if (data.getMode() == GenerationUsageModes.RESERVE) {
                                         gen_reserve = v;
