@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static re.smartcity.common.resources.AppConstant.MAX_ILLUMINATION_VALUE;
+import static re.smartcity.common.resources.AppConstant.MAX_WIND_SPEED;
 import static re.smartcity.common.utils.Helpers.byteArrayCopy;
 import static re.smartcity.stand.SerialServiceSymbols.SEQUENCE_SEPARATOR;
 
@@ -103,7 +104,7 @@ public class StandService {
                 modelingData.putGreenGeneration(event.key(), event.percent());
             }
             case SerialPackageTypes.WIND_FORCE_DATA -> {
-                float calibration = 0.0f;
+                float calibration = MAX_WIND_SPEED;
                 float windSpeed = Float.parseFloat(new String(
                         byteArrayCopy(packet, 2, 4)));
                 if (Arrays.stream(packet).skip(5).noneMatch(b -> b == 0)) {

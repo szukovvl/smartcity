@@ -22,6 +22,7 @@ public final class AppConstant {
     public final static String SOCKET_GAME_SERVICE = SOCKET_TOPICS_URL + "/game-service";
     //
     public final static int MAX_ILLUMINATION_VALUE = 1000;
+    public final static float MAX_WIND_SPEED = 6.0f;
 
     public final static int CALIBRATION_DELAY_LINE = 5000;
     public final static int CALIBRATION_WIND_DELAY_LINE = 20000;
