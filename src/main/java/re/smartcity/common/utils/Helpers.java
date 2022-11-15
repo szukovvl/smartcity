@@ -40,7 +40,6 @@ public final class Helpers {
     }
 
     public static float normalizeAsPercentage(float val, float maxVal) {
-        // а если maxVal = 0.0f ???
         if (val < 0.0f) return 0.0f;
         if (val > maxVal) return 100.0f;
         return (val / maxVal) * 100.0f;
