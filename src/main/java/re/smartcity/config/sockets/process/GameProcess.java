@@ -502,7 +502,7 @@ public class GameProcess implements Runnable {
                                 case GENERATOR -> {
                                     GenerationSpecification data = ((Generation) hub.getOwner()).getData();
                                     hub_data.getTracert().getValues().setCarbon(
-                                            hub_data.getTracert().getValues().getEnergy() * data.getCarbon() * energy_for_step
+                                            hub_data.getTracert().getValues().getGeneration() * data.getCarbon() * energy_for_step
                                     );
                                     hub_data.getTracert().getTotals().setCarbon(
                                             hub_data.getTracert().getTotals().getCarbon() + hub_data.getTracert().getValues().getCarbon() / 1000.0);
@@ -510,7 +510,7 @@ public class GameProcess implements Runnable {
                                 case GREEGENERATOR -> {
                                     GreenGenerationSpecification data = ((GreenGeneration) hub.getOwner()).getData();
                                     hub_data.getTracert().getValues().setCarbon(
-                                            hub_data.getTracert().getValues().getEnergy() * data.getCarbon() * energy_for_step
+                                            hub_data.getTracert().getValues().getGeneration() * data.getCarbon() * energy_for_step
                                     );
                                     hub_data.getTracert().getTotals().setCarbon(
                                             hub_data.getTracert().getTotals().getCarbon() + hub_data.getTracert().getValues().getCarbon() / 1000.0);
@@ -518,7 +518,7 @@ public class GameProcess implements Runnable {
                                 case STORAGE -> {
                                     EnergyStorageSpecification data = ((EnergyStorage) hub.getOwner()).getData();
                                     hub_data.getTracert().getValues().setCarbon(
-                                            hub_data.getTracert().getValues().getEnergy() * data.getCarbon() * energy_for_step
+                                            hub_data.getTracert().getValues().getGeneration() * data.getCarbon() * energy_for_step
                                     );
                                     hub_data.getTracert().getTotals().setCarbon(
                                             hub_data.getTracert().getTotals().getCarbon() + hub_data.getTracert().getValues().getCarbon() / 1000.0);
