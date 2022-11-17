@@ -12,6 +12,8 @@ import re.smartcity.common.utils.Helpers;
 import re.smartcity.config.sockets.CommonEventTypes;
 import re.smartcity.config.sockets.CommonSocketHandler;
 import re.smartcity.config.sockets.model.CellDataEvent;
+import re.smartcity.energynet.SupportedTypes;
+import re.smartcity.energynet.component.GreenGeneration;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.wind.WindServiceStatuses;
 import reactor.core.publisher.Mono;
@@ -19,8 +21,10 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static re.smartcity.common.resources.AppConstant.MAX_ILLUMINATION_VALUE;
 import static re.smartcity.common.resources.AppConstant.MAX_WIND_SPEED;
@@ -90,8 +94,13 @@ public class StandService {
                 int luxury = Integer.parseInt(new String(
                         byteArrayCopy(packet, 2, 4)));
                 if (Arrays.stream(packet).skip(5).noneMatch(b -> b == 0)) {
-                    bg = Integer.parseInt(new String(
-                            byteArrayCopy(packet, 6, 4)));
+                    try {
+                        bg = Integer.parseInt(new String(
+                                byteArrayCopy(packet, 6, 4)));
+                    }
+                    catch (NumberFormatException ex) {
+                        logger.warn(Messages.SER_5);
+                    }
                     if (bg > MAX_ILLUMINATION_VALUE) bg = MAX_ILLUMINATION_VALUE;
                 }
                 CellDataEvent event = new CellDataEvent(
@@ -108,8 +117,13 @@ public class StandService {
                 float windSpeed = Float.parseFloat(new String(
                         byteArrayCopy(packet, 2, 4)));
                 if (Arrays.stream(packet).skip(5).noneMatch(b -> b == 0)) {
-                    calibration = Float.parseFloat(new String(
-                            byteArrayCopy(packet, 6, 4)));
+                    try {
+                        calibration = Float.parseFloat(new String(
+                                byteArrayCopy(packet, 6, 4)));
+                    }
+                    catch (NumberFormatException ex) {
+                        logger.warn(Messages.SER_5);
+                    }
                 }
                 CellDataEvent event = new CellDataEvent(
                         packet[0],
@@ -254,6 +268,28 @@ public class StandService {
                         }
                 );
             });
+
+            // ветер и солнце
+            Executors.newSingleThreadScheduledExecutor().schedule(() -> {
+                try {
+                    GreenGeneration[] generators = Arrays.stream(modelingData.getAllobjects())
+                            .filter(e -> e.getComponentType() == SupportedTypes.GREEGENERATOR)
+                            .map(e -> (GreenGeneration) e)
+                            .toArray(GreenGeneration[]::new);
+                    Random random = new Random();
+                    while (true) {
+                        Arrays.stream(generators)
+                                .forEach(gen -> {
+                                    modelingData.putGreenGeneration(gen.getDevaddr(),
+                                            random.nextDouble(100.0));
+                                });
+                        Thread.sleep(1000);
+                    }
+                }
+                catch (InterruptedException ex) {
+
+                }
+            }, 3, TimeUnit.SECONDS);
             // !!!
 
             executorService = Executors.newSingleThreadExecutor();

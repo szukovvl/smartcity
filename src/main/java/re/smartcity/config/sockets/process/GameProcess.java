@@ -173,11 +173,13 @@ public class GameProcess implements Runnable {
     }
 
     private double getSubsystemEnergy(HubTracertInternalData sub_data,
-                                      PortTracertInternalData sub_port,
                                       Map<Integer, PortTracertInternalData> ports,
                                       Map<Integer, HubTracertInternalData> hubs,
+                                      Map<Integer, ElectricalSubnet> lines,
                                       int fNumber,
                                       double energy_for_step) {
+        final double[] sum = {0.0};
+
         Arrays.stream(sub_data.getHub().getOutputs())
                 .filter(e -> e.getConnections() != null)
                 .filter(IConnectionPort::isOn)
@@ -192,8 +194,8 @@ public class GameProcess implements Runnable {
                                 double v;
 
                                 if (consumer_data.getOes().getComponentType() == SupportedTypes.DISTRIBUTOR) {
-                                    v = getSubsystemEnergy(consumer_data, consumer_port,
-                                            ports, hubs, fNumber, energy_for_step);
+                                    v = getSubsystemEnergy(consumer_data,
+                                            ports, hubs, lines, fNumber, energy_for_step);
                                 } else {
                                     if (consumer_data.useForecast()) {
                                         v = consumer_data.getForecast()[fNumber];
@@ -219,25 +221,20 @@ public class GameProcess implements Runnable {
                                         consumer_data.getTracert().getTotals().getEnergy() +
                                                 consumer_data.getTracert().getValues().getEnergy() / 1000.0
                                 );
-                                line_port.getTracert().getTotals().setEnergy(
-                                        line_port.getTracert().getTotals().getEnergy() +
-                                                consumer_data.getTracert().getValues().getEnergy() / 1000.0);
                             });
 
-                    sub_port.getTracert().getValues().setEnergy(
-                            sub_port.getTracert().getValues().getEnergy() +
-                                    line_port.getTracert().getValues().getEnergy());
-                    sub_data.getTracert().getValues().setEnergy(sub_port.getTracert().getValues().getEnergy());
+                    ElectricalSubnet subnet = lines.get(line.getAddress());
+                    line_port.getTracert().getValues().setEnergy(
+                            line_port.getTracert().getValues().getEnergy() / subnet.getData().getLossfactor()
+                    );
+                    line_port.getTracert().getTotals().setEnergy(
+                            line_port.getTracert().getTotals().getEnergy() +
+                                    line_port.getTracert().getValues().getEnergy() / 1000.0);
 
-                    sub_port.getTracert().getTotals().setEnergy(
-                            sub_port.getTracert().getTotals().getEnergy() +
-                                    sub_port.getTracert().getValues().getEnergy() / 1000.0);
-                    sub_data.getTracert().getTotals().setEnergy(
-                            sub_data.getTracert().getTotals().getEnergy() +
-                                    sub_data.getTracert().getValues().getEnergy() / 1000.0);
+                    sum[0] += line_port.getTracert().getValues().getEnergy();
                 });
 
-        return sub_data.getTracert().getValues().getEnergy();
+        return sum[0];
     }
 
     private Tariffs getTariffs() {
@@ -326,12 +323,14 @@ public class GameProcess implements Runnable {
                     wind_prev = wind_val;
                     wind.windPower(wind_val);
                 }
+                dataset.setWindpower(wind_val);
                 byte sun_val = (byte) Math.round(forecastSun[fNumber]);
                 if (sun_val != sun_prev) {
                     sun_prev = sun_val;
                     standService.pushSerialCommand(new SerialCommand(SerialElementAddresses.SUN_SIMULATOR,
                             SerialPackageTypes.SET_BRIGHTNESS_SUN_SIMULATOR, sun_val));
                 }
+                dataset.setSunpower(sun_val);
 
                 Thread.sleep(delay);
 
@@ -445,8 +444,8 @@ public class GameProcess implements Runnable {
                                         double v1 = 0.0;
 
                                         if (consumer_data.getOes().getComponentType() == SupportedTypes.DISTRIBUTOR) {
-                                            v1 = getSubsystemEnergy(consumer_data, consumer_port,
-                                                    ports, hubs, finalFNumber, energy_for_step);
+                                            v1 = getSubsystemEnergy(consumer_data,
+                                                    ports, hubs, lines, finalFNumber, energy_for_step);
                                         } else {
                                             if (consumer_data.useForecast()) {
                                                 v = consumer_data.getForecast()[finalFNumber];
@@ -473,18 +472,23 @@ public class GameProcess implements Runnable {
                                                 consumer_data.getTracert().getTotals().getEnergy() +
                                                         consumer_data.getTracert().getValues().getEnergy() / 1000.0
                                         );
-                                        line_port.getTracert().getTotals().setEnergy(
-                                                line_port.getTracert().getTotals().getEnergy() +
-                                                        consumer_data.getTracert().getValues().getEnergy() / 1000.0);
                                     });
+
+                            ElectricalSubnet subnet = lines.get(line.getAddress());
+                            line_port.getTracert().getValues().setEnergy(
+                                    line_port.getTracert().getValues().getEnergy() / subnet.getData().getLossfactor()
+                            );
+                            line_port.getTracert().getTotals().setEnergy(
+                                    line_port.getTracert().getTotals().getEnergy() +
+                                            line_port.getTracert().getValues().getEnergy() / 1000.0);
 
                             dataset.getRoot_values().getValues().setEnergy(
                                     dataset.getRoot_values().getValues().getEnergy() +
                                             line_port.getTracert().getValues().getEnergy());
-                            dataset.getRoot_values().getTotals().setEnergy(
-                                    dataset.getRoot_values().getTotals().getEnergy() +
-                                            dataset.getRoot_values().getValues().getEnergy() / 1000.0);
                         });
+                dataset.getRoot_values().getTotals().setEnergy(
+                        dataset.getRoot_values().getTotals().getEnergy() +
+                                dataset.getRoot_values().getValues().getEnergy() / 1000.0);
 
                 // уравновесить потребление с генерацией
 
@@ -530,7 +534,7 @@ public class GameProcess implements Runnable {
                 Arrays.stream(task.getGameBlock().getRoot().getDevices())
                         .filter(e -> e.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR)
                         .forEach(hub -> {
-                            double carbon = Arrays.stream(hub.getOutputs())
+                            /*double carbon = Arrays.stream(hub.getOutputs())
                                     .filter(e -> e.getConnections() != null)
                                     .flatMap(e -> Stream.of(e.getConnections()))
                                     .mapToDouble(port -> {
@@ -540,7 +544,7 @@ public class GameProcess implements Runnable {
                                     .sum();
                             HubTracertInternalData hub_data = hubs.get(hub.getAddress());
                             hub_data.getTracert().getValues().setCarbon(carbon);
-                            hub_data.getTracert().getTotals().setCarbon(hub_data.getTracert().getTotals().getCarbon() + carbon / 1000.0);
+                            hub_data.getTracert().getTotals().setCarbon(hub_data.getTracert().getTotals().getCarbon() + carbon / 1000.0);*/
                         });
                 double root_carbon = Stream.concat(
                         Arrays.stream(task.getGameBlock().getRoot().getInputs()),
