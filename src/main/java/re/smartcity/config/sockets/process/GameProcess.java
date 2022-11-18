@@ -8,9 +8,7 @@ import re.smartcity.common.data.GameCriteria;
 import re.smartcity.common.data.Tariffs;
 import re.smartcity.common.utils.Interpolation;
 import re.smartcity.config.sockets.GameSocketHandler;
-import re.smartcity.energynet.GenerationUsageModes;
-import re.smartcity.energynet.IComponentIdentification;
-import re.smartcity.energynet.SupportedTypes;
+import re.smartcity.energynet.*;
 import re.smartcity.energynet.component.*;
 import re.smartcity.energynet.component.data.ConsumerSpecification;
 import re.smartcity.energynet.component.data.EnergyStorageSpecification;
@@ -34,6 +32,12 @@ import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 public class GameProcess implements Runnable {
+
+    public final static int HOUR_7 = 12600;
+    public final static int HOUR_10 = 36000;
+    public final static int HOUR_17 = 61200;
+    public final static int HOUR_21 = 75600;
+    public final static int HOUR_23 = 82800;
 
     public final static int SECONDS_OF_DAY = 86400; // количество секунд в сутках
     public final static int SECONDS_OF_HOURS = 3600; // количество секунд в часе
@@ -335,10 +339,10 @@ public class GameProcess implements Runnable {
                 Thread.sleep(delay);
 
                 // очистка мгновенных значений
+                dataset.setInstant_values(new GameValues());
                 dataset.getRoot_values().setValues(new GameValues());
                 hubs.values().forEach(e -> e.getTracert().setValues(new GameValues()));
                 ports.values().forEach(e -> e.getTracert().setValues(new GameValues()));
-                dataset.setInstant_values(new GameValues());
 
                 // расчет мощностей генерации
                 double ext_energy = ((MainSubstationPowerSystem) task.getGameBlock().getRoot().getOwner())
@@ -530,11 +534,15 @@ public class GameProcess implements Runnable {
                                             hub_data.getTracert().getTotals().getCarbon() + hub_data.getTracert().getValues().getCarbon() / 1000.0);
                                 }
                             }
+                            dataset.getRoot_values().getValues().setCarbon(
+                                    dataset.getRoot_values().getValues().getCarbon() +
+                                            hub_data.getTracert().getValues().getCarbon()
+                            );
                         });
                 Arrays.stream(task.getGameBlock().getRoot().getDevices())
                         .filter(e -> e.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR)
                         .forEach(hub -> {
-                            /*double carbon = Arrays.stream(hub.getOutputs())
+                            double carbon = Arrays.stream(hub.getOutputs())
                                     .filter(e -> e.getConnections() != null)
                                     .flatMap(e -> Stream.of(e.getConnections()))
                                     .mapToDouble(port -> {
@@ -544,26 +552,108 @@ public class GameProcess implements Runnable {
                                     .sum();
                             HubTracertInternalData hub_data = hubs.get(hub.getAddress());
                             hub_data.getTracert().getValues().setCarbon(carbon);
-                            hub_data.getTracert().getTotals().setCarbon(hub_data.getTracert().getTotals().getCarbon() + carbon / 1000.0);*/
+                            hub_data.getTracert().getTotals().setCarbon(hub_data.getTracert().getTotals().getCarbon() + carbon / 1000.0);
                         });
-                double root_carbon = Stream.concat(
-                        Arrays.stream(task.getGameBlock().getRoot().getInputs()),
-                        Arrays.stream(task.getGameBlock().getRoot().getOutputs())
-                        )
-                        .filter(IConnectionPort::isOn)
-                        .filter(e -> e.getConnections() != null)
-                        .flatMap(e -> Stream.of(e.getConnections()))
-                        .mapToDouble(port -> {
-                            HubTracertInternalData ldata = hubs.get(port.getOwner().getAddress());
-                            return ldata.getTracert().getValues().getCarbon();
-                        })
-                        .sum();
-                dataset.getRoot_values().getValues().setCarbon(root_carbon);
                 dataset.getRoot_values().getTotals().setCarbon(
-                        dataset.getRoot_values().getTotals().getCarbon() + root_carbon / 1000.0
+                        dataset.getRoot_values().getTotals().getCarbon() +
+                                dataset.getRoot_values().getValues().getCarbon()/ 1000.0
                 );
 
                 // money
+                int finalTotalSec = totalSec;
+                Arrays.stream(task.getGameBlock().getRoot().getDevices())
+                        .forEach(hub -> {
+                            HubTracertInternalData hub_data = hubs.get(hub.getAddress());
+                            switch (hub.getOwner().getComponentType()) {
+                                case CONSUMER -> {
+                                    ConsumerSpecification data = ((Consumer) hub.getOwner()).getData();
+                                    double price = tariffs.getData().getT_total();
+                                    switch (data.getCatprice()) {
+                                        case CATEGORY_2_2 -> {
+                                            if (finalTotalSec > HOUR_23) {
+                                                price = tariffs.getData().getT_zone_2().getNight();
+                                            } else if (finalTotalSec > HOUR_7) {
+                                                price = tariffs.getData().getT_zone_2().getDay();
+                                            } else {
+                                                price = tariffs.getData().getT_zone_2().getNight();
+                                            }
+                                        }
+                                        case CATEGORY_2_3 -> {
+                                            if (finalTotalSec > HOUR_23) {
+                                                price = tariffs.getData().getT_zone_3().getNight();
+                                            } else if (finalTotalSec > HOUR_21) {
+                                                price = tariffs.getData().getT_zone_3().getPp();
+                                            } else if (finalTotalSec > HOUR_17) {
+                                                price = tariffs.getData().getT_zone_3().getPeak();
+                                            } else if (finalTotalSec > HOUR_10) {
+                                                price = tariffs.getData().getT_zone_3().getPp();
+                                            } else if (finalTotalSec > HOUR_7) {
+                                                price = tariffs.getData().getT_zone_3().getPeak();
+                                            } else {
+                                                price = tariffs.getData().getT_zone_3().getNight();
+                                            }
+                                        }
+                                    }
+                                    hub_data.getTracert().getValues().setDebit(
+                                            hub_data.getTracert().getValues().getEnergy() * price
+                                    );
+                                    hub_data.getTracert().getTotals().setDebit(
+                                            hub_data.getTracert().getTotals().getDebit() +
+                                                    hub_data.getTracert().getValues().getDebit());
+                                }
+                                case GENERATOR -> {
+                                    GenerationSpecification data = ((Generation) hub.getOwner()).getData();
+                                    double price = tariffs.getData().getT_alternative().getResource();
+                                    hub_data.getTracert().getValues().setCredit(
+                                            hub_data.getTracert().getValues().getGeneration() * price
+                                    );
+                                    hub_data.getTracert().getTotals().setCredit(
+                                            hub_data.getTracert().getTotals().getCredit() +
+                                                    hub_data.getTracert().getValues().getCredit());
+                                }
+                                case GREEGENERATOR -> {
+                                    GreenGenerationSpecification data = ((GreenGeneration) hub.getOwner()).getData();
+                                    double price;
+                                    if (data.getGeneration_type() == SupportedGenerations.SOLAR) {
+                                        price = tariffs.getData().getT_alternative().getSun();
+                                    } else {
+                                        price = tariffs.getData().getT_alternative().getWind();
+                                    }
+                                    hub_data.getTracert().getValues().setCredit(
+                                            hub_data.getTracert().getValues().getGeneration() * price
+                                    );
+                                    hub_data.getTracert().getTotals().setCredit(
+                                            hub_data.getTracert().getTotals().getCredit() +
+                                                    hub_data.getTracert().getValues().getCredit());
+                                }
+                                case STORAGE -> {
+                                    EnergyStorageSpecification data = ((EnergyStorage) hub.getOwner()).getData();
+                                    double price = tariffs.getData().getT_alternative().getStorage();
+                                    hub_data.getTracert().getValues().setCredit(
+                                            hub_data.getTracert().getValues().getGeneration() * price
+                                    );
+                                    hub_data.getTracert().getTotals().setCredit(
+                                            hub_data.getTracert().getTotals().getCredit() +
+                                                    hub_data.getTracert().getValues().getCredit());
+                                }
+                            }
+                            dataset.getRoot_values().getValues().setDebit(
+                                    dataset.getRoot_values().getValues().getDebit() +
+                                            hub_data.getTracert().getValues().getDebit()
+                            );
+                            dataset.getRoot_values().getValues().setCredit(
+                                    dataset.getRoot_values().getValues().getCredit() +
+                                            hub_data.getTracert().getValues().getCredit()
+                            );
+                        });
+                dataset.getRoot_values().getTotals().setDebit(
+                        dataset.getRoot_values().getTotals().getDebit() +
+                                dataset.getRoot_values().getValues().getDebit()
+                );
+                dataset.getRoot_values().getTotals().setCredit(
+                        dataset.getRoot_values().getTotals().getCredit() +
+                                dataset.getRoot_values().getValues().getCredit()
+                );
 
                 // управление подсветкой
                 Arrays.stream(task.getGameBlock().getRoot().getDevices())
