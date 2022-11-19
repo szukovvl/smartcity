@@ -651,7 +651,7 @@ public class GameProcess implements Runnable {
                         .forEach(distributor -> {
                             HubTracertInternalData distributorHub = hubs.get(distributor.getAddress());
                             Arrays.stream(distributor.getOutputs())
-                                    .filter(e -> e.isOn())
+                                    .filter(IConnectionPort::isOn)
                                     .filter(e -> e.getConnections() != null)
                                     .forEach(line -> {
                                         PortTracertInternalData linePort = ports.get(line.getAddress());
@@ -683,7 +683,7 @@ public class GameProcess implements Runnable {
                                             distributorHub.getTracert().getValues().getCredit());
                         });
                 Arrays.stream(task.getGameBlock().getRoot().getInputs())
-                        .filter(e -> e.isOn())
+                        .filter(IConnectionPort::isOn)
                         .filter(e -> e.getConnections() != null)
                         .forEach(in_line -> {
                             PortTracertInternalData linePort = ports.get(in_line.getAddress());
@@ -694,7 +694,7 @@ public class GameProcess implements Runnable {
                             );
                         });
                 Arrays.stream(task.getGameBlock().getRoot().getOutputs())
-                        .filter(e -> e.isOn())
+                        .filter(IConnectionPort::isOn)
                         .filter(e -> e.getConnections() != null)
                         .forEach(in_line -> {
                             PortTracertInternalData linePort = ports.get(in_line.getAddress());
