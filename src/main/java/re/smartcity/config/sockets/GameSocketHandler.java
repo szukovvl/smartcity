@@ -265,7 +265,7 @@ public class GameSocketHandler implements WebSocketHandler {
                 }
 
                 Arrays.stream(modelingData.getTasks())
-                        .forEach(e -> e.stopGame());
+                        .forEach(TaskData::stopGame);
 
                 // !!! для костылей
                 synchronized (_locked) {
@@ -341,7 +341,7 @@ public class GameSocketHandler implements WebSocketHandler {
                 }
 
                 Arrays.stream(modelingData.getTasks())
-                        .forEach(e -> e.stopGame());
+                        .forEach(TaskData::stopGame);
 
                 modelingData.cancelScenes(); // !!!
 
@@ -811,7 +811,7 @@ public class GameSocketHandler implements WebSocketHandler {
             case GAME_PROCESS_DATA -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.GAME_PROCESS_DATA)
                     .data(Arrays.stream(modelingData.getTasks())
-                            .map(task -> task.getGameBlock())
+                            .map(TaskData::getGameBlock)
                             .toArray(GameBlock[]::new))
                     .build());
             case ERROR -> { }
@@ -982,7 +982,7 @@ public class GameSocketHandler implements WebSocketHandler {
 
     private GameBlock[] prepareGame() {
         return Arrays.stream(modelingData.getTasks())
-                .map(e -> buildGameBlock(e))
+                .map(this::buildGameBlock)
                 .toArray(GameBlock[]::new);
     }
 
@@ -1039,12 +1039,12 @@ public class GameSocketHandler implements WebSocketHandler {
                 .sum();
 
         double gp_sum = Arrays.stream(task.getAuctionScene())
-                .mapToDouble(e -> e.price())
+                .mapToDouble(PurchasedLot::price)
                 .sum();
 
         task.setGameBlock(GameBlock.builder()
                 .root(gameRoot)
-                .udevices(Arrays.stream(uconnDevices).mapToInt(e -> e.getDevaddr()).toArray())
+                .udevices(Arrays.stream(uconnDevices).mapToInt(IComponentIdentification::getDevaddr).toArray())
                 .adevices(task.getAuctionScene())
                 .credit_total(tp_sum + gp_sum)
                 .build());

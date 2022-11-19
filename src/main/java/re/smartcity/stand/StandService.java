@@ -279,16 +279,12 @@ public class StandService {
                     Random random = new Random();
                     while (true) {
                         Arrays.stream(generators)
-                                .forEach(gen -> {
-                                    modelingData.putGreenGeneration(gen.getDevaddr(),
-                                            random.nextDouble(100.0));
-                                });
+                                .forEach(gen -> modelingData.putGreenGeneration(gen.getDevaddr(),
+                                        random.nextDouble(100.0)));
                         Thread.sleep(1000);
                     }
                 }
-                catch (InterruptedException ex) {
-
-                }
+                catch (InterruptedException ignored) { }
             }, 3, TimeUnit.SECONDS);
             // !!!
 
