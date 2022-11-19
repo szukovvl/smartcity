@@ -646,6 +646,65 @@ public class GameProcess implements Runnable {
                                             hub_data.getTracert().getValues().getCredit()
                             );
                         });
+                Arrays.stream(task.getGameBlock().getRoot().getDevices())
+                        .filter(e -> e.getOwner().getComponentType() == SupportedTypes.DISTRIBUTOR)
+                        .forEach(distributor -> {
+                            HubTracertInternalData distributorHub = hubs.get(distributor.getAddress());
+                            Arrays.stream(distributor.getOutputs())
+                                    .filter(e -> e.isOn())
+                                    .filter(e -> e.getConnections() != null)
+                                    .forEach(line -> {
+                                        PortTracertInternalData linePort = ports.get(line.getAddress());
+                                        Arrays.stream(line.getConnections())
+                                                .forEach(port -> {
+                                                    HubTracertInternalData consumerHub = hubs.get(port.getOwner().getAddress());
+                                                    distributorHub.getTracert().getValues().setDebit(
+                                                            distributorHub.getTracert().getValues().getDebit() +
+                                                                    consumerHub.getTracert().getValues().getDebit()
+                                                    );
+                                                });
+
+                                        distributorHub.getTracert().getValues().setCredit(
+                                                distributorHub.getTracert().getValues().getCredit() +
+                                                        linePort.getTracert().getValues().getEnergy() * tariffs.getData().getTariff().getTk_low() / 1000.0
+                                        );
+                                    });
+                            distributorHub.getTracert().getTotals().setDebit(
+                                    distributorHub.getTracert().getTotals().getDebit() +
+                                            distributorHub.getTracert().getValues().getDebit()
+                            );
+                            distributorHub.getTracert().getTotals().setCredit(
+                                    distributorHub.getTracert().getTotals().getCredit() +
+                                            distributorHub.getTracert().getValues().getCredit()
+                            );
+
+                            dataset.getRoot_values().getValues().setCredit(
+                                    dataset.getRoot_values().getValues().getCredit() +
+                                            distributorHub.getTracert().getValues().getCredit());
+                        });
+                Arrays.stream(task.getGameBlock().getRoot().getInputs())
+                        .filter(e -> e.isOn())
+                        .filter(e -> e.getConnections() != null)
+                        .forEach(in_line -> {
+                            PortTracertInternalData linePort = ports.get(in_line.getAddress());
+
+                            dataset.getRoot_values().getValues().setCredit(
+                                    dataset.getRoot_values().getValues().getCredit() +
+                                            linePort.getTracert().getValues().getGeneration() * tariffs.getData().getTariff().getTk_avg_1() / 1000.0
+                            );
+                        });
+                Arrays.stream(task.getGameBlock().getRoot().getOutputs())
+                        .filter(e -> e.isOn())
+                        .filter(e -> e.getConnections() != null)
+                        .forEach(in_line -> {
+                            PortTracertInternalData linePort = ports.get(in_line.getAddress());
+
+                            dataset.getRoot_values().getValues().setCredit(
+                                    dataset.getRoot_values().getValues().getCredit() +
+                                            linePort.getTracert().getValues().getEnergy() * tariffs.getData().getTariff().getTk_avg_1() / 1000.0
+                            );
+                        });
+
                 dataset.getRoot_values().getTotals().setDebit(
                         dataset.getRoot_values().getTotals().getDebit() +
                                 dataset.getRoot_values().getValues().getDebit()
