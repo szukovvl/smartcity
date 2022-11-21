@@ -362,15 +362,14 @@ public class GameProcess implements Runnable {
                             // мощности генераторов
                             switch (gen_data.getOes().getComponentType()) {
                                 case STORAGE -> {
-                                    EnergyStorageSpecification data = ((EnergyStorage) gen_data.getOes()).getData();
-                                    v = data.getEnergy();
+                                    v = gen_data.getStorageModel().getEnergy();
                                     if (gen_port.getPort().isOn()) {
                                         gen_port.getTracert().getValues().setGeneration(v * 1000.0);
                                         gen_port.getTracert().getTotals().setGeneration(
                                                 gen_port.getTracert().getTotals().getGeneration() +
                                                         gen_port.getTracert().getValues().getGeneration() / 1000.0);
                                         gen_energy = v;
-                                    } else if (data.getMode() == GenerationUsageModes.RESERVE) {
+                                    } else if (gen_data.getStorageModel().isReservationMode()) {
                                         gen_reserve = v;
                                     }
                                 }

@@ -6,6 +6,7 @@ import re.smartcity.modeling.scheme.IOesHub;
 public class HubTracertInternalData {
     private final IOesHub hub;
     private final IComponentIdentification oes;
+    private final EnergyStorageModel storageModel;
     private HubTracertValues tracert;
     private double[] forecast = null;
     private byte illumination = 0;
@@ -14,6 +15,7 @@ public class HubTracertInternalData {
         this.hub = hub;
         this.oes = oes;
         this.tracert = new HubTracertValues(hub.getAddress());
+        this.storageModel = EnergyStorageModel.create(oes);
     }
 
     public IComponentIdentification getOes() {
@@ -26,6 +28,10 @@ public class HubTracertInternalData {
 
     public HubTracertValues getTracert() {
         return tracert;
+    }
+
+    public EnergyStorageModel getStorageModel() {
+        return storageModel;
     }
 
     public void setTracert(HubTracertValues tracert) {
