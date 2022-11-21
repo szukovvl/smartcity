@@ -312,6 +312,7 @@ public class GameProcess implements Runnable {
         try {
             Thread.sleep(500); // немного притормозим перед началом...
 
+            double devider = 1.0;
             int fNumber = 0;
             double energy_for_step = ((double) gameStep) / ((double) SECONDS_OF_HOURS);
 
@@ -749,6 +750,55 @@ public class GameProcess implements Runnable {
                         dataset.getCumulative_total().getDebit() + dataset.getRoot_values().getValues().getDebit());
                 dataset.getCumulative_total().setCredit(
                         dataset.getCumulative_total().getCredit() + dataset.getRoot_values().getValues().getCredit());
+
+                // игровые баллы
+                // баланс мощности
+                if (dataset.getCumulative_total().getGeneration() < dataset.getCumulative_total().getEnergy()) {
+                    dataset.getScores().setBalance(
+                            (dataset.getScores().getBalance() +
+                            criteria.getData().getCoef_power_balance().getK2()) / devider);
+                } else {
+                    double k = dataset.getCumulative_total().getEnergy() / dataset.getCumulative_total().getGeneration();
+                    if (k > 0.995) {
+                        dataset.getScores().setBalance(
+                                (dataset.getScores().getBalance() +
+                                criteria.getData().getCoef_power_balance().getK1()) / devider);
+                    } else if (k > 0.88) {
+                        dataset.getScores().setBalance(
+                                (dataset.getScores().getBalance() +
+                                criteria.getData().getCoef_power_balance().getK4()) / devider);
+                    } else {
+                        dataset.getScores().setBalance(
+                                (dataset.getScores().getBalance() +
+                                criteria.getData().getCoef_power_balance().getK3()) / devider);
+                    }
+                }
+                devider = 2.0;
+                // экономика
+                if (dataset.getCumulative_total().getDebit() < dataset.getCumulative_total().getCredit()) {
+                    dataset.getScores().setEconomic(criteria.getData().getCoef_economic().getK2());
+                } else {
+                    double k = dataset.getCumulative_total().getDebit() / dataset.getCumulative_total().getCredit();
+                    if (k > 0.995) {
+                        dataset.getScores().setEconomic(criteria.getData().getCoef_power_balance().getK1());
+                    } else {
+                        dataset.getScores().setEconomic(criteria.getData().getCoef_power_balance().getK3());
+                    }
+                }
+                // экология
+                if (dataset.getCumulative_total().getCarbon() > 800.0) {
+                    dataset.getScores().setEcology(criteria.getData().getCoef_ecology().getK3());
+                } else if (dataset.getCumulative_total().getCarbon() > 200.0) {
+                    dataset.getScores().setEcology(criteria.getData().getCoef_power_balance().getK2());
+                } else {
+                    dataset.getScores().setEcology(criteria.getData().getCoef_power_balance().getK1());
+                }
+
+                dataset.getScores().setScores(
+                        dataset.getScores().getBalance() * criteria.getData().getPower_balance() / 100.0 +
+                        dataset.getScores().getEconomic() * criteria.getData().getEconomic() / 100.0 +
+                        dataset.getScores().getEcology() * criteria.getData().getEcology() / 100.0
+                );
 
                 totalSec += gameStep;
                 fNumber++;
