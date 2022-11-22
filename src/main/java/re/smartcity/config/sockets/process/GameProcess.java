@@ -752,12 +752,12 @@ public class GameProcess implements Runnable {
 
                 // игровые баллы
                 // баланс мощности
-                if (dataset.getCumulative_total().getGeneration() < dataset.getCumulative_total().getEnergy()) {
+                if (dataset.getInstant_values().getGeneration() < dataset.getInstant_values().getEnergy()) {
                     dataset.getScores().setBalance(
                             (dataset.getScores().getBalance() +
                             criteria.getData().getCoef_power_balance().getK2()) / devider);
                 } else {
-                    double k = dataset.getCumulative_total().getEnergy() / dataset.getCumulative_total().getGeneration();
+                    double k = dataset.getInstant_values().getEnergy() / dataset.getInstant_values().getGeneration();
                     if (k > 0.995) {
                         dataset.getScores().setBalance(
                                 (dataset.getScores().getBalance() +
@@ -778,19 +778,19 @@ public class GameProcess implements Runnable {
                     dataset.getScores().setEconomic(criteria.getData().getCoef_economic().getK2());
                 } else {
                     double k = dataset.getCumulative_total().getDebit() / dataset.getCumulative_total().getCredit();
-                    if (k > 0.995) {
-                        dataset.getScores().setEconomic(criteria.getData().getCoef_power_balance().getK1());
+                    if (k > 1.1) {
+                        dataset.getScores().setEconomic(criteria.getData().getCoef_economic().getK3());
                     } else {
-                        dataset.getScores().setEconomic(criteria.getData().getCoef_power_balance().getK3());
+                        dataset.getScores().setEconomic(criteria.getData().getCoef_economic().getK1());
                     }
                 }
                 // экология
                 if (dataset.getCumulative_total().getCarbon() > 800.0) {
                     dataset.getScores().setEcology(criteria.getData().getCoef_ecology().getK3());
                 } else if (dataset.getCumulative_total().getCarbon() > 200.0) {
-                    dataset.getScores().setEcology(criteria.getData().getCoef_power_balance().getK2());
+                    dataset.getScores().setEcology(criteria.getData().getCoef_ecology().getK2());
                 } else {
-                    dataset.getScores().setEcology(criteria.getData().getCoef_power_balance().getK1());
+                    dataset.getScores().setEcology(criteria.getData().getCoef_ecology().getK1());
                 }
 
                 dataset.getScores().setScores(
