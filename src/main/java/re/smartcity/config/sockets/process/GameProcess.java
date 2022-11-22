@@ -602,7 +602,6 @@ public class GameProcess implements Runnable {
                                                     hub_data.getTracert().getValues().getDebit());
                                 }
                                 case GENERATOR -> {
-                                    GenerationSpecification data = ((Generation) hub.getOwner()).getData();
                                     double price = tariffs.getData().getT_alternative().getResource();
                                     hub_data.getTracert().getValues().setCredit(
                                             hub_data.getTracert().getValues().getGeneration() * price
@@ -627,7 +626,6 @@ public class GameProcess implements Runnable {
                                                     hub_data.getTracert().getValues().getCredit());
                                 }
                                 case STORAGE -> {
-                                    EnergyStorageSpecification data = ((EnergyStorage) hub.getOwner()).getData();
                                     double price = tariffs.getData().getT_alternative().getStorage();
                                     hub_data.getTracert().getValues().setCredit(
                                             hub_data.getTracert().getValues().getGeneration() * price
