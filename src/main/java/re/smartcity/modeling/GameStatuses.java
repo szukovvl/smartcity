@@ -7,5 +7,6 @@ public enum GameStatuses {
     GAMERS_AUCTION_PREPARE, // сцена 3 - аукцион - подготовка
     GAMERS_AUCTION_SALE, // сцена 4 - аукцион торговля
     GAMERS_SCHEME, // сцена 5 - сборка схемы
-    GAME_PROCESS // выполнение игры
+    GAME_PROCESS, // выполнение игры
+    GAME_STOPPING // останов игры
 }

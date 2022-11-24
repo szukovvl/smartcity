@@ -24,6 +24,8 @@ public enum GameEventTypes {
     GAME_SCENE_SCHEME, // схема
     GAME_SCHEMA_DATA, // схема
     GAME_PROCESS_START, // запуск игры
+    GAME_PROCESS_STOP, // останов игры
+    GAME_PROCESS_EXIT, // завершение игры
     GAME_PROCESS_ITERATION, // временной срез
     GAME_PROCESS_DATA, // запрос данных игрового блока
     SCENESDATA, // запрос данных сцен игрока

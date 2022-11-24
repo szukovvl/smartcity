@@ -14,6 +14,7 @@ import re.smartcity.energynet.component.data.ConsumerSpecification;
 import re.smartcity.energynet.component.data.EnergyStorageSpecification;
 import re.smartcity.energynet.component.data.GenerationSpecification;
 import re.smartcity.energynet.component.data.GreenGenerationSpecification;
+import re.smartcity.modeling.GameStatuses;
 import re.smartcity.modeling.ModelingData;
 import re.smartcity.modeling.TaskData;
 import re.smartcity.modeling.scheme.IConnectionPort;
@@ -819,6 +820,10 @@ public class GameProcess implements Runnable {
         catch (InterruptedException ignored) {
             logger.warn("Игровой сценарий для {} прерван", task.getPowerSystem().getIdenty());
         }
+
+        modelingData.setGameStatus(GameStatuses.GAME_STOPPING);
+
+        messenger.sendStatusEvent();
 
         // останов всех устройств стенда
         standAllOff();

@@ -814,6 +814,51 @@ public class GameSocketHandler implements WebSocketHandler {
                             .map(TaskData::getGameBlock)
                             .toArray(GameBlock[]::new))
                     .build());
+            case GAME_PROCESS_STOP -> {
+                if (gameAdmin != null && !session.getId().equals(gameAdmin.getId())) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
+                            .build());
+                    return event;
+                }
+
+                if (modelingData.getGameStatus() != GameStatuses.GAME_PROCESS) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_19))
+                            .build());
+                    return event;
+                }
+
+                Arrays.stream(modelingData.getTasks())
+                        .forEach(TaskData::stopGame);
+
+                modelingData.setGameStatus(GameStatuses.GAME_STOPPING);
+
+                sendEventToAll(buildStatusEvent());
+            }
+            case GAME_PROCESS_EXIT -> {
+                if (gameAdmin != null && !session.getId().equals(gameAdmin.getId())) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_14))
+                            .build());
+                    return event;
+                }
+
+                if (modelingData.getGameStatus() != GameStatuses.GAME_STOPPING) {
+                    sendEvent(session, GameServiceEvent
+                            .type(GameEventTypes.ERROR)
+                            .data(new GameErrorEvent(event.getType().toString(), Messages.ER_19))
+                            .build());
+                    return event;
+                }
+
+                modelingData.cancelScenes(); // !!!
+
+                sendEventToAll(buildStatusEvent());
+            }
             case ERROR -> { }
             default -> sendEvent(session, GameServiceEvent
                     .type(GameEventTypes.ERROR)
@@ -1255,6 +1300,10 @@ public class GameSocketHandler implements WebSocketHandler {
                     .data(dataset)
                     .build());
         }
+    }
+
+    public void sendStatusEvent() {
+        sendEventToAll(buildStatusEvent());
     }
 
     private class LotExecutor implements Runnable {
