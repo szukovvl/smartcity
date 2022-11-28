@@ -28,6 +28,7 @@ import re.smartcity.wind.WindRouterHandlers;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
@@ -346,10 +347,112 @@ public class GameProcess implements Runnable {
                 hubs.values().forEach(e -> e.getTracert().setValues(new GameValues()));
                 ports.values().forEach(e -> e.getTracert().setValues(new GameValues()));
 
+                int finalFNumber = fNumber; // номер элемента прогноза для использования в лямбда-выражениях
+                //region новый алгоритм
+                double tmp_val = 0.0;
+                // все мощности рассчитываются в кВт
+                //region расчет генераций
+                final double[] generation_main = {
+                        ((MainSubstationPowerSystem) task.getGameBlock().getRoot().getOwner())
+                                .getData().getExternal_energy() * 1000.0
+                }; // генерация из единой энергосети, включая локальную генерацию
+                final double[] generation_added = { 0.0 }; // активная резервная генерация
+                final double[] generation_reserve = { 0.0 }; // зарезервированные мощности
+                Map<Integer, Double> gen_stamps = new Hashtable<>(); // примененные мгновенные значения генераций (кВт)
+                // расчет генераций
+                Arrays.stream(task.getGameBlock().getRoot().getInputs())
+                        .filter(e -> e.isOn())
+                        .filter(e -> e.getConnections() != null)
+                        .forEach(line -> {
+                            PortTracertInternalData line_port = ports.get(line.getAddress());
+                            PortTracertInternalData gen_port = ports.get(line.getConnections()[0].getAddress());
+                            HubTracertInternalData gen_data = hubs.get(gen_port.getPort().getOwner().getAddress());
+                            ElectricalSubnet line_data = lines.get(line.getAddress());
+                            double v;
+
+                            // мощности генераторов
+                            switch (gen_data.getOes().getComponentType()) {
+                                case STORAGE -> {
+                                    EnergyStorageSpecification params = ((EnergyStorage) gen_data.getOes()).getData();
+                                    v = gen_data.getStorageModel().getEnergy();
+                                    v *= (energy_for_step * 1000.0);
+                                    gen_stamps.put(gen_data.getHub().getAddress(), v);
+
+                                    if (gen_port.getPort().isOn()) {
+                                        if (params.getMode() == GenerationUsageModes.ALWAYS) {
+                                            generation_main[0] += v;
+                                        } else {
+                                            generation_added[0] += v;
+                                        }
+                                    } else if (gen_data.getStorageModel().isReservationMode()) {
+                                        generation_reserve[0] += v;
+                                    }
+                                }
+                                case GENERATOR -> {
+                                    if (gen_data.useForecast()) {
+                                        v = gen_data.getForecast()[finalFNumber];
+                                    } else {
+                                        v = ((Generation) gen_data.getOes()).getData().getEnergy();
+                                    }
+                                    v *= (energy_for_step * 1000.0);
+                                    gen_stamps.put(gen_data.getHub().getAddress(), v);
+
+
+
+                                    /*gen_data.getTracert().getValues().setGeneration(v);
+                                    if (gen_port.getPort().isOn()) {
+                                        gen_port.getTracert().getValues().setGeneration(v * 1000.0);
+                                        gen_port.getTracert().getTotals().setGeneration(
+                                                gen_port.getTracert().getTotals().getGeneration() +
+                                                        gen_port.getTracert().getValues().getGeneration() / 1000.0);
+                                        gen_energy = v;
+                                    } else if (((Generation) gen_data.getOes()).getData().getMode() == GenerationUsageModes.RESERVE) {
+                                        gen_reserve = v;
+                                    }*/
+                                }
+                                case GREEGENERATOR -> {
+                                    GreenGenerationSpecification data = ((GreenGeneration) gen_data.getOes()).getData();
+                                    v = data.getEnergy() * (modelingData.getGreenGeneration(gen_data.getHub().getAddress()) / 100.0);
+                                    v *= energy_for_step;
+                                    /*if (gen_port.getPort().isOn()) {
+                                        gen_port.getTracert().getValues().setGeneration(v * 1000.0);
+                                        gen_port.getTracert().getTotals().setGeneration(
+                                                gen_port.getTracert().getTotals().getGeneration() +
+                                                        gen_port.getTracert().getValues().getGeneration() / 1000.0);
+                                        gen_energy = v;
+                                    } else if (data.getMode() == GenerationUsageModes.RESERVE) {
+                                        gen_reserve = v;
+                                    }*/
+                                }
+                            }
+
+                            /*gen_energy *= 1000.0; // киловатты
+                            gen_reserve *= 1000.0;
+
+                            gen_data.getTracert().getValues().setGeneration(gen_energy + gen_reserve);
+                            gen_data.getTracert().getTotals().setGeneration(
+                                    gen_data.getTracert().getTotals().getGeneration() +
+                                            gen_data.getTracert().getValues().getGeneration() / 1000.0
+                            );
+
+                            if (line.isOn()) { // линия подключена
+                                ElectricalSubnet subnet = lines.get(line.getAddress());
+                                line_port.getTracert().getValues().setGeneration(gen_energy * subnet.getData().getLossfactor());
+                                line_port.getTracert().getValues().setReserve_generation(gen_reserve * subnet.getData().getLossfactor());
+                            }
+
+                            dataset.getRoot_values().getValues().setGeneration(
+                                    dataset.getRoot_values().getValues().getGeneration() + line_port.getTracert().getValues().getGeneration());
+                            dataset.getRoot_values().getValues().setReserve_generation(
+                                    dataset.getRoot_values().getValues().getReserve_generation() + line_port.getTracert().getValues().getReserve_generation());*/
+                        });
+                //endregion
+                //endregion
+
+                //region старый алгоритм
                 // расчет мощностей генерации
                 double ext_energy = ((MainSubstationPowerSystem) task.getGameBlock().getRoot().getOwner())
                         .getData().getExternal_energy() * 1000.0; // в кВт
-                int finalFNumber = fNumber;
                 Arrays.stream(task.getGameBlock().getRoot().getInputs())
                         .filter(e -> e.getConnections() != null)
                         .forEach(line -> {
@@ -727,6 +830,7 @@ public class GameProcess implements Runnable {
                                         SerialPackageTypes.SET_HIGHLIGHT_LEVEL, v));
                             }
                         });
+                //endregion
 
                 // итоговые данные
                 dataset.getInstant_values().setEnergy(dataset.getRoot_values().getValues().getEnergy());

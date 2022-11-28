@@ -17,7 +17,7 @@ public class EnergyStorageModel {
 
     }
 
-    public double getEnergy() {
+    public double getEnergy() { // возвращает мегаватты
         return storage.getData().getEnergy();
     }
 
